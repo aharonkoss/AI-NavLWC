@@ -1,0 +1,20 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="cdt-wrapper">
+        <template for:each={tabs} for:item="tab">
+            <button
+                key={tab.id}
+                class={tab.cls}
+                data-tab={tab.id}
+                onclick={handleClick}>
+                {tab.label}
+            </button>
+        </template>
+    </div>
+</template>

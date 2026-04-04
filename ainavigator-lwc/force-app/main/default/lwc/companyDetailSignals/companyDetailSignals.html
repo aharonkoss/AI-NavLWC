@@ -1,0 +1,47 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-03-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <c-pdf-generator></c-pdf-generator>
+    <div class="cds-wrapper">
+        <!-- Header -->
+        <div class="cds-header">
+            <h2 class="cds-title">Signals &amp; Risk Assessment</h2>
+            <div class="cds-legend">
+                <span class="cds-badge cds-p5">P5 Critical</span>
+                <span class="cds-badge cds-p4">P4 High</span>
+                <span class="cds-badge cds-p3">P3 Medium</span>
+                <span class="cds-badge cds-p2">P2 Low</span>
+            </div>
+            <div class="cdu-subtabs-right">
+                <button class="cdu-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                    <template if:true={isDownloading}>Generating...</template>
+                    <template if:false={isDownloading}>Download PDF</template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Signal cards -->
+        <template if:true={hasSignals}>
+            <template for:each={signals} for:item="sig">
+                <div key={sig.id} class={sig.cardClass}>
+                    <div class="cds-sig-top">
+                        <span class={sig.priorityClass}>{sig.priority}</span>
+                        <span class={sig.categoryClass}>{sig.signalCategory}</span>
+                        <span class={sig.urgencyClass}>{sig.urgencyLabel}</span>
+                        <span class="cds-sig-date">{sig.eventDate}</span>
+                    </div>
+                    <h3 class="cds-sig-name">{sig.signalName}</h3>
+                    <p class="cds-sig-desc">{sig.signalDescription}</p>
+                </div>
+            </template>
+        </template>
+        <template if:false={hasSignals}>
+            <div class="cds-empty">No signals found for this company.</div>
+        </template>
+    </div>
+</template>

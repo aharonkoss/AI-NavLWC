@@ -1,0 +1,192 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="cdr-wrapper">
+
+        <!-- Sub-section tab strip -->
+        <div class="cdr-subtabs">
+            <template for:each={sections} for:item="sec">
+                <button key={sec.id}
+                    class={sec.cls}
+                    data-section={sec.id}
+                    onclick={handleSectionClick}>
+                    {sec.name}
+                </button>
+            </template>
+        </div>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="cdr-loading">
+                <span class="cdr-spinner"></span>
+                <span>Loading research data...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+
+            <!-- Company Profile -->
+            <template if:true={showCompany}>
+                <div class="cdr-panel">
+                    <div class="cdr-metrics-grid">
+                        <template for:each={companyMetrics} for:item="metric">
+                            <div key={metric.label} class="cdr-metric-card">
+                                <div class="cdr-metric-value">{metric.value}</div>
+                                <div class="cdr-metric-label">{metric.label}</div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">About</h3>
+                        <p class="cdr-card-body">{companyData.description}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Products &amp; Services</h3>
+                            <p class="cdr-card-body">{companyData.products}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Business Model</h3>
+                            <p class="cdr-card-body">{companyData.businessModel}</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Industry Analysis -->
+            <template if:true={showIndustry}>
+                <div class="cdr-panel">
+                    <div class="cdr-metrics-grid">
+                        <template for:each={industryMetrics} for:item="metric">
+                            <div key={metric.label} class="cdr-metric-card">
+                                <div class="cdr-metric-value">{metric.value}</div>
+                                <div class="cdr-metric-label">{metric.label}</div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Key Trends</h3>
+                        <p class="cdr-card-body">{industryData.keyTrends}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Competitors</h3>
+                            <p class="cdr-card-body">{industryData.competitors}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Outlook</h3>
+                            <p class="cdr-card-body">{industryData.outlook}</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Target Customer -->
+            <template if:true={showTargetCustomer}>
+                <div class="cdr-panel">
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Primary Buyer</h3>
+                        <p class="cdr-card-body">{targetCustomerData.primaryBuyer}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Decision Makers</h3>
+                            <p class="cdr-card-body">{targetCustomerData.decisionMakers}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Buying Cycle</h3>
+                            <p class="cdr-card-body">{targetCustomerData.buyingCycle}</p>
+                        </div>
+                    </div>
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Pain Points</h3>
+                        <p class="cdr-card-body">{targetCustomerData.painPoints}</p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Ecosystem & Partnerships -->
+            <template if:true={showEcosystem}>
+                <div class="cdr-panel">
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Key Partners</h3>
+                        <p class="cdr-card-body">{ecosystemData.keyPartners}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Certifications</h3>
+                            <p class="cdr-card-body">{ecosystemData.certifications}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Associations</h3>
+                            <p class="cdr-card-body">{ecosystemData.associations}</p>
+                        </div>
+                    </div>
+                    <div class="cdr-section-card cdr-highlight">
+                        <h3 class="cdr-card-title">Banking Needs Identified</h3>
+                        <p class="cdr-card-body">{ecosystemData.bankingNeeds}</p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Leadership -->
+            <template if:true={showLeadership}>
+                <div class="cdr-panel">
+                    <template for:each={leaders} for:item="leader">
+                        <div key={leader.fullName} class="cdr-leader-card">
+                            <div class="cdr-leader-avatar">{leader.initials}</div>
+                            <div class="cdr-leader-info">
+                                <div class="cdr-leader-name">{leader.fullName}</div>
+                                <div class="cdr-leader-title">{leader.title}</div>
+                                <p class="cdr-leader-bio">{leader.background}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Strategic Intelligence -->
+            <template if:true={showStrategic}>
+                <div class="cdr-panel">
+                    <template for:each={strategicFields} for:item="field">
+                        <div key={field.fieldName} class="cdr-intel-card">
+                            <div class="cdr-intel-header">
+                                <span class="cdr-intel-icon">💡</span>
+                                <h3 class="cdr-intel-title">{field.fieldName}</h3>
+                            </div>
+                            <p class="cdr-intel-body">{field.data}</p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Financial -->
+            <template if:true={showFinancial}>
+                <div class="cdr-panel">
+                    <div class="cdr-fin-header">
+                        <div>
+                            <h3 class="cdr-fin-company">{financialData.verifiedcompanyname}</h3>
+                            <p class="cdr-fin-url">{financialData.verifiedcompanyurl}</p>
+                        </div>
+                        <span class={financialConfidenceClass}>{financialConfidenceLabel}</span>
+                    </div>
+                    <template for:each={financialFields} for:item="field">
+                        <div key={field.fieldName} class="cdr-fin-card">
+                            <div class="cdr-fin-card-header">
+                                <h4 class="cdr-fin-field-name">{field.fieldName}</h4>
+                                <span class={field.confidenceClass}>{field.confidenceLabel}</span>
+                            </div>
+                            <p class="cdr-fin-field-data">{field.data}</p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+        </template>
+    </div>
+</template>

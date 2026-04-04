@@ -1,0 +1,102 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-02-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <!-- Loading -->
+    <template if:true={isLoading}>
+        <div class="cd-loading">
+            <span class="cd-spinner"></span>
+            <span>Loading company data...</span>
+        </div>
+    </template>
+
+    <template if:false={isLoading}>
+
+        <!-- Empty state: no company selected -->
+        <template if:false={hasCompany}>
+            <c-company-detail-empty
+                onbacktodashboard={handleBackToDashboard}>
+            </c-company-detail-empty>
+        </template>
+
+        <!-- Company loaded -->
+        <template if:true={hasCompany}>
+            <div class="cd-wrapper">
+
+                <!-- Header: guard so it only renders after data arrives -->
+                <template if:true={company}>
+                    <c-company-detail-header
+                        company={company}
+                        onbacktodashboard={handleBackToDashboard}
+                        ondownloadpdf={handleDownloadPDF}>
+                    </c-company-detail-header>
+                </template>
+                <!-- Tab strip -->
+                <c-company-detail-tabs
+                    active-tab={activeTab}
+                    ontabchange={handleTabChange}>
+                </c-company-detail-tabs>
+
+                <!-- Tab content -->
+                <div class="cd-content">
+                    <template if:true={showUpdates}>
+                        <c-company-detail-updates
+                            live-updates={liveUpdates}
+                            company={company}
+                            company-name={companyName}>
+                        </c-company-detail-updates>
+                    </template>
+
+                    <template if:true={showSignals}>
+                        <c-company-detail-signals
+                            signals-data={signalsData}
+                            company={company}>
+                        </c-company-detail-signals>
+                    </template>
+
+                    <template if:true={showResearch}>
+                        <c-company-detail-research
+                            company-id={_companyId}>
+                        </c-company-detail-research>
+                    </template>
+
+                    <template if:true={showInsights}>
+                        <c-company-detail-insights
+                            company-id={_companyId}>
+                        </c-company-detail-insights>
+                    </template>
+
+                    <template if:true={showCallPlan}>
+                        <c-company-detail-call-plan
+                            company-id={_companyId}
+                            company={company}>
+                        </c-company-detail-call-plan>
+                    </template>
+                    <!-- COACH TAB PANEL -->
+                    <template if:true={showCoach}>
+                        <c-company-detail-coach
+                            company={company}
+                            live-updates={liveUpdates}
+                            signals-data={signalsData}
+                            ai-research={aiResearch}
+                            discovery-call-plan={discoveryCallPlanData}>
+                        </c-company-detail-coach>
+                    </template>
+                    <template if:true={showSimulator}>
+                        <c-company-detail-simulator
+                            company={company}
+                            ai-research={aiResearch}
+                            discovery-call-plan={discoveryCallPlanData}>
+                        </c-company-detail-simulator>
+                    </template>
+                </div>
+
+            </div>
+        </template>
+
+    </template>
+</template>

@@ -1,0 +1,194 @@
+.cdr-wrapper { margin-top: 12px; }
+
+/* Sub-tab strip */
+.cdr-subtabs {
+    display: flex;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+    padding: 0 12px;
+    overflow-x: auto;
+    gap: 0;
+}
+.cdr-subtab {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.cdr-subtab:hover { color: #374151; }
+.cdr-subtab-active { color: #1d4ed8; border-bottom-color: #1d4ed8; font-weight: 600; }
+
+/* Panel container */
+.cdr-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 300px;
+}
+
+/* Loading */
+.cdr-loading {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 200px;
+    font-size: 0.88rem;
+    color: #6b7280;
+}
+.cdr-spinner {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(107,114,128,0.3);
+    border-top-color: #374151;
+    animation: cdr-spin 0.8s linear infinite;
+}
+@keyframes cdr-spin { to { transform: rotate(360deg); } }
+
+/* Metrics row */
+.cdr-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+}
+.cdr-metric-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.cdr-metric-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-bottom: 4px;
+}
+.cdr-metric-label {
+    font-size: 0.72rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Content cards */
+.cdr-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.cdr-section-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.cdr-highlight {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+.cdr-card-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 6px;
+}
+.cdr-card-body {
+    font-size: 0.84rem;
+    color: #4b5563;
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* Leadership cards */
+.cdr-leader-card {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.cdr-leader-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.cdr-leader-info { flex: 1; }
+.cdr-leader-name  { font-size: 0.9rem; font-weight: 700; color: #111827; margin-bottom: 2px; }
+.cdr-leader-title { font-size: 0.78rem; color: #2563eb; font-weight: 600; margin-bottom: 6px; }
+.cdr-leader-bio   { font-size: 0.82rem; color: #4b5563; margin: 0; line-height: 1.5; }
+
+/* Strategic intel cards */
+.cdr-intel-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.cdr-intel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.cdr-intel-icon  { font-size: 1rem; }
+.cdr-intel-title { font-size: 0.88rem; font-weight: 700; color: #111827; margin: 0; }
+.cdr-intel-body  { font-size: 0.83rem; color: #4b5563; line-height: 1.55; margin: 0; }
+
+/* Financial */
+.cdr-fin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.cdr-fin-company { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 4px; }
+.cdr-fin-url     { font-size: 0.78rem; color: #2563eb; margin: 0; }
+.cdr-fin-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+.cdr-fin-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.cdr-fin-field-name { font-size: 0.85rem; font-weight: 700; color: #111827; margin: 0; }
+.cdr-fin-field-data { font-size: 0.82rem; color: #4b5563; line-height: 1.5; margin: 0; }
+
+/* Confidence badges */
+.cdr-conf        { font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.cdr-conf-high   { background: #dcfce7; color: #166534; }
+.cdr-conf-medium { background: #fef9c3; color: #854d0e; }
+.cdr-conf-low    { background: #f3f4f6; color: #6b7280; }

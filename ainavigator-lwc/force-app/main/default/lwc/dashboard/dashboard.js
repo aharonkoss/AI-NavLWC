@@ -1,0 +1,315 @@
+import { LightningElement, track } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
+import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
+import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
+import getSignals from '@salesforce/apex/DashboardController.getSignals';
+import updateCompany from '@salesforce/apex/DashboardController.updateCompany';
+import deleteCompany from '@salesforce/apex/DashboardController.deleteCompany';
+import retryCompany from '@salesforce/apex/DashboardController.retryCompany';
+
+export default class Dashboard extends NavigationMixin(LightningElement) {
+    @track stats = { totalCompanies: 0, processing: 0, completed: 0, opened: 0 };
+    @track _companies = [];
+    @track _companySignals = {};
+    @track searchTerm = '';
+    @track companyFilter = 'all';
+    @track dateFilter = '';
+    @track currentPage = 1;
+    @track selectedCompany = null; // { companyId, name, signals }
+    ITEMS_PER_PAGE = 10;
+
+    connectedCallback() {
+        this.loadStats();
+        this.loadCompanies();
+    }
+
+    loadStats() {
+        getDashboardStats()
+            .then(result => { this.stats = JSON.parse(result); })
+            .catch(error => console.error('Error loading stats:', error));
+    }
+
+    loadCompanies() {
+        getCompanies()
+            .then(result => {
+                const raw = JSON.parse(result);
+                this._companies = raw.map(c => this.mapCompany(c));
+                // Load signals for all completed companies
+                this._companies
+                    .filter(c => c.status === 'completed')
+                    .forEach(c => this.loadSignalsForCompany(c.companyId));
+            })
+            .catch(error => console.error('Error loading companies:', error));
+    }
+
+    loadSignalsForCompany(companyId) {
+        getSignals({ companyId })
+            .then(result => {
+                const signals = JSON.parse(result);
+                this._companySignals = { ...this._companySignals, [companyId]: signals };
+                // Recompute companies to update signal badge
+                this._companies = this._companies.map(c =>
+                    c.companyId === companyId ? this.mapCompany(c, signals) : c
+                );
+            })
+            .catch(error => console.error('Error loading signals for', companyId, error));
+    }
+
+    mapCompany(c, signals) {
+        const companySignals = signals || this._companySignals[c.companyId] || [];
+        const signalSummary = this.getSignalSummary(companySignals, c.status);
+        return {
+            ...c,
+            locationDisplay: [c.city, c.state].filter(Boolean).join(', '),
+            createdAtDisplay: c.createdAt
+                ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
+                : '-',
+            statusClass: this.getStatusClass(c.status),
+            statusLabel: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown',
+            isProcessingOrPending: c.status === 'processing' || c.status === 'pending',
+            stageIsPreCall:        (c.stage || 'PreCall') === 'PreCall',
+            stageIsAppointmentSet: c.stage === 'Appointment Set',
+            stageIsFaceToFace:     c.stage === 'Face To Face',
+            stageIsQualification:  c.stage === 'Qualification',
+            clientTypeIsProspect:  (c.clientType || 'Prospect') === 'Prospect',
+            clientTypeIsExisting:  c.clientType === 'Existing Customer',
+            clientTypeIsPast:      c.clientType === 'Past Customer',
+            hasSignals:            signalSummary !== null,
+            signalCount:           signalSummary ? signalSummary.count : 0,
+            signalMaxPriority:     signalSummary ? signalSummary.maxPriority : 1,
+            signalWarningCount:    signalSummary ? signalSummary.warningCount : 0,
+            signalBadgeClass:      signalSummary ? 'signal-badge ' + this.getSignalBadgeClass(signalSummary.maxPriority) : '',
+            showSignalWarning:     signalSummary ? signalSummary.warningCount > 0 : false
+        };
+    }
+
+    getSignalSummary(signals, status) {
+        if (status !== 'completed' || !signals || signals.length === 0) return null;
+        const nonNeutral = signals.filter(s => s.signalType !== 'Neutral');
+        if (nonNeutral.length === 0) return null;
+        const priorities = nonNeutral.map(s => this.getSignalPriority(s));
+        const maxPriority = Math.max(...priorities);
+        const warningCount = nonNeutral.filter(s =>
+            s.signalType === 'Early Warning' || s.signalType === 'Retention Risk'
+        ).length;
+        return { count: nonNeutral.length, maxPriority, warningCount };
+    }
+
+    getSignalPriority(signal) {
+        const type = (signal.signalType || '').toLowerCase();
+        const category = (signal.signalCategory || '').toLowerCase();
+        const name = (signal.signalName || '').toLowerCase();
+        if (category.includes('capital') || category.includes('m&a') || category.includes('acquisition')) return 5;
+        if (name.includes('acquisition') || name.includes('capital') || name.includes('funding')) return 5;
+        if (category.includes('leadership') || name.includes('cfo') || name.includes('ceo')) return 4;
+        if (type.includes('early warning') || category.includes('growth')) return 4;
+        if (type.includes('retention risk') || category.includes('risk') || category.includes('regulatory')) return 3;
+        if (category.includes('strategic') || category.includes('expansion')) return 2;
+        if (type.includes('opportunity')) return 2;
+        return 1;
+    }
+
+    getSignalBadgeClass(priority) {
+        const map = { 5: 'signal-p5', 4: 'signal-p4', 3: 'signal-p3', 2: 'signal-p2', 1: 'signal-p1' };
+        return map[priority] || 'signal-p1';
+    }
+
+    getStatusClass(status) {
+        const map = {
+            completed:  'status-badge status-completed',
+            processing: 'status-badge status-processing',
+            pending:    'status-badge status-pending',
+            failed:     'status-badge status-failed'
+        };
+        return map[status] || 'status-badge status-pending';
+    }
+
+    // ── Stats Getters ───────────────────────────────────────────────
+    get totalCompanies() { return this.stats.totalCompanies || 0; }
+    get processing()     { return this.stats.processing || 0; }
+    get completed()      { return this.stats.completed || 0; }
+    get opened()         { return this.stats.opened || 0; }
+
+    // ── Filter Options ──────────────────────────────────────────────
+    get filterOptions() {
+        return [
+            { label: 'All',                  value: 'all' },
+            { label: 'Most Recent 2',        value: 'recent2' },
+            { label: 'Client: Prospect',     value: 'clientType:Prospect' },
+            { label: 'Client: Existing',     value: 'clientType:Existing Customer' },
+            { label: 'Client: Past',         value: 'clientType:Past Customer' },
+            { label: 'Stage: PreCall',       value: 'stage:PreCall' },
+            { label: 'Stage: Appt Set',      value: 'stage:Appointment Set' },
+            { label: 'Stage: Face To Face',  value: 'stage:Face To Face' },
+            { label: 'Stage: Qualification', value: 'stage:Qualification' },
+            { label: 'Status: Completed',    value: 'status:completed' },
+            { label: 'Status: Processing',   value: 'status:processing' },
+            { label: 'Status: Pending',      value: 'status:pending' },
+            { label: 'Status: Failed',       value: 'status:failed' },
+            { label: 'By Date Submitted',    value: 'byDate' }
+        ];
+    }
+
+    get showDateFilter()  { return this.companyFilter === 'byDate'; }
+    get showClearFilter() { return this.companyFilter !== 'all' || this.searchTerm; }
+
+    // ── Filtered + Sorted + Paginated ───────────────────────────────
+    get filteredCompanies() {
+        let sorted = [...this._companies].sort((a, b) => {
+            const p = s => s === 'processing' ? 2 : s === 'pending' ? 1 : 0;
+            const diff = p(b.status) - p(a.status);
+            if (diff !== 0) return diff;
+            return new Date(b.createdAt) - new Date(a.createdAt);
+        });
+        if (this.companyFilter === 'recent2') {
+            sorted = sorted.slice(0, 2);
+        } else if (this.companyFilter.startsWith('clientType:')) {
+            const val = this.companyFilter.replace('clientType:', '');
+            sorted = sorted.filter(c => c.clientType === val);
+        } else if (this.companyFilter.startsWith('stage:')) {
+            const val = this.companyFilter.replace('stage:', '');
+            sorted = sorted.filter(c => c.stage === val);
+        } else if (this.companyFilter.startsWith('status:')) {
+            const val = this.companyFilter.replace('status:', '');
+            sorted = sorted.filter(c => c.status === val);
+        } else if (this.companyFilter === 'byDate' && this.dateFilter) {
+            sorted = sorted.filter(c => c.createdAt && c.createdAt.startsWith(this.dateFilter));
+        }
+        if (this.searchTerm.trim()) {
+            const term = this.searchTerm.toLowerCase();
+            sorted = sorted.filter(c =>
+                c.name?.toLowerCase().includes(term) ||
+                c.city?.toLowerCase().includes(term) ||
+                c.state?.toLowerCase().includes(term) ||
+                c.website?.toLowerCase().includes(term)
+            );
+        }
+        return sorted;
+    }
+
+    get totalPages() {
+        return this.companyFilter === 'all'
+            ? Math.ceil(this.filteredCompanies.length / this.ITEMS_PER_PAGE)
+            : 1;
+    }
+
+    get paginatedCompanies() {
+        if (this.companyFilter !== 'all' || this.filteredCompanies.length <= this.ITEMS_PER_PAGE) {
+            return this.filteredCompanies;
+        }
+        const start = (this.currentPage - 1) * this.ITEMS_PER_PAGE;
+        return this.filteredCompanies.slice(start, start + this.ITEMS_PER_PAGE);
+    }
+
+    get hasCompanies()   { return this.paginatedCompanies.length > 0; }
+    get showPagination() { return this.totalPages > 1; }
+    get isFirstPage()    { return this.currentPage === 1; }
+    get isLastPage()     { return this.currentPage === this.totalPages; }
+    get filteredCount()  { return this.filteredCompanies.length; }
+    get isModalOpen()    { return this.selectedCompany !== null; }
+
+    get paginationLabel() {
+        const start = (this.currentPage - 1) * this.ITEMS_PER_PAGE + 1;
+        const end = Math.min(this.currentPage * this.ITEMS_PER_PAGE, this.filteredCompanies.length);
+        return `${start}–${end} of ${this.filteredCompanies.length}`;
+    }
+
+    get emptyMessage() {
+        if (this.searchTerm) return `No companies found matching "${this.searchTerm}"`;
+        if (this.companyFilter !== 'all') return 'No companies match this filter.';
+        return 'No companies yet.';
+    }
+
+    // ── Event Handlers ──────────────────────────────────────────────
+    handleSearchChange(event)     { this.searchTerm = event.target.value; this.currentPage = 1; }
+    handleClearSearch()           { this.searchTerm = ''; this.currentPage = 1; }
+    handleFilterChange(event)     { this.companyFilter = event.target.value; if (this.companyFilter !== 'byDate') this.dateFilter = ''; this.currentPage = 1; }
+    handleDateFilterChange(event) { this.dateFilter = event.target.value; this.currentPage = 1; }
+    handleClearFilter()           { this.companyFilter = 'all'; this.dateFilter = ''; this.searchTerm = ''; this.currentPage = 1; }
+    handlePrevPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.template.querySelector('.companies-list')?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+    handleNextPage() {
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.template.querySelector('.companies-list')?.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }
+
+    handleStageChange(event) {
+        const companyId = event.target.dataset.companyid;
+        const newStage = event.target.value;
+        this._companies = this._companies.map(c =>
+            c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c
+        );
+        updateCompany({ companyId, stage: newStage, clientType: null })
+            .catch(error => console.error('Error updating stage:', error));
+    }
+
+    handleClientTypeChange(event) {
+        const companyId = event.target.dataset.companyid;
+        const newClientType = event.target.value;
+        this._companies = this._companies.map(c =>
+            c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c
+        );
+        updateCompany({ companyId, stage: null, clientType: newClientType })
+            .catch(error => console.error('Error updating client type:', error));
+    }
+
+    handleOpenSignals(event) {
+        const companyId = event.currentTarget.dataset.companyid;
+        const company = this._companies.find(c => c.companyId === companyId);
+        if (!company) return;
+        const signals = this._companySignals[companyId] || [];
+        this.selectedCompany = {
+            companyId: company.companyId,
+            name: company.name,
+            signals
+        };
+    }
+
+    handleCloseModal() {
+        this.selectedCompany = null;
+    }
+    handleDelete(event) {
+        const companyId = event.currentTarget.dataset.companyid;
+        const company = this._companies.find(c => c.companyId === companyId);
+        if (!company) return;
+        // Optimistic UI — remove immediately
+        this._companies = this._companies.filter(c => c.companyId !== companyId);
+        this.stats = {
+            ...this.stats,
+            totalCompanies: Math.max(0, (this.stats.totalCompanies || 0) - 1),
+            processing: company.status === 'processing' ? Math.max(0, (this.stats.processing || 0) - 1) : (this.stats.processing || 0),
+            completed:  company.status === 'completed'  ? Math.max(0, (this.stats.completed  || 0) - 1) : (this.stats.completed  || 0),
+            opened:     company.status === 'opened'     ? Math.max(0, (this.stats.opened     || 0) - 1) : (this.stats.opened     || 0)
+        };
+        deleteCompany({ companyId })
+            .catch(error => {
+                console.error('Error deleting company:', error);
+                // Rollback on failure
+                this._companies = [...this._companies, company];
+            });
+    }
+
+    handleRetry(event) {
+        const companyId = event.currentTarget.dataset.companyid;
+        this._companies = this._companies.map(c => {
+            if (c.companyId !== companyId) return c;
+            return this.mapCompany({ ...c, status: 'pending' });
+        });
+        retryCompany({ companyId })
+            .catch(error => console.error('Error retrying company:', error));
+    }
+    handleCompanyClick(event) {
+        const companyId = event.currentTarget.dataset.companyId;
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'Company_Detail' },  // must match your App Page API name exactly
+            state: { c__companyId: companyId }
+        });
+    }
+}

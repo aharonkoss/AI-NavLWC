@@ -1,0 +1,162 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-26-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="input-wrapper">
+
+        <!-- Page Header -->
+        <div class="input-page-header">
+            <h1 class="input-page-title">Add New Company</h1>
+            <p class="input-page-subtitle">Enter company details to start research</p>
+        </div>
+
+        <!-- Success Toast -->
+        <template if:true={submitSuccess}>
+            <div class="success-toast">
+                <div class="success-toast-left">
+                    <span class="success-icon">✓</span>
+                    <p class="success-text">{successMessage}</p>
+                </div>
+                <button class="success-dismiss" onclick={handleDismissSuccess}>✕</button>
+            </div>
+        </template>
+
+        <!-- Submit Error -->
+        <template if:true={errors.submit}>
+            <div class="error-toast">
+                <span>⚠ {errors.submit}</span>
+            </div>
+        </template>
+
+        <!-- Form Card -->
+        <div class="form-card">
+            <form onsubmit={handleSubmit}>
+
+                <!-- Row 1: Company Name + Website -->
+                <div class="form-row-2">
+
+                    <!-- Company Name -->
+                    <div class="form-group">
+                        <label class="form-label">Company Name <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            class={companyNameInputClass}
+                            placeholder="e.g. Acme Manufacturing"
+                            value={companyName}
+                            onchange={handleCompanyNameChange}
+                            maxlength="200"
+                        />
+                        <template if:true={errors.companyName}>
+                            <p class="field-error">⚠ {errors.companyName}</p>
+                        </template>
+                    </div>
+
+                    <!-- Website URL -->
+                    <div class="form-group">
+                        <label class="form-label">Website <span class="required">*</span></label>
+                        <div class="url-input-wrapper">
+                            <input
+                                type="text"
+                                class={websiteInputClass}
+                                placeholder="https://example.com"
+                                value={website}
+                                onfocus={handleWebsiteFocus}
+                                onchange={handleWebsiteChange}
+                            />
+                            <template if:true={showUrlValid}>
+                                <span class="url-indicator url-valid-icon" title="Valid URL">✓</span>
+                            </template>
+                            <template if:true={showUrlInvalid}>
+                                <span class="url-indicator url-invalid-icon" title="Invalid URL">✕</span>
+                            </template>
+                        </div>
+                        <template if:true={errors.website}>
+                            <p class="field-error">⚠ {errors.website}</p>
+                        </template>
+                        <template if:true={showUrlHint}>
+                            <p class="field-hint">Enter a valid URL (e.g., https://example.com)</p>
+                        </template>
+                    </div>
+
+                </div>
+
+                <!-- Row 2: City + State -->
+                <div class="form-row-2">
+
+                    <div class="form-group">
+                        <label class="form-label">City <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            class={cityInputClass}
+                            placeholder="e.g. Milwaukee"
+                            value={city}
+                            onchange={handleCityChange}
+                            maxlength="100"
+                        />
+                        <template if:true={errors.city}>
+                            <p class="field-error">⚠ {errors.city}</p>
+                        </template>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">State <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            class={stateInputClass}
+                            placeholder="e.g. WI"
+                            value={state}
+                            onchange={handleStateChange}
+                            maxlength="50"
+                        />
+                        <template if:true={errors.state}>
+                            <p class="field-error">⚠ {errors.state}</p>
+                        </template>
+                    </div>
+
+                </div>
+
+                <!-- Row 3: Stage + Client Type -->
+                <div class="form-row-2">
+
+                    <div class="form-group">
+                        <label class="form-label">Stage</label>
+                        <select class="dropdown-stage-input" value={stage} onchange={handleStageChange}>
+                            <template for:each={stageOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Client Type</label>
+                        <select class="dropdown-clienttype-input" value={clientType} onchange={handleClientTypeChange}>
+                            <template for:each={clientTypeOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-submit-row">
+                    <button type="submit" class={submitBtnClass} disabled={isSubmitting}>
+                        <template if:true={isSubmitting}>
+                            <span class="btn-spinner"></span> Submitting...
+                        </template>
+                        <template if:false={isSubmitting}>
+                            Submit Company
+                        </template>
+                    </button>
+                    <p class="submit-hint">Once submitted, your company will be processed and appear in Dashboard</p>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</template>
