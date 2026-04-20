@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Azure_APIM_Base_URL__c</fullName>
+    <label>Azure APIM Base URL</label>
+    <type>Text</type>
+    <length>255</length>
+    <description>Base URL of the Azure API Management gateway. e.g. https://ain-dev-dev01-apim.azure-api.net/api</description>
+</CustomField>

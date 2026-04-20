@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Max_Retry_Attempts__c</fullName>
+    <label>Max Retry Attempts</label>
+    <type>Number</type>
+    <precision>2</precision>
+    <scale>0</scale>
+    <description>Maximum number of retry attempts for failed Azure callouts before marking as error.</description>
+</CustomField>

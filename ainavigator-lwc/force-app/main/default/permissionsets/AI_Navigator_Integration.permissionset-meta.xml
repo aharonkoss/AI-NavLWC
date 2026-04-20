@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>AI Navigator Integration</label>
+    <description>Assigned to the Azure Integration User. Grants REST endpoint access, Platform Event publish/subscribe, and minimal object permissions needed for Azure callbacks.</description>
+
+    <!-- ── Apex REST Classes ─────────────────────────────────────── -->
+    <classAccesses>
+        <apexClass>AzureEchoService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AzureInboundEventService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AzureCompanyCallbackService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>AI_Navigator_Event_Publisher</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+
+    <!-- ── Platform Events ──────────────────────────────────────── -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>AI_Navigator_Inbound__e</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>AI_Navigator_Outbound__e</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+
+    <!-- ── Company__c — read + edit only (no create/delete) ─────── -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Company__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+
+    <!-- ── Submission__c — read + edit only ─────────────────────── -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Submission__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+
+    <!-- ── Signal__c — create + read (Azure writes signals) ─────── -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Signal__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+
+    <!-- ── Azure_Request_Log__c — create + read (for logging) ───── -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Azure_Request_Log__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+
+    <!-- ── Custom Metadata — read only ──────────────────────────── -->
+    <customMetadataTypeAccesses>
+        <enabled>true</enabled>
+        <name>AI_Navigator_Config__mdt</name>
+    </customMetadataTypeAccesses>
+
+    <!-- ── System Permissions ───────────────────────────────────── -->
+    <userPermissions>
+        <enabled>true</enabled>
+        <name>ApiEnabled</name>
+    </userPermissions>
+</PermissionSet>

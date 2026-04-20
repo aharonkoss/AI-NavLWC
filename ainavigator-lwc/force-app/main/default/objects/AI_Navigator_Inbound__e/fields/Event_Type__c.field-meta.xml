@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Event_Type__c</fullName>
+    <label>Event Type</label>
+    <type>Text</type>
+    <length>50</length>
+    <description>What completed or was detected. Values: RESEARCH_DONE, UPLOAD_PROCESSED, SIGNAL_ALERT, SCORING_DONE, REPORT_READY, PROCESSING_ERROR, BATCH_PROGRESS</description>
+</CustomField>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Event_Schema_Version__c</fullName>
+    <label>Event Schema Version</label>
+    <type>Text</type>
+    <length>10</length>
+    <description>Current active schema version for Platform Event payloads. e.g. v1. Bump when payload schemas change.</description>
+</CustomField>

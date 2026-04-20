@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>AI Navigator Outbound</label>
+    <pluralLabel>AI Navigator Outbound</pluralLabel>
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Outbound Platform Event. Published by Salesforce when a user action requires Azure processing (upload, research, signals, scoring). Azure subscribes via CometD.</description>
+    <eventType>StandardVolume</eventType>
+    <publishBehavior>PublishAfterCommit</publishBehavior>
+</CustomObject>

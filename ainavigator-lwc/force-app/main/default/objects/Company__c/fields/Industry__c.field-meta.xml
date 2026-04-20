@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Industry__c</fullName>
+    <label>Industry</label>
+    <type>Text</type>
+    <length>255</length>
+    <description>Industry category for the company. Used by Azure signal analysis to contextualize results.</description>
+</CustomField>

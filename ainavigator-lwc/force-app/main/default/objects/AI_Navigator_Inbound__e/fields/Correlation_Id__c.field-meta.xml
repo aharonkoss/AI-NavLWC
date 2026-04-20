@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Correlation_Id__c</fullName>
+    <label>Correlation ID</label>
+    <type>Text</type>
+    <length>36</length>
+    <description>End-to-end trace ID. Azure echoes this back on all inbound events so requests and responses can be matched.</description>
+</CustomField>

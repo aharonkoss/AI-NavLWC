@@ -1,0 +1,177 @@
+/**
+ * AzureInboundEventService
+ *
+ * Apex REST endpoint that accepts inbound event payloads from Azure
+ * and publishes them as AI_Navigator_Inbound__e Platform Events.
+ * This is the primary HTTP callback endpoint for Azure → Salesforce.
+ *
+ * Endpoint : /services/apexrest/ainavigator/v1/events/inbound
+ * Method   : POST
+ * Auth     : OAuth 2.0 Bearer Token (Client Credentials Flow)
+ *
+ * Azure posts this when async processing completes or alerts fire.
+ * Salesforce publishes the Platform Event which triggers the
+ * AI_Navigator_Inbound_Trigger → AI_Navigator_Inbound_Handler chain.
+ */
+@RestResource(urlMapping='/ainavigator/v1/events/inbound')
+global without sharing class AzureInboundEventService {
+
+    private static final String CORR_HEADER      = 'X-Correlation-Id';
+    private static final String CLIENT_HDR       = 'X-Client-Id';
+    private static final Integer MAX_BODY_BYTES  = 65536; // 64 KB
+
+    @HttpPost
+    global static void handlePost() {
+
+        RestRequest  req = RestContext.request;
+        RestResponse res = RestContext.response;
+
+        String correlationId = '';
+        String requestBody   = '';
+
+        try {
+            // ── 1. Extract headers ───────────────────────────────────────────
+            correlationId = req.headers.get(CORR_HEADER);
+            if (String.isBlank(correlationId)) {
+                correlationId = 'NO-CORR-ID-' + DateTime.now().getTime();
+            }
+
+            // ── 2. Validate Content-Type ─────────────────────────────────────
+            String contentType = req.headers.get('Content-Type');
+            if (contentType == null || !contentType.containsIgnoreCase('application/json')) {
+                sendResponse(res, 415, 'error', 'Content-Type must be application/json.',
+                             correlationId);
+                return;
+            }
+
+            // ── 3. Validate payload size ─────────────────────────────────────
+            Integer bodyBytes = req.requestBody != null ? req.requestBody.size() : 0;
+            if (bodyBytes > MAX_BODY_BYTES) {
+                sendResponse(res, 413, 'error', 'Payload exceeds 64 KB limit.', correlationId);
+                return;
+            }
+
+            // ── 4. Parse body ────────────────────────────────────────────────
+            requestBody = req.requestBody != null ? req.requestBody.toString() : '';
+            if (String.isBlank(requestBody)) {
+                sendResponse(res, 400, 'error', 'Request body is required.', correlationId);
+                return;
+            }
+
+            Map<String, Object> body;
+            try {
+                body = (Map<String, Object>) JSON.deserializeUntyped(requestBody);
+            } catch (JSONException je) {
+                sendResponse(res, 400, 'error', 'Invalid JSON: ' + je.getMessage(),
+                             correlationId);
+                return;
+            }
+
+            // ── 5. Validate required envelope fields ─────────────────────────
+            String eventType  = (String) body.get('Event_Type__c');
+            String msgType    = (String) body.get('Msg_Type__c');
+            String statusCode = (String) body.get('Status_Code__c');
+            String clientId   = (String) body.get('Client_Id__c');
+            String schemaName = (String) body.get('Schema_Name__c');
+            String payload    = (String) body.get('Payload__c');
+            String messageId  = (String) body.get('Message_Id__c');
+            String userId     = (String) body.get('User_Id__c');
+            String contentTypeFld = (String) body.get('Content_Type__c');
+
+            if (String.isBlank(eventType) || String.isBlank(msgType) ||
+                String.isBlank(statusCode) || String.isBlank(schemaName)) {
+                sendResponse(res, 400, 'error',
+                    'Missing required fields: Event_Type__c, Msg_Type__c, ' +
+                    'Status_Code__c, Schema_Name__c.', correlationId);
+                return;
+            }
+
+            // ── 6. Publish Platform Event ────────────────────────────────────
+            AI_Navigator_Inbound__e evt = new AI_Navigator_Inbound__e(
+                Message_Id__c     = String.isNotBlank(messageId)
+                                    ? messageId
+                                    : AI_Navigator_Event_Publisher.generateUUID(),
+                Event_Type__c     = eventType,
+                Msg_Type__c       = msgType,
+                Status_Code__c    = statusCode,
+                Client_Id__c      = clientId,
+                User_Id__c        = userId,
+                Correlation_Id__c = correlationId,
+                Content_Type__c   = String.isNotBlank(contentTypeFld)
+                                    ? contentTypeFld : 'json',
+                Schema_Name__c    = schemaName,
+                Payload__c        = payload,
+                Created_At__c     = DateTime.now()
+            );
+
+            Database.SaveResult result = EventBus.publish(evt);
+
+            if (!result.isSuccess()) {
+                String errMsg = '';
+                for (Database.Error err : result.getErrors()) {
+                    errMsg += err.getMessage() + ' ';
+                }
+                sendResponse(res, 500, 'error',
+                    'Failed to publish Platform Event.', correlationId);
+                return;
+            }
+
+            // ── 7. Log and respond ───────────────────────────────────────────
+            logRequest(correlationId, eventType, requestBody, 202);
+
+            sendResponse(res, 202, 'accepted',
+                'Event received and queued for processing.', correlationId);
+
+        } catch (Exception e) {
+            String errMsg = e.getTypeName() + ': ' + e.getMessage()
+                          + ' | Line: ' + e.getLineNumber();
+            System.debug(LoggingLevel.ERROR,
+                'AzureInboundEventService: ' + errMsg);
+            sendResponse(res, 500, 'error',
+                'Internal Server Error. Contact the Salesforce admin.', correlationId);
+        }
+    }
+
+    // ── Private: build and send JSON response ────────────────────────────────
+    private static void sendResponse(
+        RestResponse res,
+        Integer      statusCode,
+        String       status,
+        String       message,
+        String       correlationId
+    ) {
+        Map<String, Object> body = new Map<String, Object>{
+            'status'        => status,
+            'message'       => message,
+            'correlationId' => correlationId,
+            'timestamp'     => String.valueOf(DateTime.now())
+        };
+        res.statusCode   = statusCode;
+        res.responseBody = Blob.valueOf(JSON.serializePretty(body));
+        res.headers.put('Content-Type', 'application/json');
+        res.headers.put('X-Correlation-Id', correlationId);
+    }
+
+    // ── Private: log to Azure_Request_Log__c ─────────────────────────────────
+    private static void logRequest(
+        String correlationId,
+        String eventType,
+        String requestBody,
+        Integer statusCode
+    ) {
+        try {
+            insert new Azure_Request_Log__c(
+                HTTP_Method__c    = 'POST',
+                Endpoint_Name__c  = 'AzureInboundEventService',
+                Request_Body__c   = requestBody,
+                Status__c         = statusCode == 202 ? 'Success' : 'Error',
+                HTTP_Status_Code__c = statusCode,
+                Correlation_ID__c = correlationId,
+                Error_Message__c  = eventType
+            );
+        } catch (DmlException de) {
+            System.debug(LoggingLevel.ERROR,
+                'AzureInboundEventService: Log failed. ' + de.getMessage());
+        }
+    }
+}
