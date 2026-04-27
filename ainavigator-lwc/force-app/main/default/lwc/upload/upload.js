@@ -1,7 +1,9 @@
 import { LightningElement, track } from 'lwc';
-import getUploadSettings from '@salesforce/apex/UploadController.getUploadSettings';
+import getUploadSettings    from '@salesforce/apex/UploadController.getUploadSettings';
 import getPreviousSubmissions from '@salesforce/apex/UploadController.getPreviousSubmissions';
-import uploadFile from '@salesforce/apex/UploadController.uploadFile';
+import uploadFile           from '@salesforce/apex/UploadController.uploadFile';
+// STEP 3 PLACEHOLDER: import { subscribe, unsubscribe } from 'lightning/empApi';
+//   Will be wired here to listen for BATCHPROGRESS and UPLOADPROCESSED events.
 
 export default class Upload extends LightningElement {
     @track settings = { dailyLimit: 5, usedToday: 0, remaining: 5 };
@@ -14,6 +16,9 @@ export default class Upload extends LightningElement {
     @track defaultClientType = 'Prospect';
     @track hoverDrop = false;
     @track searchTerm = '';
+    // Holds real IDs after a successful upload — used by Step 3 EMP subscription
+    _lastSubmissionId   = null;
+    _lastCorrelationId  = null;
 
     stageOptions = [
         { label: 'PreCall',          value: 'PreCall' },
@@ -33,36 +38,33 @@ export default class Upload extends LightningElement {
     }
 
     loadData() {
-        this.isLoading = true;
-        this.error = null;
-        Promise.all([
-            getUploadSettings(),
-            getPreviousSubmissions()
-        ])
-        .then(([settingsJson, subsJson]) => {
-            this.settings = JSON.parse(settingsJson);
-            const rawSubs = JSON.parse(subsJson);
-            this.submissions = rawSubs.map(s => this.mapSubmission(s));
-            this.isLoading = false;
-        })
-        .catch(err => {
-            console.error('Error loading upload data', err);
-            this.error = err.body?.message || 'Failed to load upload data.';
-            this.isLoading = false;
-        });
-    }
+            this.isLoading = true;
+            this.error     = null;
+
+            Promise.all([getUploadSettings(), getPreviousSubmissions()])
+                .then(([settingsJson, subsJson]) => {
+                    this.settings    = JSON.parse(settingsJson);
+                    const rawSubs    = JSON.parse(subsJson);
+                    this.submissions = rawSubs.map(s => this.mapSubmission(s));
+                    this.isLoading   = false;
+                })
+                .catch(err => {
+                    console.error('Error loading upload data', err);
+                    this.error     = err.body?.message || 'Failed to load upload data.';
+                    this.isLoading = false;
+                });
+        }
 
     mapSubmission(s) {
         return {
             ...s,
-            locationDisplay: [s.city, s.state].filter(Boolean).join(', '),
+            // Build display strings
+            locationDisplay   : [s.city, s.state].filter(Boolean).join(', '),
             submittedAtDisplay: s.submittedAt
                 ? new Date(s.submittedAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: '2-digit'
+                      month: 'short', day: 'numeric', year: '2-digit'
                   })
-                : '-',
+                : '--',
             statusClass: this.getStatusClass(s.status)
         };
     }
@@ -145,46 +147,85 @@ export default class Upload extends LightningElement {
         };
         reader.readAsDataURL(file);
     }
-
     uploadToServer(fileName, base64Data) {
-        this.isUploading = true;
-        this.error = null;
-        this.successMessage = '';
-        uploadFile({
-            fileName,
-            base64Data,
-            defaultStage: this.defaultStage,
-            defaultClientType: this.defaultClientType
-        })
-        .then(resultJson => {
-            const res = JSON.parse(resultJson);
-            if (res.success) {
+            this.isUploading     = true;
+            this.error           = null;
+            this.successMessage  = '';
+
+            uploadFile({
+                fileName        : fileName,
+                base64Data      : base64Data,
+                defaultStage    : this.defaultStage,
+                defaultClientType: this.defaultClientType
+            })
+            .then(resultJson => {
+                const res = JSON.parse(resultJson);
+
+                // Store real IDs for the EMP subscription in Step 3
+                this._lastSubmissionId  = res.submissionId;
+                this._lastCorrelationId = res.correlationId;
+
+                // Update daily usage counters from real server values
                 this.settings = {
                     ...this.settings,
-                    dailyLimit:  res.dailyLimit,
-                    usedToday:   res.usedToday,
-                    remaining:   res.remaining
+                    dailyLimit : res.dailyLimit,
+                    usedToday  : res.usedToday,
+                    remaining  : res.remaining
                 };
-                this.successMessage = res.message || 'File uploaded successfully.';
-                // Optionally refresh submissions
-                return getPreviousSubmissions()
-                    .then(subsJson => {
-                        const raw = JSON.parse(subsJson);
-                        this.submissions = raw.map(s => this.mapSubmission(s));
-                    });
-            } else {
-                this.error = res.message || 'Upload failed.';
-            }
-        })
-        .catch(err => {
-            console.error('Upload error', err);
-            this.error = err.body?.message || 'Upload failed.';
-        })
-        .finally(() => {
-            this.isUploading = false;
-            // clear file input value
-            const input = this.template.querySelector('.up-file-input');
-            if (input) input.value = '';
-        });
-    }
+
+                this.successMessage = res.message ||
+                    'File uploaded successfully. Processing will start shortly.';
+
+                // Add the new submission optimistically to the top of the list
+                // so the user sees it immediately without waiting for a re-query.
+                // STEP 3: this card will update in real time via EMP subscription.
+                const newSub = this.mapSubmission({
+                    submissionId : res.submissionId,
+                    recordId     : res.recordId,
+                    fileName     : res.fileName,
+                    status       : 'processing',
+                    submittedAt  : new Date().toISOString(),
+                    total        : null,
+                    processed    : null,
+                    failed       : null
+                });
+                this.submissions = [newSub, ...this.submissions];
+
+                // Fire event so parent/dashboard can react if listening
+                this.dispatchEvent(new CustomEvent('uploadsubmitted', {
+                    bubbles : true,
+                    composed: true,
+                    detail  : {
+                        submissionId  : res.submissionId,
+                        correlationId : res.correlationId,
+                        fileName      : res.fileName,
+                        status        : 'processing'
+                    }
+                }));
+            })
+            .catch(err => {
+                console.error('Upload error', err);
+                this.error = err.body?.message || 'Upload failed. Please try again.';
+            })
+            .finally(() => {
+                this.isUploading = false;
+                // Clear file input so the same file can be re-selected if needed
+                const input = this.template.querySelector('.up-file-input');
+                if (input) input.value = '';
+            });
+        }
+  // ── STEP 3 PLACEHOLDER ───────────────────────────────────────────────────
+    // _subscription = null;
+    //
+    // After connectedCallback calls loadData(), we'll also subscribe here:
+    // subscribe('/event/AINavigatorInbound__e', -1, (event) => {
+    //     const payload = JSON.parse(event.data.payload.Payload__c);
+    //     const evtType = event.data.payload.EventType__c;
+    //     if (evtType === 'BATCHPROGRESS') this.handleBatchProgress(payload);
+    //     if (evtType === 'UPLOADPROCESSED') this.handleUploadProcessed(payload);
+    // }).then(sub => { this._subscription = sub; });
+    //
+    // disconnectedCallback() {
+    //     if (this._subscription) unsubscribe(this._subscription, () => {});
+    // }
 }

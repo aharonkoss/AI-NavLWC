@@ -3,6 +3,6 @@
     <fullName>Status_Code__c</fullName>
     <label>Status Code</label>
     <type>Text</type>
-    <length>20</length>
+    <length>255</length>
     <description>Originator status. Values: NEW, RETRY</description>
 </CustomField>

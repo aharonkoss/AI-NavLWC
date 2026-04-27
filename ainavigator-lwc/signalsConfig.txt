@@ -1,0 +1,625 @@
+﻿
+===== signalsConfig.css =====
+
+.sc-wrapper {
+    padding: 24px 28px;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header */
+.sc-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+.sc-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+}
+.sc-subtitle {
+    margin: 4px 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+.sc-header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.sc-btn-reset {
+    padding: 8px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #374151;
+}
+.sc-btn-reset:hover:not(:disabled) { background: #f9fafb; }
+.sc-btn-save {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.sc-btn-save:hover:not(:disabled) { background: #1e40af; }
+.sc-btn-save:disabled,
+.sc-btn-reset:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* Banners */
+.sc-banner-success {
+    background: #ecfdf3;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+}
+.sc-banner-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+}
+
+/* Loading */
+.sc-loading {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin-top: 20px;
+}
+.sc-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(55,65,81,0.3);
+    border-top-color: #111827;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Summary card */
+.sc-summary-card {
+    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    color: #fff;
+}
+.sc-summary-label {
+    margin: 0 0 4px;
+    font-size: 0.8rem;
+    opacity: 0.85;
+}
+.sc-summary-count {
+    margin: 0 0 10px;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+.sc-priority-legend {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.sc-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+.sc-dot-p5 { background: #ef4444; }
+.sc-dot-p4 { background: #f59e0b; }
+.sc-dot-p3 { background: #eab308; }
+.sc-legend-text {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-right: 8px;
+}
+.sc-summary-right { text-align: right; }
+.sc-priority-badges {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    justify-content: flex-end;
+}
+.sc-priority-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 2px solid rgba(255,255,255,0.4);
+}
+
+/* Categories */
+.sc-category {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+.sc-cat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid #f3f4f6;
+    background: #fafafa;
+}
+.sc-cat-header:hover { background: #f3f4f6; }
+.sc-cat-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.sc-cat-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #c2410c;
+}
+.sc-cat-count {
+    font-size: 0.78rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+.sc-cat-chevron {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Signal rows */
+.sc-signal-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f9fafb;
+}
+.sc-signal-row:last-child { border-bottom: none; }
+
+/* Checkbox */
+.sc-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 2px;
+    font-size: 0.7rem;
+    color: #fff;
+    background: #fff;
+    transition: all 0.15s;
+}
+.sc-checkbox-checked {
+    background: #22c55e;
+    border-color: #22c55e;
+}
+
+/* Signal info */
+.sc-signal-info { flex: 1; overflow: hidden; }
+.sc-signal-name {
+    margin: 0 0 2px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: #111827;
+}
+.sc-signal-desc {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+/* Controls */
+.sc-signal-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+}
+.sc-select {
+    padding: 5px 8px;
+    font-size: 0.78rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    background: #fff;
+    cursor: pointer;
+}
+.sc-select-priority {
+    min-width: 130px;
+    border-color: #fca5a5;
+    background: #fff7f7;
+    color: #b91c1c;
+}
+.sc-select-timeframe {
+    min-width: 110px;
+}
+
+===== signalsConfig.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="sc-wrapper">
+
+        <!-- Header -->
+        <div class="sc-header">
+            <div>
+                <h1 class="sc-title">Signals Configuration</h1>
+                <p class="sc-subtitle">Configure banking signals and their priorities for prospect monitoring</p>
+            </div>
+            <div class="sc-header-actions">
+                <button class="sc-btn-reset" onclick={handleReset} disabled={isSaving}>
+                    Reset to Defaults
+                </button>
+                <button class="sc-btn-save" onclick={handleSave} disabled={isSaving}>
+                    <template if:true={isSaving}>Saving...</template>
+                    <template if:false={isSaving}>Save Configuration</template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Save success banner -->
+        <template if:true={saveSuccess}>
+            <div class="sc-banner-success">âœ“ Configuration saved successfully.</div>
+        </template>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="sc-banner-error">âš  {error}</div>
+        </template>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="sc-loading">
+                <span class="sc-spinner"></span>
+                <span>Loading signals configuration...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <!-- Active signals summary card -->
+            <div class="sc-summary-card">
+                <div class="sc-summary-left">
+                    <p class="sc-summary-label">Active Signals</p>
+                    <p class="sc-summary-count">{enabledCount} of {totalCount}</p>
+                    <div class="sc-priority-legend">
+                        <span class="sc-legend-dot sc-dot-p5"></span>
+                        <span class="sc-legend-text">P5: Critical Capital Events</span>
+                        <span class="sc-legend-dot sc-dot-p4"></span>
+                        <span class="sc-legend-text">P4: Bank Strain</span>
+                        <span class="sc-legend-dot sc-dot-p3"></span>
+                        <span class="sc-legend-text">P3: Risk Review</span>
+                    </div>
+                </div>
+                <div class="sc-summary-right">
+                    <p class="sc-summary-label">Priority Levels</p>
+                    <div class="sc-priority-badges">
+                        <template for:each={priorityBadges} for:item="b">
+                            <span key={b.level} class={b.class}>{b.level}</span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <template for:each={categories} for:item="cat">
+                <div key={cat.categoryId} class="sc-category">
+
+                    <!-- Category header -->
+                    <div
+                        class="sc-cat-header"
+                        data-category-id={cat.categoryId}
+                        onclick={handleToggleCategory}
+                    >
+                        <div class="sc-cat-header-left">
+                            <span class="sc-cat-label">{cat.label}</span>
+                            <span class="sc-cat-count">
+                                {cat.signals.length} signals
+                            </span>
+                        </div>
+                        <span class="sc-cat-chevron">
+                            <template if:true={cat.isCollapsed}>â–¼</template>
+                            <template if:false={cat.isCollapsed}>â–²</template>
+                        </span>
+                    </div>
+
+                    <!-- Signal rows -->
+                    <template if:false={cat.isCollapsed}>
+                        <template for:each={cat.signals} for:item="sig">
+                            <div key={sig.id} class="sc-signal-row">
+
+                                <!-- Checkbox -->
+                                <div
+                                    class={sig.checkboxClass}
+                                    data-category-id={cat.categoryId}
+                                    data-signal-id={sig.id}
+                                    onclick={handleToggleSignal}
+                                >
+                                    <template if:true={sig.enabled}>âœ“</template>
+                                </div>
+
+                                <!-- Name + description -->
+                                <div class="sc-signal-info">
+                                    <p class="sc-signal-name">{sig.name}</p>
+                                    <p class="sc-signal-desc">{sig.description}</p>
+                                </div>
+
+                                <!-- Priority -->
+                                <div class="sc-signal-controls">
+                                    <select
+                                        class="sc-select sc-select-priority"
+                                        value={sig.priority}
+                                        data-category-id={cat.categoryId}
+                                        data-signal-id={sig.id}
+                                        onchange={handlePriorityChange}
+                                    >
+                                        <template for:each={priorityOptions} for:item="opt">
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        </template>
+                                    </select>
+
+                                    <!-- Timeframe -->
+                                    <select
+                                        class="sc-select sc-select-timeframe"
+                                        value={sig.timeframe}
+                                        data-category-id={cat.categoryId}
+                                        data-signal-id={sig.id}
+                                        onchange={handleTimeframeChange}
+                                    >
+                                        <template for:each={timeframeOptions} for:item="opt">
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+
+                </div>
+            </template>
+        </template>
+    </div>
+</template>
+
+===== signalsConfig.js =====
+
+import { LightningElement, track } from 'lwc';
+import getSignalsConfig from '@salesforce/apex/SignalsConfigController.getSignalsConfig';
+
+const PRIORITY_OPTIONS = [
+    { label: 'P5 - Critical',      value: 'P5' },
+    { label: 'P4 - High',          value: 'P4' },
+    { label: 'P3 - Medium',        value: 'P3' },
+    { label: 'P2 - Low',           value: 'P2' },
+    { label: 'P1 - Informational', value: 'P1' }
+];
+
+const TIMEFRAME_OPTIONS = [
+    { label: 'Immediate',  value: 'Immediate' },
+    { label: 'Near-term',  value: 'Near-term' },
+    { label: 'Long-term',  value: 'Long-term' }
+];
+
+export default class SignalsConfig extends LightningElement {
+    @track categories = [];
+    @track isLoading = true;
+    @track error = null;
+    @track isSaving = false;
+    @track saveSuccess = false;
+
+    priorityOptions = PRIORITY_OPTIONS;
+    timeframeOptions = TIMEFRAME_OPTIONS;
+
+    connectedCallback() {
+        this.loadConfig();
+    }
+
+    loadConfig() {
+        this.isLoading = true;
+        this.error = null;
+        getSignalsConfig()
+            .then(result => {
+                const raw = JSON.parse(result);
+                this.categories = raw.map(cat => ({
+                    ...cat,
+                    isCollapsed: false,
+                    signals: cat.signals.map(s => ({
+                        ...s,
+                        checkboxClass: s.enabled ? 'sc-checkbox sc-checkbox-checked' : 'sc-checkbox'
+                    }))
+                }));
+                this.isLoading = false;
+            })
+            .catch(err => {
+                console.error('Error loading signals config', err);
+                this.error = err.body?.message || 'Failed to load signals configuration.';
+                this.isLoading = false;
+            });
+    }
+
+    // â”€â”€ Computed â”€â”€
+    get enabledCount() {
+        return this.categories.reduce((total, cat) =>
+            total + cat.signals.filter(s => s.enabled).length, 0);
+    }
+
+    get totalCount() {
+        return this.categories.reduce((total, cat) =>
+            total + cat.signals.length, 0);
+    }
+
+    get priorityBadges() {
+        return [
+            { level: 5, class: 'sc-priority-badge sc-p5' },
+            { level: 4, class: 'sc-priority-badge sc-p4' },
+            { level: 3, class: 'sc-priority-badge sc-p3' },
+            { level: 2, class: 'sc-priority-badge sc-p2' },
+            { level: 1, class: 'sc-priority-badge sc-p1' }
+        ];
+    }
+
+    // â”€â”€ Toggle collapse â”€â”€
+    handleToggleCategory(event) {
+        const categoryId = event.currentTarget.dataset.categoryId;
+        this.categories = this.categories.map(cat =>
+            cat.categoryId === categoryId
+                ? { ...cat, isCollapsed: !cat.isCollapsed }
+                : cat
+        );
+    }
+
+    // â”€â”€ Toggle signal enabled â”€â”€
+    handleToggleSignal(event) {
+        const categoryId = event.currentTarget.dataset.categoryId;
+        const signalId   = event.currentTarget.dataset.signalId;
+        this.categories = this.categories.map(cat => {
+            if (cat.categoryId !== categoryId) return cat;
+            return {
+                ...cat,
+                signals: cat.signals.map(s => {
+                    if (s.id !== signalId) return s;
+                    const enabled = !s.enabled;
+                    return {
+                        ...s,
+                        enabled,
+                        checkboxClass: enabled ? 'sc-checkbox sc-checkbox-checked' : 'sc-checkbox'
+                    };
+                })
+            };
+        });
+    }
+
+    // â”€â”€ Priority change â”€â”€
+    handlePriorityChange(event) {
+        const categoryId = event.currentTarget.dataset.categoryId;
+        const signalId   = event.currentTarget.dataset.signalId;
+        const newPriority = event.target.value;
+        this.categories = this.categories.map(cat => {
+            if (cat.categoryId !== categoryId) return cat;
+            return {
+                ...cat,
+                signals: cat.signals.map(s =>
+                    s.id === signalId ? { ...s, priority: newPriority } : s
+                )
+            };
+        });
+    }
+
+    // â”€â”€ Timeframe change â”€â”€
+    handleTimeframeChange(event) {
+        const categoryId  = event.currentTarget.dataset.categoryId;
+        const signalId    = event.currentTarget.dataset.signalId;
+        const newTimeframe = event.target.value;
+        this.categories = this.categories.map(cat => {
+            if (cat.categoryId !== categoryId) return cat;
+            return {
+                ...cat,
+                signals: cat.signals.map(s =>
+                    s.id === signalId ? { ...s, timeframe: newTimeframe } : s
+                )
+            };
+        });
+    }
+
+    // â”€â”€ Save â”€â”€
+    handleSave() {
+        this.isSaving = true;
+        this.saveSuccess = false;
+        // MOCK: simulate API save
+        setTimeout(() => {
+            this.isSaving = false;
+            this.saveSuccess = true;
+            setTimeout(() => { this.saveSuccess = false; }, 3000);
+        }, 800);
+    }
+
+    // â”€â”€ Reset to defaults â”€â”€
+    handleReset() {
+        this.loadConfig();
+    }
+
+    // â”€â”€ Category header helpers â”€â”€
+    getCategoryActiveCount(cat) {
+        return cat.signals.filter(s => s.enabled).length;
+    }
+}
+
+===== signalsConfig.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+</LightningComponentBundle>
+
+===== signalsConfig.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import SignalsConfig from 'c/signalsConfig';
+
+describe('c-signals-config', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-signals-config', {
+            is: SignalsConfig
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

@@ -27,7 +27,8 @@ export default class InputForm extends LightningElement {
         { label: 'Existing Customer', value: 'Existing Customer' },
         { label: 'Past Customer',     value: 'Past Customer' }
     ];
-
+    _lastCreatedCompanyId   = null;
+    _lastCreatedCorrelationId = null;
     // ── Computed classes ───────────────────────────────────────────
     get companyNameInputClass() {
         return `input-field${this.errors.companyName ? ' input-error' : ''}`;
@@ -121,33 +122,67 @@ export default class InputForm extends LightningElement {
     handleSubmit(event) {
         event.preventDefault();
         if (!this.validate()) return;
+
         this.isSubmitting = true;
+
         submitCompany({
-            companyName: this.companyName.trim(),
-            website:     this.website.trim(),
-            city:        this.city.trim(),
-            state:       this.state.trim(),
-            stage:       this.stage,
-            clientType:  this.clientType
+            companyName : this.companyName.trim(),
+            website     : this.website.trim(),
+            city        : this.city.trim(),
+            state       : this.state.trim(),
+            stage       : this.stage,
+            clientType  : this.clientType
         })
-        .then(() => {
-            this.isSubmitting = false;
+        .then(resultJson => {
+            const result = JSON.parse(resultJson);
+
+            // Store the real SF record ID and correlationId
+            this._lastCreatedCompanyId    = result.companyId;
+            this._lastCreatedCorrelationId = result.correlationId;
+
+            this.isSubmitting  = false;
             this.submitSuccess = true;
-            this.successMessage = `${this.companyName} submitted successfully! Once processed, you can view it from the Dashboard.`;
+            this.successMessage =
+                `${result.name} has been submitted for research. ` +
+                `You'll see it on the Dashboard while it processes.`;
+
+            // Reset form fields
             this.companyName = '';
-            this.website = '';
-            this.city = '';
-            this.state = '';
-            this.stage = 'PreCall';
-            this.clientType = 'Prospect';
-            this.errors = {};
-            this.urlValid = null;
-            // Auto-clear success after 6 seconds
+            this.website     = '';
+            this.city        = '';
+            this.state       = '';
+            this.stage       = 'PreCall';
+            this.clientType  = 'Prospect';
+            this.errors      = {};
+            this.urlValid    = null;
+
+            // Fire an event so parent (app/dashboard) can react immediately
+            // and add the new "processing" card to the list without a refresh.
+            this.dispatchEvent(new CustomEvent('companysubmitted', {
+                bubbles : true,
+                composed: true,
+                detail  : {
+                    companyId     : result.companyId,
+                    correlationId : result.correlationId,
+                    name          : result.name,
+                    city          : result.city,
+                    state         : result.state,
+                    stage         : result.stage,
+                    clientType    : result.clientType,
+                    status        : 'processing',
+                    createdAt     : result.createdAt
+                }
+            }));
+
+            // Auto-clear success toast after 6 seconds (unchanged)
             setTimeout(() => { this.submitSuccess = false; }, 6000);
         })
         .catch(error => {
             this.isSubmitting = false;
-            this.errors = { ...this.errors, submit: error.body?.message || 'Failed to submit. Please try again.' };
+            this.errors = {
+                ...this.errors,
+                submit: error.body?.message || 'Failed to submit. Please try again.'
+            };
         });
     }
 

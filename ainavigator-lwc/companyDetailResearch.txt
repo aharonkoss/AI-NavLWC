@@ -1,0 +1,556 @@
+﻿
+===== companyDetailResearch.css =====
+
+.cdr-wrapper { margin-top: 12px; }
+
+/* Sub-tab strip */
+.cdr-subtabs {
+    display: flex;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+    padding: 0 12px;
+    overflow-x: auto;
+    gap: 0;
+}
+.cdr-subtab {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.cdr-subtab:hover { color: #374151; }
+.cdr-subtab-active { color: #1d4ed8; border-bottom-color: #1d4ed8; font-weight: 600; }
+
+/* Panel container */
+.cdr-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 300px;
+}
+
+/* Loading */
+.cdr-loading {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 200px;
+    font-size: 0.88rem;
+    color: #6b7280;
+}
+.cdr-spinner {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(107,114,128,0.3);
+    border-top-color: #374151;
+    animation: cdr-spin 0.8s linear infinite;
+}
+@keyframes cdr-spin { to { transform: rotate(360deg); } }
+
+/* Metrics row */
+.cdr-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+}
+.cdr-metric-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.cdr-metric-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e3a5f;
+    margin-bottom: 4px;
+}
+.cdr-metric-label {
+    font-size: 0.72rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Content cards */
+.cdr-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.cdr-section-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.cdr-highlight {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+.cdr-card-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 6px;
+}
+.cdr-card-body {
+    font-size: 0.84rem;
+    color: #4b5563;
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* Leadership cards */
+.cdr-leader-card {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.cdr-leader-avatar {
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    background: #1d4ed8;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.cdr-leader-info { flex: 1; }
+.cdr-leader-name  { font-size: 0.9rem; font-weight: 700; color: #111827; margin-bottom: 2px; }
+.cdr-leader-title { font-size: 0.78rem; color: #2563eb; font-weight: 600; margin-bottom: 6px; }
+.cdr-leader-bio   { font-size: 0.82rem; color: #4b5563; margin: 0; line-height: 1.5; }
+
+/* Strategic intel cards */
+.cdr-intel-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px 16px;
+}
+.cdr-intel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.cdr-intel-icon  { font-size: 1rem; }
+.cdr-intel-title { font-size: 0.88rem; font-weight: 700; color: #111827; margin: 0; }
+.cdr-intel-body  { font-size: 0.83rem; color: #4b5563; line-height: 1.55; margin: 0; }
+
+/* Financial */
+.cdr-fin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+.cdr-fin-company { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 4px; }
+.cdr-fin-url     { font-size: 0.78rem; color: #2563eb; margin: 0; }
+.cdr-fin-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+}
+.cdr-fin-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.cdr-fin-field-name { font-size: 0.85rem; font-weight: 700; color: #111827; margin: 0; }
+.cdr-fin-field-data { font-size: 0.82rem; color: #4b5563; line-height: 1.5; margin: 0; }
+
+/* Confidence badges */
+.cdr-conf        { font-size: 0.7rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.cdr-conf-high   { background: #dcfce7; color: #166534; }
+.cdr-conf-medium { background: #fef9c3; color: #854d0e; }
+.cdr-conf-low    { background: #f3f4f6; color: #6b7280; }
+
+===== companyDetailResearch.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="cdr-wrapper">
+
+        <!-- Sub-section tab strip -->
+        <div class="cdr-subtabs">
+            <template for:each={sections} for:item="sec">
+                <button key={sec.id}
+                    class={sec.cls}
+                    data-section={sec.id}
+                    onclick={handleSectionClick}>
+                    {sec.name}
+                </button>
+            </template>
+        </div>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="cdr-loading">
+                <span class="cdr-spinner"></span>
+                <span>Loading research data...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+
+            <!-- Company Profile -->
+            <template if:true={showCompany}>
+                <div class="cdr-panel">
+                    <div class="cdr-metrics-grid">
+                        <template for:each={companyMetrics} for:item="metric">
+                            <div key={metric.label} class="cdr-metric-card">
+                                <div class="cdr-metric-value">{metric.value}</div>
+                                <div class="cdr-metric-label">{metric.label}</div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">About</h3>
+                        <p class="cdr-card-body">{companyData.description}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Products &amp; Services</h3>
+                            <p class="cdr-card-body">{companyData.products}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Business Model</h3>
+                            <p class="cdr-card-body">{companyData.businessModel}</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Industry Analysis -->
+            <template if:true={showIndustry}>
+                <div class="cdr-panel">
+                    <div class="cdr-metrics-grid">
+                        <template for:each={industryMetrics} for:item="metric">
+                            <div key={metric.label} class="cdr-metric-card">
+                                <div class="cdr-metric-value">{metric.value}</div>
+                                <div class="cdr-metric-label">{metric.label}</div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Key Trends</h3>
+                        <p class="cdr-card-body">{industryData.keyTrends}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Competitors</h3>
+                            <p class="cdr-card-body">{industryData.competitors}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Outlook</h3>
+                            <p class="cdr-card-body">{industryData.outlook}</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Target Customer -->
+            <template if:true={showTargetCustomer}>
+                <div class="cdr-panel">
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Primary Buyer</h3>
+                        <p class="cdr-card-body">{targetCustomerData.primaryBuyer}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Decision Makers</h3>
+                            <p class="cdr-card-body">{targetCustomerData.decisionMakers}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Buying Cycle</h3>
+                            <p class="cdr-card-body">{targetCustomerData.buyingCycle}</p>
+                        </div>
+                    </div>
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Pain Points</h3>
+                        <p class="cdr-card-body">{targetCustomerData.painPoints}</p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Ecosystem & Partnerships -->
+            <template if:true={showEcosystem}>
+                <div class="cdr-panel">
+                    <div class="cdr-section-card">
+                        <h3 class="cdr-card-title">Key Partners</h3>
+                        <p class="cdr-card-body">{ecosystemData.keyPartners}</p>
+                    </div>
+                    <div class="cdr-two-col">
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Certifications</h3>
+                            <p class="cdr-card-body">{ecosystemData.certifications}</p>
+                        </div>
+                        <div class="cdr-section-card">
+                            <h3 class="cdr-card-title">Associations</h3>
+                            <p class="cdr-card-body">{ecosystemData.associations}</p>
+                        </div>
+                    </div>
+                    <div class="cdr-section-card cdr-highlight">
+                        <h3 class="cdr-card-title">Banking Needs Identified</h3>
+                        <p class="cdr-card-body">{ecosystemData.bankingNeeds}</p>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Leadership -->
+            <template if:true={showLeadership}>
+                <div class="cdr-panel">
+                    <template for:each={leaders} for:item="leader">
+                        <div key={leader.fullName} class="cdr-leader-card">
+                            <div class="cdr-leader-avatar">{leader.initials}</div>
+                            <div class="cdr-leader-info">
+                                <div class="cdr-leader-name">{leader.fullName}</div>
+                                <div class="cdr-leader-title">{leader.title}</div>
+                                <p class="cdr-leader-bio">{leader.background}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Strategic Intelligence -->
+            <template if:true={showStrategic}>
+                <div class="cdr-panel">
+                    <template for:each={strategicFields} for:item="field">
+                        <div key={field.fieldName} class="cdr-intel-card">
+                            <div class="cdr-intel-header">
+                                <span class="cdr-intel-icon">ðŸ’¡</span>
+                                <h3 class="cdr-intel-title">{field.fieldName}</h3>
+                            </div>
+                            <p class="cdr-intel-body">{field.data}</p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+            <!-- Financial -->
+            <template if:true={showFinancial}>
+                <div class="cdr-panel">
+                    <div class="cdr-fin-header">
+                        <div>
+                            <h3 class="cdr-fin-company">{financialData.verifiedcompanyname}</h3>
+                            <p class="cdr-fin-url">{financialData.verifiedcompanyurl}</p>
+                        </div>
+                        <span class={financialConfidenceClass}>{financialConfidenceLabel}</span>
+                    </div>
+                    <template for:each={financialFields} for:item="field">
+                        <div key={field.fieldName} class="cdr-fin-card">
+                            <div class="cdr-fin-card-header">
+                                <h4 class="cdr-fin-field-name">{field.fieldName}</h4>
+                                <span class={field.confidenceClass}>{field.confidenceLabel}</span>
+                            </div>
+                            <p class="cdr-fin-field-data">{field.data}</p>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+        </template>
+    </div>
+</template>
+
+===== companyDetailResearch.js =====
+
+import { LightningElement, api, track } from 'lwc';
+import getAiResearch from '@salesforce/apex/CompanyDetailController.getAiResearch';
+
+const SECTIONS = [
+    { id: 'company',            name: 'Company Profile'        },
+    { id: 'industry',           name: 'Industry Analysis'      },
+    { id: 'targetcustomer',     name: 'Target Customer'        },
+    { id: 'ecosystem',          name: 'Ecosystem & Partnerships'},
+    { id: 'leadership',         name: 'Leadership'             },
+    { id: 'strategicintelligence', name: 'Strategic Intel'     },
+    { id: 'financial',          name: 'Financial'              }
+];
+
+const CONFIDENCE_CLASSES = {
+    high:   'cdr-conf cdr-conf-high',
+    medium: 'cdr-conf cdr-conf-medium',
+    low:    'cdr-conf cdr-conf-low'
+};
+
+export default class CompanyDetailResearch extends LightningElement {
+    @api companyId;
+    @track activeSection = 'company';
+    @track aiResearch = null;
+    @track isLoading = true;
+
+    connectedCallback() {
+        this.loadResearch();
+    }
+
+    loadResearch() {
+        this.isLoading = true;
+        getAiResearch({ companyId: this.companyId })
+            .then(json => {
+                this.aiResearch = JSON.parse(json);
+                this.isLoading = false;
+            })
+            .catch(err => {
+                console.error('Research load error', err);
+                this.isLoading = false;
+            });
+    }
+
+    get sections() {
+        return SECTIONS.map(s => ({
+            ...s,
+            cls: s.id === this.activeSection
+                ? 'cdr-subtab cdr-subtab-active'
+                : 'cdr-subtab'
+        }));
+    }
+
+    handleSectionClick(event) {
+        this.activeSection = event.currentTarget.dataset.section;
+    }
+
+    get showCompany()       { return this.activeSection === 'company'; }
+    get showIndustry()      { return this.activeSection === 'industry'; }
+    get showTargetCustomer(){ return this.activeSection === 'targetcustomer'; }
+    get showEcosystem()     { return this.activeSection === 'ecosystem'; }
+    get showLeadership()    { return this.activeSection === 'leadership'; }
+    get showStrategic()     { return this.activeSection === 'strategicintelligence'; }
+    get showFinancial()     { return this.activeSection === 'financial'; }
+
+    get _r() { return this.aiResearch || {}; }
+
+    get companyData()    { return this._r.company?.data        || {}; }
+    get industryData()   { return this._r.industry?.data       || {}; }
+    get targetCustomerData() { return this._r.targetcustomer?.data || {}; }
+    get ecosystemData()  { return this._r.ecosystempartnerships?.data || {}; }
+    get leadershipData() { return this._r.leadership?.data     || {}; }
+    get strategicData()  { return this._r.strategicintelligence?.data || {}; }
+    get financialData()  { return this._r.financial?.data      || {}; }
+
+    get companyMetrics() {
+        const d = this.companyData;
+        return [
+            { label: 'Annual Revenue', value: d.revenue    || 'â€”' },
+            { label: 'Employees',      value: d.employees  || 'â€”' },
+            { label: 'Founded',        value: d.founded    || 'â€”' },
+            { label: 'Headquarters',   value: d.headquarters || 'â€”' }
+        ];
+    }
+
+    get industryMetrics() {
+        const d = this.industryData;
+        return [
+            { label: 'Industry',     value: d.industry   || 'â€”' },
+            { label: 'Market Size',  value: d.marketSize || 'â€”' },
+            { label: 'Growth Rate',  value: d.growthRate || 'â€”' }
+        ];
+    }
+
+    get leaders() {
+        const raw = this.leadershipData.leaders || [];
+        return raw.map(l => ({
+            ...l,
+            initials: this.getInitials(l.fullName || l.name || '')
+        }));
+    }
+
+    getInitials(name) {
+        return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    }
+
+    get strategicFields() {
+        return this.strategicData.fields || [];
+    }
+
+    get financialFields() {
+        const fields = this.financialData.fields || [];
+        return fields.map(f => ({
+            ...f,
+            confidenceClass: CONFIDENCE_CLASSES[f.confidence] || CONFIDENCE_CLASSES['low'],
+            confidenceLabel: (f.confidence || 'low').toUpperCase()
+        }));
+    }
+
+    get financialConfidenceClass() {
+        return CONFIDENCE_CLASSES[this.financialData.verificationconfidence] || CONFIDENCE_CLASSES['low'];
+    }
+
+    get financialConfidenceLabel() {
+        return (this.financialData.verificationconfidence || '').toUpperCase() + ' CONFIDENCE';
+    }
+}
+
+===== companyDetailResearch.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>false</isExposed>
+</LightningComponentBundle>
+
+===== companyDetailResearch.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import CompanyDetailResearch from 'c/companyDetailResearch';
+
+describe('c-company-detail-research', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-company-detail-research', {
+            is: CompanyDetailResearch
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

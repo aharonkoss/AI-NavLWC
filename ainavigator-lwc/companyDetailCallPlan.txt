@@ -1,0 +1,508 @@
+﻿
+===== companyDetailCallPlan.css =====
+
+.cdcp-wrapper { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+
+/* Loading */
+.cdcp-loading {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px; height: 200px; font-size: 0.88rem; color: #6b7280;
+}
+.cdcp-spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(107,114,128,0.3); border-top-color: #374151;
+    animation: cdcp-spin 0.8s linear infinite;
+}
+@keyframes cdcp-spin { to { transform: rotate(360deg); } }
+
+/* Header bar */
+.cdcp-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.cdcp-header-right {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.cdcp-pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #0176d3;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.cdcp-pdf-btn:hover {
+    background-color: #0e57a2;
+}
+
+.cdcp-pdf-btn:disabled {
+    background-color: #c9c9c9;
+    color: #706e6b;
+    cursor: not-allowed;
+}
+.cdcp-header-title { font-size: 0.95rem; font-weight: 700; color: #3730a3; margin: 0 0 3px; }
+.cdcp-header-sub   { font-size: 0.78rem; color: #6366f1; margin: 0; }
+
+/* Generic card */
+.cdcp-card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px 18px;
+}
+.cdcp-card-label {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.05em; color: #6b7280; margin: 0 0 8px;
+}
+.cdcp-card-body { font-size: 0.84rem; color: #374151; line-height: 1.6; margin: 0; }
+.cdcp-italic { font-style: italic; color: #4b5563; }
+
+/* Colored card variants */
+.cdcp-objective { border-left: 4px solid #6366f1; background: #f5f3ff; }
+.cdcp-opening   { border-left: 4px solid #f59e0b; background: #fffbeb; }
+.cdcp-talking   { background: #f0fdf4; border-color: #bbf7d0; }
+.cdcp-goals     { background: #faf5ff; border-color: #e9d5ff; }
+.cdcp-nextsteps { background: #f0fdf4; border-color: #bbf7d0; border-left: 4px solid #22c55e; }
+
+/* Two col layout */
+.cdcp-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Bullet lists */
+.cdcp-bullet-list { margin: 4px 0 0; padding: 0; list-style: none; }
+.cdcp-bullet-item {
+    display: flex; gap: 5px; font-size: 0.81rem;
+    color: #4b5563; margin-bottom: 5px; line-height: 1.5;
+}
+.cdcp-bullet-dot   { color: #9ca3af; flex-shrink: 0; }
+.cdcp-amber-dot    { color: #d97706; }
+.cdcp-knowledge-item { color: #92400e; }
+
+/* Stepper nav */
+.cdcp-stepper-nav {
+    display: flex; gap: 6px; background: #f9fafb;
+    border: 1px solid #e5e7eb; border-radius: 10px 10px 0 0;
+    padding: 10px 12px; border-bottom: none; overflow-x: auto;
+}
+.cdcp-step-btn {
+    padding: 7px 14px; font-size: 0.78rem; font-weight: 500;
+    border: 1px solid #d1d5db; border-radius: 6px;
+    background: #fff; color: #6b7280; cursor: pointer;
+    white-space: nowrap; transition: all 0.15s;
+}
+.cdcp-step-btn:hover { border-color: #6366f1; color: #4f46e5; }
+.cdcp-step-btn-active {
+    background: #4f46e5; color: #fff; border-color: #4f46e5; font-weight: 600;
+}
+
+/* Active step card */
+.cdcp-step-card {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px; padding: 20px;
+}
+.cdcp-step-header { margin-bottom: 16px; }
+.cdcp-step-title { font-size: 0.95rem; font-weight: 700; color: #111827; margin: 0 0 4px; }
+.cdcp-step-desc  { font-size: 0.8rem; color: #6b7280; margin: 0; }
+
+/* 3-col grid */
+.cdcp-step-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px;
+}
+.cdcp-knowledge-card {
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px;
+}
+.cdcp-info-card {
+    background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px;
+}
+.cdcp-questions-card {
+    background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px; padding: 14px;
+}
+.cdcp-col-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; margin: 0 0 10px;
+}
+.cdcp-knowledge-card .cdcp-col-title  { color: #b45309; }
+.cdcp-info-card      .cdcp-col-title  { color: #1d4ed8; }
+.cdcp-questions-card .cdcp-col-title  { color: #6d28d9; }
+
+/* Company info items */
+.cdcp-info-item {
+    display: flex; gap: 6px; font-size: 0.8rem;
+    color: #1e40af; margin-bottom: 6px; line-height: 1.5;
+}
+.cdcp-info-dot { color: #60a5fa; flex-shrink: 0; font-weight: 700; }
+
+/* Question list */
+.cdcp-q-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.cdcp-q-item { display: flex; gap: 8px; align-items: flex-start; }
+.cdcp-q-num  {
+    background: #7c3aed; color: #fff; font-size: 0.65rem; font-weight: 700;
+    width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px;
+}
+.cdcp-q-text { font-size: 0.8rem; color: #4c1d95; line-height: 1.5; font-style: italic; }
+
+/* Step footer nav */
+.cdcp-step-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid #f3f4f6; padding-top: 14px;
+}
+.cdcp-step-dots { display: flex; gap: 6px; }
+.cdcp-dot       { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; }
+.cdcp-dot-active { background: #4f46e5; width: 20px; border-radius: 4px; }
+.cdcp-nav-btn {
+    padding: 7px 16px; font-size: 0.8rem; font-weight: 500;
+    border: 1px solid #d1d5db; border-radius: 6px;
+    background: #f9fafb; color: #374151; cursor: pointer; transition: all 0.15s;
+}
+.cdcp-nav-btn:hover:not(:disabled) { background: #e5e7eb; }
+.cdcp-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.cdcp-nav-next { background: #4f46e5; color: #fff; border-color: #4f46e5; }
+.cdcp-nav-next:hover:not(:disabled) { background: #4338ca; }
+
+/* Goals */
+.cdcp-goals-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.cdcp-goal-box  { border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+.cdcp-goal-max  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+.cdcp-goal-min  { background: #fafafa; border: 1px solid #e5e7eb; }
+.cdcp-goal-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.cdcp-goal-max .cdcp-goal-label { color: #166534; }
+.cdcp-goal-min .cdcp-goal-label { color: #6b7280; }
+.cdcp-goal-text { font-size: 0.81rem; line-height: 1.5; }
+.cdcp-goal-max .cdcp-goal-text { color: #14532d; }
+.cdcp-goal-min .cdcp-goal-text { color: #4b5563; }
+button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #0176d3;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-bottom: 12px;
+}
+
+button:hover {
+    background-color: #0e57a2;
+}
+
+button:disabled {
+    background-color: #c9c9c9;
+    color: #706e6b;
+    cursor: not-allowed;
+}
+
+===== companyDetailCallPlan.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-03-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <c-pdf-generator></c-pdf-generator>
+    <div class="cdcp-wrapper">
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="cdcp-loading">
+                <span class="cdcp-spinner"></span>
+                <span>Loading call plan...</span>
+            </div>
+        </template>
+
+                <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="cdcp-loading">
+                <span class="cdcp-spinner"></span>
+                <span>Loading call plan...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+
+            <!-- Header Bar -->
+            <div class="cdcp-header-bar">
+                <div>
+                    <h2 class="cdcp-header-title">St. Meyer Hubbard Discovery Call Plan</h2>
+                    <p class="cdcp-header-sub">Consultative discovery framework â€” understand before prescribing</p>
+                </div>
+                <div class="cdcp-header-right">
+                    <button class="cdcp-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                        <template if:true={isDownloading}>Generating...</template>
+                        <template if:false={isDownloading}>Download PDF</template>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Call Objective -->
+            <div class="cdcp-card cdcp-objective">
+                <h3 class="cdcp-card-label">Call Objective</h3>
+                <p class="cdcp-card-body">{callPlan.callObjective}</p>
+            </div>
+
+            <!-- Opening Statement -->
+            <div class="cdcp-card cdcp-opening">
+                <h3 class="cdcp-card-label">Opening Statement</h3>
+                <p class="cdcp-card-body cdcp-italic">{callPlan.openingStatement}</p>
+            </div>
+
+            <!-- Pre-Call Prep + Key Talking Points -->
+            <div class="cdcp-two-col">
+                <div class="cdcp-card">
+                    <h3 class="cdcp-card-label">Pre-Call Preparation</h3>
+                    <ul class="cdcp-bullet-list">
+                        <template for:each={callPlan.preCallPreparation} for:item="item">
+                            <li key={item} class="cdcp-bullet-item">
+                                <span class="cdcp-bullet-dot">Â·</span>{item}
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="cdcp-card cdcp-talking">
+                    <h3 class="cdcp-card-label">Key Talking Points</h3>
+                    <ul class="cdcp-bullet-list">
+                        <template for:each={callPlan.keyTalkingPoints} for:item="point">
+                            <li key={point} class="cdcp-bullet-item">
+                                <span class="cdcp-bullet-dot">Â·</span>{point}
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Stepper Nav -->
+            <div class="cdcp-stepper-nav">
+                <template for:each={steps} for:item="step">
+                    <button key={step.index}
+                        class={step.navClass}
+                        data-index={step.index}
+                        onclick={handleStepClick}>
+                        {step.shortLabel}
+                    </button>
+                </template>
+            </div>
+
+            <!-- Active Step Content -->
+            <div class="cdcp-step-card">
+
+                <!-- Step Header -->
+                <div class="cdcp-step-header">
+                    <h3 class="cdcp-step-title">{activeStep.step}</h3>
+                    <p class="cdcp-step-desc">{activeStep.description}</p>
+                </div>
+
+                <!-- Three columns: St. Meyer | Company Info | Questions -->
+                <div class="cdcp-step-grid">
+
+                    <!-- St. Meyer Knowledge -->
+                    <div class="cdcp-knowledge-card">
+                        <h4 class="cdcp-col-title">{activeStep.stMeyerKnowledge.title}</h4>
+                        <ul class="cdcp-bullet-list">
+                            <template for:each={activeStep.stMeyerKnowledge.content} for:item="item">
+                                <li key={item} class="cdcp-bullet-item cdcp-knowledge-item">
+                                    <span class="cdcp-bullet-dot cdcp-amber-dot">Â·</span>{item}
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Company Info -->
+                    <div class="cdcp-info-card">
+                        <h4 class="cdcp-col-title">{activeStep.companyInfo.title}</h4>
+                        <ul class="cdcp-bullet-list">
+                            <template for:each={activeStep.companyInfo.content} for:item="item">
+                                <li key={item} class="cdcp-info-item">
+                                    <span class="cdcp-info-dot">â†’</span>{item}
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Discovery Questions -->
+                    <div class="cdcp-questions-card">
+                        <h4 class="cdcp-col-title">Discovery Questions</h4>
+                        <ol class="cdcp-q-list">
+                            <template for:each={activeStep.questions} for:item="q">
+                                <li key={q.key} class="cdcp-q-item">
+                                    <span class="cdcp-q-num">{q.num}</span>
+                                    <span class="cdcp-q-text">{q.text}</span>
+                                </li>
+                            </template>
+                        </ol>
+                    </div>
+
+                </div>
+
+                <!-- Step Navigator -->
+                <div class="cdcp-step-footer">
+                    <button class="cdcp-nav-btn" disabled={isPrevDisabled} onclick={handlePrev}>â† Previous</button>
+                    <div class="cdcp-step-dots">
+                        <template for:each={steps} for:item="dot">
+                            <span key={dot.index} class={dot.dotClass}></span>
+                        </template>
+                    </div>
+                    <button class="cdcp-nav-btn cdcp-nav-next" disabled={isNextDisabled} onclick={handleNext}>Next â†’</button>
+                </div>
+            </div>
+
+            <!-- Max / Min Call Goals -->
+            <div class="cdcp-card cdcp-goals">
+                <h3 class="cdcp-card-label">Maximum &amp; Minimum Call Goals</h3>
+                <div class="cdcp-goals-row">
+                    <div class="cdcp-goal-box cdcp-goal-max">
+                        <span class="cdcp-goal-label">Maximum</span>
+                        <span class="cdcp-goal-text">Obtain 3-year financials and schedule follow-up with CEO + CFO together</span>
+                    </div>
+                    <div class="cdcp-goal-box cdcp-goal-min">
+                        <span class="cdcp-goal-label">Minimum</span>
+                        <span class="cdcp-goal-text">Schedule a follow-up call with a specific date confirmed on the calendar</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps Proposal -->
+            <div class="cdcp-card cdcp-nextsteps">
+                <h3 class="cdcp-card-label">Proposed Next Steps</h3>
+                <p class="cdcp-card-body">{callPlan.nextStepsProposal}</p>
+            </div>
+
+        </template>
+    </div>
+</template>
+
+===== companyDetailCallPlan.js =====
+
+import { LightningElement, api, track } from 'lwc';
+import getCallPlan from '@salesforce/apex/CompanyDetailController.getCallPlan';
+
+const SHORT_LABELS = ['Build Trust', 'Frame', 'Explore Needs', 'Stories', 'Commit'];
+
+export default class CompanyDetailCallPlan extends LightningElement {
+    @api companyId;
+    @api company;
+    @track callPlanData = null;
+    @track isLoading = true;
+    @track activeIndex = 0;
+    @track isDownloading = false;
+
+    connectedCallback() {
+        getCallPlan({ companyId: this.companyId })
+            .then(json => {
+                this.callPlanData = JSON.parse(json);
+                this.isLoading = false;
+            })
+            .catch(err => {
+                console.error('Call plan load error', err);
+                this.isLoading = false;
+            });
+    }
+    get callPlan() { return this.callPlanData?.callPlan || {}; }
+    @api handleDownloadPDF() {
+        this.isDownloading = true;
+        const generator = this.template.querySelector('c-pdf-generator');
+        console.log('ðŸ” callPlanData being passed:', JSON.stringify(this.callPlanData)?.substring(0, 500));
+        if (generator) {
+            const name = this.company?.name || this.company?.Name || 'Unknown Company';
+            generator.generatePDF('callPlan', name, this.callPlanData);
+        }
+        setTimeout(() => { this.isDownloading = false; }, 3000);
+    }
+    get _framework() { return this.callPlan.discoveryFramework || []; }
+
+    get steps() {
+        return this._framework.map((s, i) => ({
+            ...s,
+            index:      i,
+            shortLabel: SHORT_LABELS[i] || `Step ${i + 1}`,
+            navClass:   i === this.activeIndex
+                ? 'cdcp-step-btn cdcp-step-btn-active'
+                : 'cdcp-step-btn',
+            dotClass:   i === this.activeIndex ? 'cdcp-dot cdcp-dot-active' : 'cdcp-dot'
+        }));
+    }
+
+    get activeStep() {
+        const s = this._framework[this.activeIndex] || {};
+        const questions = (s.questions || []).map((q, i) => ({
+            key:  `q-${i}`,
+            num:  i + 1,
+            text: q
+        }));
+        return {
+            ...s,
+            stMeyerKnowledge: s.stMeyerKnowledge || { title: '', content: [] },
+            companyInfo:      s.companyInfo      || { title: '', content: [] },
+            questions
+        };
+    }
+
+    get isPrevDisabled() { return this.activeIndex === 0; }
+    get isNextDisabled() { return this.activeIndex >= this._framework.length - 1; }
+    get companyName() {
+        return this.company?.name || this.company?.Name || 'Unknown Company';
+    }
+
+    handleStepClick(event) {
+        this.activeIndex = parseInt(event.currentTarget.dataset.index, 10);
+    }
+    handlePrev() { if (!this.isPrevDisabled) this.activeIndex -= 1; }
+    handleNext() { if (!this.isNextDisabled) this.activeIndex += 1; }
+}
+
+===== companyDetailCallPlan.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>false</isExposed>
+</LightningComponentBundle>
+
+===== companyDetailCallPlan.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import CompanyDetailCallPlan from 'c/companyDetailCallPlan';
+
+describe('c-company-detail-call-plan', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-company-detail-call-plan', {
+            is: CompanyDetailCallPlan
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

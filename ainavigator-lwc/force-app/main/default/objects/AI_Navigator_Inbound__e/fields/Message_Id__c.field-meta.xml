@@ -3,6 +3,6 @@
     <fullName>Message_Id__c</fullName>
     <label>Message ID</label>
     <type>Text</type>
-    <length>36</length>
+    <length>255</length>
     <description>UUID v4. Unique per event instance. Used for deduplication, audit trail, and dead-letter tracking.</description>
 </CustomField>

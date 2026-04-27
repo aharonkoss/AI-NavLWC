@@ -1,0 +1,285 @@
+﻿
+===== companyDetail.css =====
+
+.cd-wrapper { background: #f3f4f6; min-height: 100vh; }
+.cd-loading {
+    display: flex; gap: 10px; align-items: center;
+    justify-content: center; height: 200px;
+    font-size: 0.9rem; color: #6b7280;
+}
+.cd-spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(107,114,128,0.3);
+    border-top-color: #374151;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.cd-content { padding: 0 20px 20px; }
+.cd-coming-soon {
+    background: #fff; border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 60px; text-align: center;
+    color: #6b7280; font-size: 1rem; margin-top: 12px;
+}
+.cd-quick-name {
+    margin: 0;
+    padding: 8px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+===== companyDetail.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-02-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <!-- Loading -->
+    <template if:true={isLoading}>
+        <div class="cd-loading">
+            <span class="cd-spinner"></span>
+            <span>Loading company data...</span>
+        </div>
+    </template>
+
+    <template if:false={isLoading}>
+
+        <!-- Empty state: no company selected -->
+        <template if:false={hasCompany}>
+            <c-company-detail-empty
+                onbacktodashboard={handleBackToDashboard}>
+            </c-company-detail-empty>
+        </template>
+
+        <!-- Company loaded -->
+        <template if:true={hasCompany}>
+            <div class="cd-wrapper">
+
+                <!-- Header: guard so it only renders after data arrives -->
+                <template if:true={company}>
+                    <c-company-detail-header
+                        company={company}
+                        onbacktodashboard={handleBackToDashboard}
+                        ondownloadpdf={handleDownloadPDF}>
+                    </c-company-detail-header>
+                </template>
+                <!-- Tab strip -->
+                <c-company-detail-tabs
+                    active-tab={activeTab}
+                    ontabchange={handleTabChange}>
+                </c-company-detail-tabs>
+
+                <!-- Tab content -->
+                <div class="cd-content">
+                    <template if:true={showUpdates}>
+                        <c-company-detail-updates
+                            live-updates={liveUpdates}
+                            company={company}
+                            company-name={companyName}>
+                        </c-company-detail-updates>
+                    </template>
+
+                    <template if:true={showSignals}>
+                        <c-company-detail-signals
+                            signals-data={signalsData}
+                            company={company}>
+                        </c-company-detail-signals>
+                    </template>
+
+                    <template if:true={showResearch}>
+                        <c-company-detail-research
+                            company-id={_companyId}>
+                        </c-company-detail-research>
+                    </template>
+
+                    <template if:true={showInsights}>
+                        <c-company-detail-insights
+                            company-id={_companyId}>
+                        </c-company-detail-insights>
+                    </template>
+
+                    <template if:true={showCallPlan}>
+                        <c-company-detail-call-plan
+                            company-id={_companyId}
+                            company={company}>
+                        </c-company-detail-call-plan>
+                    </template>
+                    <!-- COACH TAB PANEL -->
+                    <template if:true={showCoach}>
+                        <c-company-detail-coach
+                            company={company}
+                            live-updates={liveUpdates}
+                            signals-data={signalsData}
+                            ai-research={aiResearch}
+                            discovery-call-plan={discoveryCallPlanData}>
+                        </c-company-detail-coach>
+                    </template>
+                    <template if:true={showSimulator}>
+                        <c-company-detail-simulator
+                            company={company}
+                            ai-research={aiResearch}
+                            discovery-call-plan={discoveryCallPlanData}>
+                        </c-company-detail-simulator>
+                    </template>
+                </div>
+
+            </div>
+        </template>
+
+    </template>
+</template>
+
+===== companyDetail.js =====
+
+import { LightningElement, api, track, wire } from 'lwc';
+import { CurrentPageReference, NavigationMixin } from 'lightning/navigation';
+import getCompany     from '@salesforce/apex/CompanyDetailController.getCompany';
+import getLiveUpdates from '@salesforce/apex/CompanyDetailController.getLiveUpdates';
+import getSignals     from '@salesforce/apex/CompanyDetailController.getSignals';
+
+export default class CompanyDetail extends NavigationMixin(LightningElement) {
+    @api companyId;          // set by Lightning App Builder or NavigationMixin state
+
+    @track _companyId = null;
+    @track company    = null;
+    @track liveUpdates = [];
+    @track signalsData          = null;
+    @track aiResearch           = null;
+    @track discoveryCallPlanData = null;
+    @track activeTab  = 'updates';
+    @track isLoading  = true;
+    @track error      = null;
+
+    // Read companyId from page state (URL param) passed by NavigationMixin
+    @wire(CurrentPageReference)
+    handlePageRef(pageRef) {
+        const idFromState = pageRef?.state?.c__companyId;
+        console.log('ðŸ” CompanyDetail received ID:', idFromState);
+        console.log('ðŸ” Full page state:', JSON.stringify(pageRef?.state));
+
+        if (idFromState && idFromState !== this._companyId) {
+            this._companyId = idFromState;
+            this.loadCompanyData(idFromState);
+        } else if (!idFromState && this.companyId && this.companyId !== this._companyId) {
+            this._companyId = this.companyId;
+            this.loadCompanyData(this.companyId);
+        } else if (!idFromState && !this.companyId) {
+            // â”€â”€ NEW: load a default company instead of showing blank â”€â”€
+            this._companyId = 'co-001';
+            this.loadCompanyData('co-001');
+        }
+    }
+
+    loadCompanyData(id) {
+        this.isLoading = true;
+        this.error = null;
+
+        Promise.all([
+            getCompany({ companyId: id }),
+            getLiveUpdates({ companyId: id }),
+            getSignals({ companyId: id })
+        ])
+        .then(([companyJson, updatesJson, signalsJson]) => {
+            this.company     = JSON.parse(companyJson);
+            this.liveUpdates = JSON.parse(updatesJson);
+            this.signalsData = JSON.parse(signalsJson);
+            this.isLoading   = false;
+        })
+        .catch(err => {
+            console.error('CompanyDetail load error', err);
+            this.error     = err.body?.message || 'Failed to load company data.';
+            this.isLoading = false;
+        });
+    }
+
+    get hasCompany()  { return !!this._companyId; }
+    get showUpdates() { return this.activeTab === 'updates'; }
+    get showSignals() { return this.activeTab === 'signals'; }
+    get showResearch(){ return this.activeTab === 'research'; }
+    get showInsights(){ return this.activeTab === 'insights'; }
+    get showCallPlan(){ return this.activeTab === 'callplan'; }
+    get showCoach() {return this.activeTab === 'coach';}
+    get showSimulator() { return this.activeTab === 'simulator'; }
+    get companyName() {
+        return this.company?.name || this.company?.Name || '';
+    }
+    handleTabChange(event) {
+        this.activeTab = event.detail.tab;
+    }
+
+    handleBackToDashboard() {
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'AI_Navigator' }
+        });
+    }
+    handleDownloadPDF() {
+        console.log('ðŸ”” CompanyDetail: handleDownloadPDF received, activeTab:', this.activeTab);
+        console.log('ðŸ”” showUpdates:', this.showUpdates);
+        if (this.showUpdates) {
+            const updatesComp = this.template.querySelector('c-company-detail-updates');
+            console.log('ðŸ”” updatesComp found:', !!updatesComp);
+            updatesComp?.handleDownloadPDF();
+        } else if (this.showSignals) {
+            const signalsComp = this.template.querySelector('c-company-detail-signals');
+            console.log('ðŸ”” signalsComp found:', !!signalsComp);
+            signalsComp?.handleDownloadPDF();
+        } else if (this.showCallPlan) {
+            const callPlanComp = this.template.querySelector('c-company-detail-call-plan');
+            console.log('ðŸ”” callPlanComp found:', !!callPlanComp);
+            callPlanComp?.handleDownloadPDF();
+        }
+    }
+}
+
+===== companyDetail.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+    </targets>
+    <targetConfigs>
+        <targetConfig targets="lightning__AppPage">
+            <property name="companyId" type="String" label="Company ID" description="Pass companyId via URL state or page reference"/>
+        </targetConfig>
+    </targetConfigs>
+</LightningComponentBundle>
+
+===== companyDetail.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import CompanyDetail from 'c/companyDetail';
+
+describe('c-company-detail', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-company-detail', {
+            is: CompanyDetail
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

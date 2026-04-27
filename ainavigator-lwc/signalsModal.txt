@@ -1,0 +1,777 @@
+﻿
+===== signalsModal.css =====
+
+/* â”€â”€ Backdrop â”€â”€ */
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+/* â”€â”€ Container â”€â”€ */
+.modal-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 780px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* â”€â”€ Header â”€â”€ */
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+.modal-company-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 2px 0;
+}
+.modal-signal-count { font-size: 0.78rem; color: #6b7280; margin: 0; }
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+.modal-close-btn:hover { color: #374151; background: #f3f4f6; }
+
+/* â”€â”€ Tabs â”€â”€ */
+.modal-tabs {
+    display: flex;
+    gap: 16px;
+    padding: 0 20px;
+    border-bottom: 1px solid #e5e7eb;
+    flex-shrink: 0;
+}
+.modal-tab {
+    padding: 10px 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #6b7280;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.modal-tab:hover { color: #374151; }
+.modal-tab-active { color: #2563eb; border-bottom-color: #2563eb; }
+
+/* â”€â”€ Body â”€â”€ */
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+}
+
+/* â”€â”€ Signal Stats â”€â”€ */
+.signal-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.signal-stat-card {
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid;
+}
+.stat-red   { background: #fef2f2; border-color: #fecaca; }
+.stat-green { background: #f0fdf4; border-color: #bbf7d0; }
+.stat-blue  { background: #eff6ff; border-color: #bfdbfe; }
+.signal-stat-label { font-size: 0.72rem; font-weight: 500; margin: 0 0 4px 0; }
+.stat-red   .signal-stat-label { color: #dc2626; }
+.stat-green .signal-stat-label { color: #16a34a; }
+.stat-blue  .signal-stat-label { color: #2563eb; }
+.signal-stat-value { font-size: 1.3rem; font-weight: 700; margin: 0; }
+.stat-red-value   { color: #b91c1c; }
+.stat-green-value { color: #15803d; }
+.stat-blue-value  { color: #1d4ed8; }
+
+/* â”€â”€ Signal List â”€â”€ */
+.signal-list { display: flex; flex-direction: column; gap: 8px; }
+.signal-row {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.signal-warning-border     { border-left: 4px solid #f87171; }
+.signal-opportunity-border { border-left: 4px solid #4ade80; }
+
+/* â”€â”€ Signal Header Button â”€â”€ */
+.signal-header-btn {
+    width: 100%;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: left;
+}
+.signal-header-btn:hover { background: #f3f4f6; }
+.signal-header-left { flex: 1; }
+.signal-badges-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+.signal-name { font-size: 0.875rem; font-weight: 600; color: #111827; margin: 0; }
+.signal-chevron { font-size: 0.7rem; color: #9ca3af; margin-left: 8px; margin-top: 2px; flex-shrink: 0; }
+
+/* â”€â”€ Priority Badges â”€â”€ */
+.priority-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+.p-critical { background: #fef2f2; color: #b91c1c; }
+.p-high     { background: #fff7ed; color: #c2410c; }
+.p-medium   { background: #fefce8; color: #a16207; }
+.p-low      { background: #eff6ff; color: #1d4ed8; }
+.p-info     { background: #f9fafb; color: #4b5563; }
+
+/* â”€â”€ Type + Category Badges â”€â”€ */
+.type-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 500;
+}
+.type-warning     { background: #fee2e2; color: #b91c1c; }
+.type-opportunity { background: #dcfce7; color: #15803d; }
+.category-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 500;
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* â”€â”€ Signal Body â”€â”€ */
+.signal-body { padding: 12px 16px; background: #fff; display: flex; flex-direction: column; gap: 10px; }
+.signal-description { font-size: 0.85rem; color: #374151; margin: 0; line-height: 1.5; }
+
+.signal-section-title { font-size: 0.72rem; font-weight: 600; color: #4b5563; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.05em; }
+.signal-indicators { font-size: 0.82rem; color: #374151; margin: 0; padding-left: 4px; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+
+.signal-actions-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 10px 12px; }
+.signal-actions-title { font-size: 0.72rem; font-weight: 600; color: #1d4ed8; margin: 0 0 4px 0; }
+.signal-actions-text { font-size: 0.82rem; color: #1e40af; margin: 0; }
+
+.signal-meta { display: flex; gap: 16px; font-size: 0.75rem; color: #6b7280; flex-wrap: wrap; }
+.signal-meta strong { color: #374151; }
+
+/* â”€â”€ Empty State â”€â”€ */
+.empty-signals { text-align: center; padding: 40px 20px; color: #6b7280; }
+.empty-signals-sub { font-size: 0.8rem; margin-top: 4px; }
+
+/* â”€â”€ Call Plan Placeholder â”€â”€ */
+.callplan-placeholder { text-align: center; padding: 60px 20px; color: #6b7280; font-size: 1rem; }
+.callplan-sub { font-size: 0.82rem; margin-top: 8px; color: #9ca3af; }
+/* â”€â”€ Call Plan: Loading â”€â”€ */
+.cp-loading {
+    text-align: center;
+    padding: 48px 20px;
+    color: #6b7280;
+}
+.cp-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.cp-loading-sub { font-size: 0.78rem; color: #9ca3af; margin-top: 4px; }
+
+/* â”€â”€ Call Plan: Error â”€â”€ */
+.cp-error { text-align: center; padding: 40px 20px; color: #dc2626; }
+.cp-retry-btn {
+    margin-top: 12px;
+    padding: 6px 16px;
+    font-size: 0.82rem;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+}
+.cp-retry-btn:hover { background: #eff6ff; }
+
+/* â”€â”€ Company Research Card â”€â”€ */
+.cp-research-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.cp-research-header {
+    background: linear-gradient(to right, #334155, #1e293b);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.cp-research-company { font-size: 1rem; font-weight: 700; color: #fff; margin: 0; }
+.cp-website { font-size: 0.75rem; color: #93c5fd; }
+.cp-research-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+.cp-info-section {
+    padding: 14px 16px;
+    background: #f8fafc;
+}
+.cp-info-section:first-child { border-right: 1px solid #e2e8f0; }
+.cp-info-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 10px 0;
+}
+.cp-info-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+.cp-info-label { font-size: 0.72rem; color: #94a3b8; min-width: 110px; flex-shrink: 0; padding-top: 1px; }
+.cp-info-value { font-size: 0.82rem; font-weight: 500; color: #1e293b; }
+.cp-no-data { font-size: 0.82rem; color: #94a3b8; font-style: italic; margin: 0; }
+
+/* â”€â”€ Overall Strategy â”€â”€ */
+.cp-strategy-box {
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+.cp-strategy-title { font-size: 0.78rem; font-weight: 700; color: #0369a1; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.04em; }
+.cp-strategy-text { font-size: 0.85rem; color: #0c4a6e; margin: 0; line-height: 1.55; }
+
+/* â”€â”€ Call Plan Cards â”€â”€ */
+.cp-plans-list { display: flex; flex-direction: column; gap: 14px; }
+.cp-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.cp-border-critical { border-color: #fecaca; }
+.cp-border-high     { border-color: #fed7aa; }
+.cp-border-medium   { border-color: #fde68a; }
+.cp-border-low      { border-color: #bfdbfe; }
+.cp-border-info     { border-color: #e2e8f0; }
+
+.cp-card-header { padding: 10px 14px; }
+.cp-header-critical { background: #fef2f2; }
+.cp-header-high     { background: #fff7ed; }
+.cp-header-medium   { background: #fefce8; }
+.cp-header-low      { background: #eff6ff; }
+.cp-header-info     { background: #f8fafc; }
+
+.cp-plan-header-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cp-plan-number { font-size: 0.75rem; font-weight: 700; color: #94a3b8; }
+.cp-plan-signal-name { font-size: 0.9rem; font-weight: 700; color: #1e293b; margin: 0; }
+.cp-priority-badge {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.cp-plan-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; background: #fff; }
+.cp-plan-section { padding: 10px 12px; border-radius: 6px; }
+.cp-section-insight    { background: #f8fafc; border: 1px solid #e2e8f0; }
+.cp-section-objective  { background: #eef2ff; border: 1px solid #c7d2fe; }
+.cp-section-opening    { background: #fffbeb; border: 1px solid #fde68a; }
+.cp-section-questions  { background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+.cp-plan-section-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 6px 0;
+    color: #475569;
+}
+.cp-section-objective .cp-plan-section-title  { color: #4338ca; }
+.cp-section-opening .cp-plan-section-title    { color: #92400e; }
+.cp-section-questions .cp-plan-section-title  { color: #166534; }
+
+.cp-plan-section-text { font-size: 0.84rem; color: #374151; margin: 0; line-height: 1.55; }
+.cp-italic { font-style: italic; }
+
+.cp-questions-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.cp-questions-list li { display: flex; align-items: flex-start; gap: 6px; font-size: 0.84rem; color: #166534; }
+.cp-q-bullet { color: #16a34a; font-weight: 700; flex-shrink: 0; }
+/* â”€â”€ Chevron animation â”€â”€ */
+.signal-chevron { transition: transform 0.2s ease; display: inline-block; }
+.signal-row-expanded .signal-chevron { transform: rotate(180deg); }
+
+===== signalsModal.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-25-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="modal-backdrop" onclick={handleBackdropClick}>
+        <div class="modal-container">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-company-name">{companyName}</h3>
+                    <p class="modal-signal-count">{sortedSignals.length} signals detected</p>
+                </div>
+                <button class="modal-close-btn" onclick={handleClose}>âœ•</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="modal-tabs">
+                <button class={signalsTabClass} onclick={handleTabSignals}>
+                    All Signals ({sortedSignals.length})
+                </button>
+                <button class={callPlanTabClass} onclick={handleTabCallPlan}>
+                    Call Plan Summary
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+
+                <!-- â”€â”€ SIGNALS TAB â”€â”€ -->
+                <template if:true={isSignalsTab}>
+                    <div class="signal-stats-grid">
+                        <div class="signal-stat-card stat-red">
+                            <p class="signal-stat-label">Warning Signals</p>
+                            <p class="signal-stat-value stat-red-value">{warningCount}</p>
+                        </div>
+                        <div class="signal-stat-card stat-green">
+                            <p class="signal-stat-label">Opportunities</p>
+                            <p class="signal-stat-value stat-green-value">{opportunityCount}</p>
+                        </div>
+                        <div class="signal-stat-card stat-blue">
+                            <p class="signal-stat-label">Top Priority</p>
+                            <p class="signal-stat-value stat-blue-value">{topPriority}</p>
+                        </div>
+                    </div>
+
+                    <template if:true={hasSignals}>
+                        <div class="signal-list">
+                            <template for:each={sortedSignals} for:item="signal">
+                                <div key={signal.index} class={signal.rowClass}>
+                                    <button class="signal-header-btn" data-index={signal.index} onclick={handleToggleSignal}>
+                                        <div class="signal-header-left">
+                                            <div class="signal-badges-row">
+                                                <span class={signal.priorityClass}>{signal.priorityLabel}</span>
+                                                <span class={signal.signalTypeClass}>{signal.signalType}</span>
+                                                <template if:true={signal.signalCategory}>
+                                                    <span class={signal.categoryClass}>{signal.signalCategory}</span>
+                                                </template>
+                                            </div>
+                                            <h4 class="signal-name">{signal.signalName}</h4>
+                                        </div>
+                                        <span class="signal-chevron">â–¼</span>
+                                    </button>
+                                    <template if:true={signal.isExpanded}>
+                                        <div class="signal-body">
+                                            <p class="signal-description">{signal.signalDescription}</p>
+                                            <template if:true={signal.hasKeyIndicators}>
+                                                <div class="signal-section">
+                                                    <h5 class="signal-section-title">Key Indicators</h5>
+                                                    <ul class="signal-indicators">
+                                                        <template for:each={signal.keyIndicators} for:item="indicator">
+                                                            <li key={indicator}>â€” {indicator}</li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                            <template if:true={signal.hasSuggestedActions}>
+                                                <div class="signal-actions-box">
+                                                    <h5 class="signal-actions-title">Suggested Actions</h5>
+                                                    <p class="signal-actions-text">{signal.suggestedActions}</p>
+                                                </div>
+                                            </template>
+                                            <div class="signal-meta">
+                                                <template if:true={signal.hasDate}>
+                                                    <span>Event Date: <strong>{signal.displayDate}</strong></span>
+                                                </template>
+                                                <template if:true={signal.confidence}>
+                                                    <span>Confidence: <strong>{signal.confidence}</strong></span>
+                                                </template>
+                                                <template if:true={signal.timeframe}>
+                                                    <span>Timeframe: <strong>{signal.timeframe}</strong></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template if:false={hasSignals}>
+                        <div class="empty-signals">
+                            <p>No signals detected yet.</p>
+                            <p class="empty-signals-sub">Signals will appear once analysis is complete.</p>
+                        </div>
+                    </template>
+                </template>
+
+                <!-- â”€â”€ CALL PLAN TAB â”€â”€ -->
+                <template if:true={isCallPlanTab}>
+
+                    <!-- Loading -->
+                    <template if:true={isLoadingCallPlan}>
+                        <div class="cp-loading">
+                            <div class="cp-spinner"></div>
+                            <p>Loading call plan...</p>
+                            <p class="cp-loading-sub">Analyzing company data and signals</p>
+                        </div>
+                    </template>
+
+                    <!-- Error -->
+                    <template if:true={callPlanError}>
+                        <div class="cp-error">
+                            <p>{callPlanError}</p>
+                            <button onclick={handleRetryCallPlan} class="cp-retry-btn">Try Again</button>
+                        </div>
+                    </template>
+
+                    <!-- Call Plan Content -->
+                    <template if:true={hasCallPlans}>
+
+                        <!-- Company Research Card -->
+                        <template if:true={hasCompanyInfo}>
+                            <div class="cp-research-card">
+                                <div class="cp-research-header">
+                                    <h3 class="cp-research-company">{companyInfo.name}</h3>
+                                    <template if:true={hasWebsite}>
+                                        <span class="cp-website">{companyInfo.website}</span>
+                                    </template>
+                                </div>
+                                <div class="cp-research-body">
+                                    <!-- Company Profile -->
+                                    <div class="cp-info-section">
+                                        <h4 class="cp-info-title">ðŸ¢ Company Profile</h4>
+                                        <template if:true={companyInfo.timeInBusiness}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Time In Business</span>
+                                                <span class="cp-info-value">{companyInfo.timeInBusiness}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.entityType}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Entity Type</span>
+                                                <span class="cp-info-value">{companyInfo.entityType}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.headquarterAddress}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Headquarters</span>
+                                                <span class="cp-info-value">{companyInfo.headquarterAddress}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.industryAndBusinessModel}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Industry</span>
+                                                <span class="cp-info-value">{companyInfo.industryAndBusinessModel}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.numberOfEmployees}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Employees</span>
+                                                <span class="cp-info-value">{companyInfo.numberOfEmployees}</span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <!-- Financial -->
+                                    <div class="cp-info-section">
+                                        <h4 class="cp-info-title">ðŸ’° Financial</h4>
+                                        <template if:true={hasRevenue}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Annual Revenue</span>
+                                                <span class="cp-info-value">{companyInfo.annualRevenue}</span>
+                                            </div>
+                                        </template>
+                                        <template if:false={hasRevenue}>
+                                            <p class="cp-no-data">Financial data not available</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Overall Strategy -->
+                        <template if:true={hasOverallStrategy}>
+                            <div class="cp-strategy-box">
+                                <h4 class="cp-strategy-title">Overall Strategy</h4>
+                                <p class="cp-strategy-text">{overallStrategy}</p>
+                            </div>
+                        </template>
+
+                        <!-- Call Plan Cards -->
+                        <div class="cp-plans-list">
+                            <template for:each={callPlans} for:item="plan">
+                                <div key={plan.index} class={plan.cardClass}>
+                                    <div class={plan.headerClass}>
+                                        <div class="cp-plan-header-row">
+                                            <span class="cp-plan-number">#{plan.planNumber}</span>
+                                            <h4 class="cp-plan-signal-name">{plan.signalName}</h4>
+                                        </div>
+                                        <span class={plan.priorityClass}>{plan.priorityLabel}</span>
+                                    </div>
+                                    <div class="cp-plan-body">
+                                        <!-- Insight -->
+                                        <div class="cp-plan-section cp-section-insight">
+                                            <h5 class="cp-plan-section-title">Insight</h5>
+                                            <p class="cp-plan-section-text">{plan.insight}</p>
+                                        </div>
+                                        <!-- Call Objective -->
+                                        <div class="cp-plan-section cp-section-objective">
+                                            <h5 class="cp-plan-section-title">Call Objective</h5>
+                                            <p class="cp-plan-section-text">{plan.callObjective}</p>
+                                        </div>
+                                        <!-- Opening Statement -->
+                                        <div class="cp-plan-section cp-section-opening">
+                                            <h5 class="cp-plan-section-title">Opening Statement</h5>
+                                            <p class="cp-plan-section-text cp-italic">{plan.openingStatement}</p>
+                                        </div>
+                                        <!-- Discovery Questions -->
+                                        <template if:true={plan.hasDiscoveryQuestions}>
+                                            <div class="cp-plan-section cp-section-questions">
+                                                <h5 class="cp-plan-section-title">Discovery Questions</h5>
+                                                <ul class="cp-questions-list">
+                                                    <template for:each={plan.discoveryQuestions} for:item="question">
+                                                        <li key={question}>
+                                                            <span class="cp-q-bullet">â€º</span> {question}
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                    </template>
+
+                    <!-- No call plan yet -->
+                    <template if:false={hasCallPlans}>
+                        <template if:false={isLoadingCallPlan}>
+                            <template if:false={callPlanError}>
+                                <div class="empty-signals">
+                                    <p>Click "Call Plan Summary" to generate the call plan.</p>
+                                </div>
+                            </template>
+                        </template>
+                    </template>
+
+                </template>
+
+            </div>
+        </div>
+    </div>
+</template>
+
+===== signalsModal.js =====
+
+import { LightningElement, api, track } from 'lwc';
+import getCallPlan from '@salesforce/apex/DashboardController.getCallPlan';
+import getCompanyInfo from '@salesforce/apex/DashboardController.getCompanyInfo';
+
+export default class SignalsModal extends LightningElement {
+    @api companyName = '';
+    @api companyId = '';
+    @api signals = [];
+
+    @track activeTab = 'signals';
+    @track _expandedIndexes = [];   // array of expanded signal indexes â€” LWC tracks arrays reliably
+    @track _toggleCount = 0;        // bump to force sortedSignals getter to recompute
+    @track callPlanData = null;
+    @track companyInfo = null;
+    @track isLoadingCallPlan = false;
+    @track callPlanError = null;
+
+    PRIORITY_LABELS = {
+        5: { label: 'Critical', colorClass: 'p-critical' },
+        4: { label: 'High',     colorClass: 'p-high' },
+        3: { label: 'Medium',   colorClass: 'p-medium' },
+        2: { label: 'Low',      colorClass: 'p-low' },
+        1: { label: 'Info',     colorClass: 'p-info' }
+    };
+
+    PRIORITY_CARD_CLASSES = {
+        5: { bg: 'cp-card-header cp-header-critical', border: 'cp-card cp-border-critical' },
+        4: { bg: 'cp-card-header cp-header-high',     border: 'cp-card cp-border-high' },
+        3: { bg: 'cp-card-header cp-header-medium',   border: 'cp-card cp-border-medium' },
+        2: { bg: 'cp-card-header cp-header-low',      border: 'cp-card cp-border-low' },
+        1: { bg: 'cp-card-header cp-header-info',     border: 'cp-card cp-border-info' }
+    };
+    connectedCallback() {
+        this._keyHandler = (e) => { if (e.key === 'Escape') this.handleClose(); };
+        window.addEventListener('keydown', this._keyHandler);
+    }
+
+    disconnectedCallback() {
+        window.removeEventListener('keydown', this._keyHandler);
+    }
+    getSignalPriority(signal) {
+        const type     = (signal.signalType || '').toLowerCase();
+        const category = (signal.signalCategory || '').toLowerCase();
+        const name     = (signal.signalName || '').toLowerCase();
+        if (category.includes('capital') || category.includes('acquisition')) return 5;
+        if (name.includes('acquisition') || name.includes('funding')) return 5;
+        if (category.includes('leadership') || name.includes('cfo') || name.includes('ceo')) return 4;
+        if (type.includes('early warning') || category.includes('growth')) return 4;
+        if (type.includes('retention risk') || category.includes('risk')) return 3;
+        if (category.includes('strategic') || category.includes('expansion')) return 2;
+        if (type.includes('opportunity')) return 2;
+        return 1;
+    }
+
+    get sortedSignals() {
+        // _toggleCount is read here so LWC re-evaluates this getter when it changes
+        const t = this._toggleCount;
+        return [...this.signals]
+            .filter(s => s.signalType !== 'Neutral')
+            .map((s, i) => {
+                const priority = this.getSignalPriority(s);
+                const info = this.PRIORITY_LABELS[priority] || this.PRIORITY_LABELS[1];
+                const isWarning = s.signalType === 'Early Warning' || s.signalType === 'Retention Risk';
+                return {
+                    ...s,
+                    index: i,
+                    priority,
+                    priorityLabel: `P${priority} - ${info.label}`,
+                    priorityClass: `priority-badge ${info.colorClass}`,
+                    signalTypeClass: `type-badge ${isWarning ? 'type-warning' : 'type-opportunity'}`,
+                    categoryClass: 'category-badge',
+                    rowClass: `signal-row ${isWarning ? 'signal-warning-border' : 'signal-opportunity-border'}${this._expandedIndexes.includes(i) ? ' signal-row-expanded' : ''}`,
+                    isExpanded: this._expandedIndexes.includes(i),
+                    hasKeyIndicators: s.keyIndicators && s.keyIndicators.length > 0,
+                    hasSuggestedActions: !!s.suggestedActions,
+                    hasDate: !!(s.eventDate || s.date),
+                    displayDate: (s.eventDate || s.date)
+                        ? new Date(s.eventDate || s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        : ''
+                };
+            })
+            .sort((a, b) => b.priority - a.priority);
+    }
+
+    get callPlans() {
+        if (!this.callPlanData || !this.callPlanData.callPlans) return [];
+        return this.callPlanData.callPlans.map((plan, i) => {
+            const priority = plan.signalPriority || 1;
+            const info = this.PRIORITY_LABELS[priority] || this.PRIORITY_LABELS[1];
+            const cardClasses = this.PRIORITY_CARD_CLASSES[priority] || this.PRIORITY_CARD_CLASSES[1];
+            return {
+                ...plan,
+                index: i,
+                planNumber: i + 1,
+                priorityLabel: `Priority ${priority} - ${info.label}`,
+                priorityClass: `cp-priority-badge ${info.colorClass}`,
+                cardClass: cardClasses.border,
+                headerClass: cardClasses.bg,
+                hasDiscoveryQuestions: plan.discoveryQuestions && plan.discoveryQuestions.length > 0
+            };
+        });
+    }
+
+    get overallStrategy()    { return this.callPlanData?.overallStrategy || ''; }
+    get hasOverallStrategy() { return !!this.overallStrategy; }
+    get hasCallPlans()       { return this.callPlans.length > 0; }
+    get hasCompanyInfo()     { return this.companyInfo !== null; }
+    get companyWebsite()     { return this.companyInfo?.website || ''; }
+    get hasWebsite()         { return !!this.companyWebsite; }
+    get hasRevenue()         { return !!this.companyInfo?.annualRevenue; }
+    get warningCount()       { return this.sortedSignals.filter(s => s.signalType === 'Early Warning' || s.signalType === 'Retention Risk').length; }
+    get opportunityCount()   { return this.sortedSignals.filter(s => s.signalType === 'Opportunity').length; }
+    get topPriority()        { return this.sortedSignals.length > 0 ? `P${this.sortedSignals[0].priority}` : '-'; }
+    get hasSignals()         { return this.sortedSignals.length > 0; }
+    get isSignalsTab()       { return this.activeTab === 'signals'; }
+    get isCallPlanTab()      { return this.activeTab === 'callPlan'; }
+    get signalsTabClass()    { return `modal-tab ${this.activeTab === 'signals'  ? 'modal-tab-active' : ''}`; }
+    get callPlanTabClass()   { return `modal-tab ${this.activeTab === 'callPlan' ? 'modal-tab-active' : ''}`; }
+
+    handleTabSignals()  { this.activeTab = 'signals'; }
+    handleTabCallPlan() {
+        this.activeTab = 'callPlan';
+        if (!this.callPlanData && !this.isLoadingCallPlan) this.fetchCallPlan();
+    }
+
+    fetchCallPlan() {
+        this.isLoadingCallPlan = true;
+        this.callPlanError = null;
+        Promise.all([
+            getCallPlan({ companyId: this.companyId }),
+            getCompanyInfo({ companyId: this.companyId })
+        ])
+        .then(([callPlanResult, companyInfoResult]) => {
+            this.callPlanData = JSON.parse(callPlanResult);
+            this.companyInfo  = JSON.parse(companyInfoResult);
+            this.isLoadingCallPlan = false;
+        })
+        .catch(error => {
+            this.callPlanError = error.body?.message || 'Failed to load call plan.';
+            this.isLoadingCallPlan = false;
+        });
+    }
+
+    handleToggleSignal(event) {
+        const idx = parseInt(event.currentTarget.dataset.index, 10);
+        const current = [...this._expandedIndexes];
+        const pos = current.indexOf(idx);
+        if (pos >= 0) {
+            current.splice(pos, 1);       // collapse
+        } else {
+            current.push(idx);            // expand
+        }
+        this._expandedIndexes = current;  // assign new array â†’ LWC detects change
+        this._toggleCount++;              // force sortedSignals getter to re-run
+    }
+
+    handleRetryCallPlan() {
+        this.callPlanData = null;
+        this.fetchCallPlan();
+    }
+
+    handleClose() { this.dispatchEvent(new CustomEvent('close')); }
+    handleBackdropClick(event) { if (event.target === event.currentTarget) this.handleClose(); }
+}
+
+===== signalsModal.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>false</isExposed>
+</LightningComponentBundle>

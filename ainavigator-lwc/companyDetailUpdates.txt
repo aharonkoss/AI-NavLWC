@@ -1,0 +1,312 @@
+﻿
+===== companyDetailUpdates.css =====
+
+.cdu-wrapper { margin-top: 12px; }
+
+/* Sub-tabs row */
+.cdu-subtabs {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+    padding: 0 12px;
+    overflow-x: auto;
+}
+.cdu-subtab {
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.cdu-subtab:hover { color: #374151; }
+.cdu-subtab-active {
+    color: #1d4ed8;
+    border-bottom-color: #1d4ed8;
+    font-weight: 600;
+}
+.cdu-subtabs-right { margin-left: auto; padding: 6px 0; }
+.cdu-pdf-btn {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.cdu-pdf-btn:hover { background: #1e40af; }
+
+/* Cards grid */
+.cdu-cards {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    min-height: 300px;
+}
+.cdu-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafafa;
+    transition: box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cdu-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+/* Card header: category + impact badges */
+.cdu-card-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.cdu-category {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    background: #f3f4f6;
+    color: #374151;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+}
+.cdu-impact        { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.cdu-impact-high   { background: #dbeafe; color: #1e40af; }
+.cdu-impact-medium { background: #f3f4f6; color: #374151; }
+.cdu-impact-low    { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+
+/* Card body */
+.cdu-headline {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    line-height: 1.35;
+}
+.cdu-summary {
+    font-size: 0.8rem;
+    color: #4b5563;
+    margin: 0;
+    line-height: 1.5;
+    flex: 1;
+}
+
+/* Card footer */
+.cdu-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+.cdu-date   { font-size: 0.74rem; color: #9ca3af; }
+.cdu-source {
+    font-size: 0.74rem;
+    color: #2563eb;
+    text-decoration: none;
+}
+.cdu-source:hover { text-decoration: underline; }
+
+/* Empty / loading states */
+.cdu-loading,
+.cdu-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.88rem;
+    padding: 40px;
+}
+
+===== companyDetailUpdates.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-31-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <!-- Hidden PDF generator -->
+    <c-pdf-generator></c-pdf-generator>
+    <div class="cdu-wrapper">
+        <!-- Sub-section tabs -->
+        <div class="cdu-subtabs">
+            <template for:each={sections} for:item="sec">
+                <button
+                    key={sec.id}
+                    class={sec.cls}
+                    data-section={sec.id}
+                    onclick={handleSectionClick}>
+                    {sec.name}
+                </button>
+            </template>
+            <div class="cdu-subtabs-right">
+                <button class="cdu-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                    <template if:true={isDownloading}>Generating...</template>
+                    <template if:false={isDownloading}>Download PDF</template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Update cards grid -->
+        <div class="cdu-cards">
+            <template if:true={isLoading}>
+                <p class="cdu-loading">Loading updates...</p>
+            </template>
+            <template if:false={isLoading}>
+                <template if:true={hasUpdates}>
+                    <template for:each={currentUpdates} for:item="update">
+                        <div key={update.headline} class="cdu-card">
+                            <div class="cdu-card-header">
+                                <span class="cdu-category">{update.category}</span>
+                                <span class={update.impactClass}>{update.impact}</span>
+                            </div>
+                            <h3 class="cdu-headline">{update.headline}</h3>
+                            <p class="cdu-summary">{update.summary}</p>
+                            <div class="cdu-footer">
+                                <span class="cdu-date">{update.date}</span>
+                                <template if:true={update.source}>
+                                    <a href={update.sourceUrl} target="_blank" rel="noopener noreferrer" class="cdu-source">
+                                        ðŸ”— {update.source}
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={hasUpdates}>
+                    <div class="cdu-empty">
+                        <p>No updates available for this section.</p>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </div>
+</template>
+
+===== companyDetailUpdates.js =====
+
+import { LightningElement, api, track } from 'lwc';
+
+const SECTIONS = [
+    { id: 'companyleadership', name: 'Company & Leadership' },
+    { id: 'industrymarket',    name: 'Industry & Market'   },
+    { id: 'financiallegal',    name: 'Financial & Legal'   },
+    { id: 'regulatory',        name: 'Regulatory'          }
+];
+
+const IMPACT_CLASSES = {
+    High:   'cdu-impact cdu-impact-high',
+    Medium: 'cdu-impact cdu-impact-medium',
+    Low:    'cdu-impact cdu-impact-low'
+};
+
+export default class CompanyDetailUpdates extends LightningElement {
+    @api liveUpdates = [];
+    @api company = {};
+    @track activeSection = 'companyleadership';
+    @track isLoading = false;
+    @api companyName;   
+    @track isDownloading = false;
+
+    get pdfGenerator() {
+        return this.template.querySelector('c-pdf-generator');
+    }
+
+   @api handleDownloadPDF() {
+        try {
+            this.isDownloading = true;
+            const generator = this.template.querySelector('c-pdf-generator');
+            console.log('ðŸ”” Updates: generator found:', !!generator);
+            if (generator) {
+                const resolvedName = this.company?.name || this.company?.Name || 'Unknown Company';
+                const allUpdates = (this.liveUpdates || []).flatMap(
+                    section => section?.content?.updates || []
+                );
+                console.log('ðŸ“¤ companyName:', resolvedName);
+                console.log('ðŸ“¤ Passing to PDF:', allUpdates.length, 'updates');
+                generator.generatePDF('liveUpdates', resolvedName, allUpdates);
+            } else {
+                console.error('âŒ c-pdf-generator not found in template');
+            }
+            setTimeout(() => { this.isDownloading = false; }, 3000);
+        } catch(e) {
+            console.error('âŒ handleDownloadPDF error:', e.message, e.stack);
+        }
+    }
+
+    get sections() {
+        return SECTIONS.map(s => ({
+            ...s,
+            cls: s.id === this.activeSection
+                ? 'cdu-subtab cdu-subtab-active'
+                : 'cdu-subtab'
+        }));
+    }
+
+    get currentUpdates() {
+        const section = this.liveUpdates.find(s => s.sectionType === this.activeSection);
+        const updates = section?.content?.updates || [];
+        return updates.map(u => ({
+            ...u,
+            impactClass: IMPACT_CLASSES[u.impact] || IMPACT_CLASSES['Low']
+        }));
+    }
+
+    get hasUpdates() {
+        return this.currentUpdates.length > 0;
+    }
+
+    handleSectionClick(event) {
+        this.activeSection = event.currentTarget.dataset.section;
+    }
+}
+
+===== companyDetailUpdates.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>false</isExposed>
+</LightningComponentBundle>
+
+===== companyDetailUpdates.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import CompanyDetailUpdates from 'c/companyDetailUpdates';
+
+describe('c-company-detail-updates', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-company-detail-updates', {
+            is: CompanyDetailUpdates
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

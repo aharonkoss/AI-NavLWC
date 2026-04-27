@@ -1,0 +1,476 @@
+﻿
+===== submissions.css =====
+
+.sub-wrapper {
+    padding: 24px 28px;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.sub-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.sub-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+}
+.sub-subtitle {
+    margin: 2px 0 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.sub-refresh-btn {
+    padding: 7px 14px;
+    font-size: 0.8rem;
+    border-radius: 999px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    cursor: pointer;
+    color: #374151;
+}
+.sub-refresh-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+}
+.sub-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sub-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    gap: 12px;
+}
+
+.sub-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+.sub-search-input {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    outline: none;
+}
+.sub-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+.sub-search-clear {
+    font-size: 0.75rem;
+    border: none;
+    background: none;
+    color: #2563eb;
+    cursor: pointer;
+}
+
+.sub-filter-select {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+}
+
+/* Error / Loading / Empty */
+.sub-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #b91c1c;
+    margin-bottom: 10px;
+}
+.sub-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin-top: 20px;
+}
+.sub-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(55, 65, 81, 0.3);
+    border-top-color: #111827;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+.sub-empty {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* List */
+.sub-list {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.sub-row {
+    display: grid;
+    grid-template-columns: 1.7fr 0.6fr 0.7fr 0.6fr;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.sub-row:last-child {
+    border-bottom: none;
+}
+.sub-col-main { overflow: hidden; }
+.sub-company-name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sub-company-meta {
+    margin: 2px 0 0 0;
+    font-size: 0.78rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sub-col-mid {
+    display: flex;
+    justify-content: center;
+}
+.sub-col-date {
+    text-align: right;
+}
+.sub-date-label {
+    font-size: 0.8rem;
+    color: #4b5563;
+}
+
+/* Source badges */
+.sub-badge {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.sub-badge-upload {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+.sub-badge-input {
+    background: #ecfdf5;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+/* Status pills */
+.status-pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+.status-pill-completed {
+    background: #ecfdf3;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+.status-pill-processing {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fed7aa;
+}
+.status-pill-failed {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+===== submissions.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="sub-wrapper">
+        <!-- Header -->
+        <div class="sub-header">
+            <div>
+                <h1 class="sub-title">Submissions</h1>
+                <p class="sub-subtitle">View recent uploads and manual input submissions</p>
+            </div>
+            <button class="sub-refresh-btn" onclick={handleRefresh} disabled={isLoading}>
+                âŸ³ Refresh
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="sub-filters">
+            <div class="sub-search">
+                <input
+                    type="text"
+                    class="sub-search-input"
+                    placeholder="Search by company or website..."
+                    value={searchTerm}
+                    oninput={handleSearchChange}
+                />
+                <template if:true={searchTerm}>
+                    <button class="sub-search-clear" onclick={handleClearSearch}>Clear</button>
+                </template>
+            </div>
+            <div>
+                <select class="sub-filter-select" value={filter} onchange={handleFilterChange}>
+                    <template for:each={filterOptions} for:item="opt">
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="sub-error">
+                âš  {error}
+            </div>
+        </template>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="sub-loading">
+                <span class="sub-spinner"></span>
+                <span>Loading submissions...</span>
+            </div>
+        </template>
+
+        <!-- List -->
+        <template if:false={isLoading}>
+            <template if:true={hasSubmissions}>
+                <div class="sub-list">
+                    <template for:each={filteredSubmissions} for:item="s">
+                        <div key={s.submissionId} class="sub-row">
+                            <div class="sub-col-main">
+                                <p class="sub-company-name">{s.companyName}</p>
+                                <p class="sub-company-meta">
+                                    {s.locationDisplay}
+                                    <template if:true={s.website}>
+                                        â€¢ {s.website}
+                                    </template>
+                                </p>
+                            </div>
+                            <div class="sub-col-mid">
+                                <span class={s.sourceClass}>{s.sourceLabel}</span>
+                            </div>
+                            <div class="sub-col-mid">
+                                <span class={s.statusClass}>{s.status}</span>
+                            </div>
+                            <div class="sub-col-date">
+                                <span class="sub-date-label">{s.submittedAtDisplay}</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template if:false={hasSubmissions}>
+                <div class="sub-empty">
+                    <p>{emptyMessage}</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>
+
+===== submissions.js =====
+
+import { LightningElement, track } from 'lwc';
+import getSubmissions from '@salesforce/apex/SubmissionsController.getSubmissions';
+
+export default class Submissions extends LightningElement {
+    @track submissions = [];
+    @track isLoading = true;
+    @track error = null;
+    @track filter = 'all'; // all | upload | input | status:completed | status:processing | status:failed
+    @track searchTerm = '';
+
+    connectedCallback() {
+        this.loadSubmissions();
+    }
+
+    loadSubmissions() {
+        this.isLoading = true;
+        this.error = null;
+        getSubmissions()
+            .then(result => {
+                const raw = JSON.parse(result);
+                this.submissions = raw.map(s => this.mapSubmission(s));
+                this.isLoading = false;
+            })
+            .catch(err => {
+                console.error('Error loading submissions', err);
+                this.error = err.body?.message || 'Failed to load submissions.';
+                this.isLoading = false;
+            });
+    }
+
+    mapSubmission(s) {
+        return {
+            ...s,
+            locationDisplay: [s.city, s.state].filter(Boolean).join(', '),
+            submittedAtDisplay: s.submittedAt
+                ? new Date(s.submittedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: '2-digit'
+                  })
+                : '-',
+            sourceLabel: s.source === 'Upload' ? 'Upload' : 'Input',
+            sourceClass: s.source === 'Upload'
+                ? 'sub-badge sub-badge-upload'
+                : 'sub-badge sub-badge-input',
+            statusClass: this.getStatusClass(s.status)
+        };
+    }
+
+    getStatusClass(status) {
+        const map = {
+            completed:  'status-pill status-pill-completed',
+            processing: 'status-pill status-pill-processing',
+            failed:     'status-pill status-pill-failed'
+        };
+        return map[status] || 'status-pill';
+    }
+
+    // â”€â”€ Filters / Search â”€â”€
+    handleFilterChange(event) {
+        this.filter = event.target.value;
+    }
+
+    handleSearchChange(event) {
+        this.searchTerm = event.target.value;
+    }
+
+    handleClearSearch() {
+        this.searchTerm = '';
+    }
+
+    get filteredSubmissions() {
+        let list = [...this.submissions];
+
+        // Filter by source / status
+        if (this.filter === 'upload') {
+            list = list.filter(s => s.source === 'Upload');
+        } else if (this.filter === 'input') {
+            list = list.filter(s => s.source === 'Input');
+        } else if (this.filter.startsWith('status:')) {
+            const val = this.filter.replace('status:', '');
+            list = list.filter(s => s.status === val);
+        }
+
+        // Search by company name or website
+        if (this.searchTerm.trim()) {
+            const term = this.searchTerm.toLowerCase();
+            list = list.filter(s =>
+                s.companyName?.toLowerCase().includes(term) ||
+                s.website?.toLowerCase().includes(term)
+            );
+        }
+
+        // Sort: newest first
+        return list.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    }
+
+    get hasSubmissions() {
+        return this.filteredSubmissions.length > 0;
+    }
+
+    get filterOptions() {
+        return [
+            { label: 'All', value: 'all' },
+            { label: 'Upload only', value: 'upload' },
+            { label: 'Input only', value: 'input' },
+            { label: 'Completed', value: 'status:completed' },
+            { label: 'Processing', value: 'status:processing' },
+            { label: 'Failed', value: 'status:failed' }
+        ];
+    }
+
+    get emptyMessage() {
+        if (this.searchTerm) return `No submissions found matching "${this.searchTerm}"`;
+        if (this.filter !== 'all') return 'No submissions match this filter.';
+        return 'No submissions yet.';
+    }
+
+    handleRefresh() {
+        this.loadSubmissions();
+    }
+}
+
+===== submissions.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+</LightningComponentBundle>
+
+===== submissions.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import Submissions from 'c/submissions';
+
+describe('c-submissions', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-submissions', {
+            is: Submissions
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

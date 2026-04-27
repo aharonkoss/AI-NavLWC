@@ -3,6 +3,6 @@
     <fullName>Event_Type__c</fullName>
     <label>Event Type</label>
     <type>Text</type>
-    <length>50</length>
+    <length>255</length>
     <description>What completed or was detected. Values: RESEARCH_DONE, UPLOAD_PROCESSED, SIGNAL_ALERT, SCORING_DONE, REPORT_READY, PROCESSING_ERROR, BATCH_PROGRESS</description>
 </CustomField>

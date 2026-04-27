@@ -1,0 +1,460 @@
+﻿
+===== allCompanies.css =====
+
+.ac-wrapper {
+    padding: 24px 28px;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.ac-header { margin-bottom: 16px; }
+.ac-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #111827;
+}
+.ac-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+.ac-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.ac-search {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ac-search-input {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+}
+.ac-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+.ac-search-clear {
+    border: none;
+    background: none;
+    font-size: 0.75rem;
+    color: #2563eb;
+    cursor: pointer;
+}
+
+.ac-filter-select {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+}
+
+/* Error / Loading / Empty */
+.ac-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #b91c1c;
+    margin-bottom: 10px;
+}
+.ac-loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #4b5563;
+    margin-top: 20px;
+}
+.ac-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(55,65,81,0.3);
+    border-top-color: #111827;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ac-empty {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* List */
+.ac-list {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.ac-row {
+    display: grid;
+    grid-template-columns: 2.3fr 1.1fr 1.2fr 1fr 0.9fr;
+    align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.ac-row:last-child { border-bottom: none; }
+
+.ac-col-main { overflow: hidden; }
+.ac-name {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.ac-meta {
+    margin: 2px 0 0 0;
+    font-size: 0.78rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ac-col-pill {
+    display: flex;
+    justify-content: center;
+}
+.ac-col-status {
+    text-align: center;
+}
+.ac-col-date {
+    text-align: right;
+}
+.ac-date {
+    font-size: 0.8rem;
+    color: #4b5563;
+}
+
+/* Pills / status */
+.ac-pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.ac-pill-stage {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+.ac-pill-client {
+    background: #ecfdf5;
+    border: 1px solid #bbf7d0;
+    color: #15803d;
+}
+
+.ac-status-pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+.ac-status-completed {
+    background: #ecfdf3;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+.ac-status-processing {
+    background: #fffbeb;
+    border: 1px solid #fed7aa;
+    color: #92400e;
+}
+.ac-status-pending {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+}
+.ac-status-failed {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+===== allCompanies.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="ac-wrapper">
+        <!-- Header -->
+        <div class="ac-header">
+            <div>
+                <h1 class="ac-title">All Companies</h1>
+                <p class="ac-subtitle">Full directory of companies in your workspace</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="ac-filters">
+            <div class="ac-search">
+                <input
+                    type="text"
+                    class="ac-search-input"
+                    placeholder="Search by name, city, state, or website..."
+                    value={searchTerm}
+                    oninput={handleSearchChange}
+                />
+                <template if:true={searchTerm}>
+                    <button class="ac-search-clear" onclick={handleClearSearch}>Clear</button>
+                </template>
+            </div>
+            <div>
+                <select class="ac-filter-select" value={filter} onchange={handleFilterChange}>
+                    <template for:each={filterOptions} for:item="opt">
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="ac-error">âš  {error}</div>
+        </template>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="ac-loading">
+                <span class="ac-spinner"></span>
+                <span>Loading companies...</span>
+            </div>
+        </template>
+
+        <!-- List -->
+        <template if:false={isLoading}>
+            <template if:true={hasCompanies}>
+                <div class="ac-list">
+                    <template for:each={filteredCompanies} for:item="c">
+                        <div key={c.companyId} class="ac-row">
+                            <div class="ac-col-main">
+                                <p class="ac-name">{c.name}</p>
+                                <p class="ac-meta">
+                                    {c.locationDisplay}
+                                    <template if:true={c.website}>
+                                        Â· {c.website}
+                                    </template>
+                                </p>
+                            </div>
+                            <div class="ac-col-pill">
+                                <span class="ac-pill ac-pill-stage">{c.stageLabel}</span>
+                            </div>
+                            <div class="ac-col-pill">
+                                <span class="ac-pill ac-pill-client">{c.clientTypeLabel}</span>
+                            </div>
+                            <div class="ac-col-status">
+                                <span class={c.statusClass}>{c.statusLabel}</span>
+                            </div>
+                            <div class="ac-col-date">
+                                <span class="ac-date">{c.createdAtDisplay}</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template if:false={hasCompanies}>
+                <div class="ac-empty">
+                    <p>{emptyMessage}</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>
+
+===== allCompanies.js =====
+
+import { LightningElement, track } from 'lwc';
+import getAllCompanies from '@salesforce/apex/AllCompaniesController.getAllCompanies';
+
+export default class AllCompanies extends LightningElement {
+    @track companies = [];
+    @track isLoading = true;
+    @track error = null;
+    @track searchTerm = '';
+    @track filter = 'all'; // all | clientType:Prospect | stage:PreCall | status:completed | etc.
+
+    connectedCallback() {
+        this.loadCompanies();
+    }
+
+    loadCompanies() {
+        this.isLoading = true;
+        this.error = null;
+        getAllCompanies()
+            .then(result => {
+                const raw = JSON.parse(result);
+                this.companies = raw.map(c => this.mapCompany(c));
+                this.isLoading = false;
+            })
+            .catch(err => {
+                console.error('Error loading companies', err);
+                this.error = err.body?.message || 'Failed to load companies.';
+                this.isLoading = false;
+            });
+    }
+
+    mapCompany(c) {
+        return {
+            ...c,
+            locationDisplay: [c.city, c.state].filter(Boolean).join(', '),
+            createdAtDisplay: c.createdAt
+                ? new Date(c.createdAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: '2-digit'
+                  })
+                : '-',
+            clientTypeLabel: c.clientType || 'Prospect',
+            stageLabel: c.stage || 'PreCall',
+            statusLabel: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown',
+            statusClass: this.getStatusClass(c.status)
+        };
+    }
+
+    getStatusClass(status) {
+        const map = {
+            completed:  'ac-status-pill ac-status-completed',
+            processing: 'ac-status-pill ac-status-processing',
+            pending:    'ac-status-pill ac-status-pending',
+            failed:     'ac-status-pill ac-status-failed'
+        };
+        return map[status] || 'ac-status-pill ac-status-pending';
+    }
+
+    // Filters and search
+    handleSearchChange(event) {
+        this.searchTerm = event.target.value;
+    }
+
+    handleClearSearch() {
+        this.searchTerm = '';
+    }
+
+    handleFilterChange(event) {
+        this.filter = event.target.value;
+    }
+
+    get filterOptions() {
+        return [
+            { label: 'All', value: 'all' },
+            { label: 'Client: Prospect', value: 'clientType:Prospect' },
+            { label: 'Client: Existing', value: 'clientType:Existing Customer' },
+            { label: 'Client: Past',     value: 'clientType:Past Customer' },
+            { label: 'Stage: PreCall',   value: 'stage:PreCall' },
+            { label: 'Stage: Appt Set',  value: 'stage:Appointment Set' },
+            { label: 'Stage: Face To Face', value: 'stage:Face To Face' },
+            { label: 'Stage: Qualification', value: 'stage:Qualification' },
+            { label: 'Status: Completed', value: 'status:completed' },
+            { label: 'Status: Processing', value: 'status:processing' },
+            { label: 'Status: Pending', value: 'status:pending' },
+            { label: 'Status: Failed', value: 'status:failed' }
+        ];
+    }
+
+    get filteredCompanies() {
+        let list = [...this.companies];
+
+        // filter
+        if (this.filter.startsWith('clientType:')) {
+            const val = this.filter.replace('clientType:', '');
+            list = list.filter(c => c.clientType === val);
+        } else if (this.filter.startsWith('stage:')) {
+            const val = this.filter.replace('stage:', '');
+            list = list.filter(c => c.stage === val);
+        } else if (this.filter.startsWith('status:')) {
+            const val = this.filter.replace('status:', '');
+            list = list.filter(c => c.status === val);
+        }
+
+        // search
+        if (this.searchTerm.trim()) {
+            const term = this.searchTerm.toLowerCase();
+            list = list.filter(c =>
+                c.name?.toLowerCase().includes(term) ||
+                c.city?.toLowerCase().includes(term) ||
+                c.state?.toLowerCase().includes(term) ||
+                c.website?.toLowerCase().includes(term)
+            );
+        }
+
+        // sort alphabetically by name
+        return list.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    get hasCompanies() {
+        return this.filteredCompanies.length > 0;
+    }
+
+    get emptyMessage() {
+        if (this.searchTerm) return `No companies found matching "${this.searchTerm}"`;
+        if (this.filter !== 'all') return 'No companies match this filter.';
+        return 'No companies yet.';
+    }
+}
+
+===== allCompanies.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+</LightningComponentBundle>
+
+===== allCompanies.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import AllCompanies from 'c/allCompanies';
+
+describe('c-all-companies', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-all-companies', {
+            is: AllCompanies
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

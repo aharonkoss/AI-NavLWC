@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Azure_Company_Id__c</fullName>
+    <label>Azure Company Id</label>
+    <type>Text</type>
+    <length>36</length>
+    <description>Tenant/client UUID. Matches Client_Id in Azure and Platform Events.</description>
+</CustomField>

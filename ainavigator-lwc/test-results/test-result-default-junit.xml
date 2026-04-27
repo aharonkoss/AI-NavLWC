@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+    <testsuite name="force.apex" timestamp="2026-04-27T00:31:53.483Z" hostname="https://orgfarm-e4ad179b20-dev-ed.develop.my.salesforce.com" tests="3" failures="0"  errors="0"  time="0.07">
+        <properties>
+            <property name="outcome" value="Successful"/>
+            <property name="testsRan" value="3"/>
+            <property name="passing" value="3"/>
+            <property name="failing" value="0"/>
+            <property name="skipped" value="0"/>
+            <property name="passRate" value="100%"/>
+            <property name="failRate" value="0%"/>
+            <property name="testStartTime" value="Sun Apr 26 2026 5:31:53 PM"/>
+            <property name="testExecutionTime" value="0.07 s"/>
+            <property name="testTotalTime" value="0.07 s"/>
+            <property name="commandTime" value="0.00 s"/>
+            <property name="hostname" value="https://orgfarm-e4ad179b20-dev-ed.develop.my.salesforce.com"/>
+            <property name="orgId" value="00DgK00000LapYfUAJ"/>
+            <property name="username" value="aharon.koss.630e40436ea7@agentforce.com"/>
+        </properties>
+        <testcase name="testCorrelationIdFormat" classname="AiNavigatorEventServiceTest" time="0.03">
+        </testcase>
+        <testcase name="testCorrelationIdIsUniqueAcrossCalls" classname="AiNavigatorEventServiceTest" time="0.01">
+        </testcase>
+        <testcase name="testPublishSucceeds" classname="AiNavigatorEventServiceTest" time="0.02">
+        </testcase>
+    </testsuite>
+</testsuites>

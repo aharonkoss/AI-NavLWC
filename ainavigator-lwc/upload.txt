@@ -1,0 +1,699 @@
+﻿
+===== upload.css =====
+
+.up-wrapper {
+    padding: 24px 32px;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header */
+.up-header { margin-bottom: 16px; }
+.up-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #111827;
+}
+.up-subtitle {
+    margin: 4px 0 0 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+.up-remaining { margin-left: 4px; }
+
+/* Banners */
+.up-banner {
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    margin-bottom: 14px;
+}
+.up-banner-error {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+.up-banner-success {
+    background: #ecfdf3;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+/* Layout */
+.up-main-grid {
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 20px;
+}
+
+/* Cards */
+.up-card {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 16px 18px;
+}
+
+.up-card-title {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+}
+.up-card-caption {
+    margin: 8px 0 2px 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #4b5563;
+}
+.up-list {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 0.78rem;
+    color: #4b5563;
+}
+.up-list li { margin-bottom: 2px; }
+.up-field-name { font-weight: 600; }
+.up-field-note { color: #6b7280; font-style: italic; }
+
+.up-template-links {
+    margin: 4px 0 0 0;
+    font-size: 0.8rem;
+}
+.up-template-links a {
+    color: #2563eb;
+    text-decoration: none;
+}
+.up-template-links a:hover { text-decoration: underline; }
+
+/* Drop zone */
+.up-drop-card {
+    margin-top: 16px;
+    padding: 24px 18px;
+    border-style: dashed;
+    border-width: 2px;
+    border-color: #d1d5db;
+    text-align: center;
+    position: relative;
+    cursor: pointer;
+}
+.up-drop-card-hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+.up-drop-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+}
+.up-drop-subtitle {
+    margin: 6px 0 0 0;
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+.up-drop-note {
+    margin: 4px 0 0 0;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.up-file-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.up-drop-loading {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #374151;
+}
+
+/* Defaults row */
+.up-defaults-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+}
+.up-default-group { display: flex; flex-direction: column; }
+.up-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 4px;
+}
+.up-select-stage,
+.up-select-client {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border-width: 2px;
+    outline: none;
+}
+.up-select-stage {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+.up-select-stage:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+.up-select-client {
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+    color: #15803d;
+}
+.up-select-client:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+}
+
+/* Right side */
+.up-right { }
+
+.up-prev-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.up-prev-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.up-prev-search-input {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+    border: 1px solid #d1d5db;
+}
+.up-prev-search-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+.up-prev-clear {
+    border: none;
+    background: none;
+    font-size: 0.75rem;
+    color: #2563eb;
+    cursor: pointer;
+}
+
+.up-prev-list {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.up-prev-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 0.8fr;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+.up-prev-row:last-child { border-bottom: none; }
+.up-prev-main {
+    overflow: hidden;
+}
+.up-prev-name {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #111827;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.up-prev-meta {
+    margin: 2px 0 0 0;
+    font-size: 0.76rem;
+    color: #6b7280;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+.up-prev-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.up-prev-date {
+    font-size: 0.78rem;
+    color: #4b5563;
+    text-align: right;
+}
+.up-prev-empty {
+    margin-top: 16px;
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Status pill */
+.up-status-pill {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+.up-status-completed {
+    background: #ecfdf3;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+.up-status-processing {
+    background: #fffbeb;
+    border: 1px solid #fed7aa;
+    color: #92400e;
+}
+.up-status-failed {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+}
+
+/* Spinner */
+.up-spinner {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(55,65,81,0.3);
+    border-top-color: #111827;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+===== upload.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="up-wrapper">
+
+        <!-- Page header -->
+        <div class="up-header">
+            <h1 class="up-title">Upload Company List</h1>
+            <p class="up-subtitle">
+                Daily limit: {usedToday} / {dailyLimit} companies used
+                <span class="up-remaining">({remaining} remaining)</span>
+            </p>
+        </div>
+
+        <!-- Error / success messages -->
+        <template if:true={error}>
+            <div class="up-banner up-banner-error">âš  {error}</div>
+        </template>
+        <template if:true={successMessage}>
+            <div class="up-banner up-banner-success">âœ“ {successMessage}</div>
+        </template>
+
+        <!-- Main layout -->
+        <div class="up-main-grid">
+
+            <!-- Left side: File format + drop zone + defaults -->
+            <div class="up-left">
+
+                <!-- File format card -->
+                <div class="up-card up-card-format">
+                    <h2 class="up-card-title">File Format</h2>
+                    <p class="up-card-caption">Required columns:</p>
+                    <ul class="up-list">
+                        <li><span class="up-field-name">Company Name</span></li>
+                        <li><span class="up-field-name">Company URL</span></li>
+                        <li><span class="up-field-name">City</span> <span class="up-field-note">(recommended for UCC data)</span></li>
+                        <li><span class="up-field-name">State</span> <span class="up-field-note">(recommended for UCC data)</span></li>
+                    </ul>
+                    <p class="up-card-caption">Optional columns:</p>
+                    <ul class="up-list">
+                        <li><span class="up-field-name">Stage</span> (PreCall, Appointment Set, Face To Face, Qualification)</li>
+                        <li><span class="up-field-name">Client Type</span> (Prospect, Existing Customer, Past Customer)</li>
+                    </ul>
+                    <p class="up-card-caption">Download template:</p>
+                    <p class="up-template-links">
+                        <a href="javascript:void(0)">CSV</a> Â·
+                        <a href="javascript:void(0)">XLSX</a> Â·
+                        <a href="javascript:void(0)">XLS</a>
+                    </p>
+                </div>
+
+                <!-- Drag-and-drop card -->
+                <div
+                        class={dropZoneClass}
+                        ondragover={handleDragOver}
+                        ondragleave={handleDragLeave}
+                        ondrop={handleDrop}
+                    >
+                    <p class="up-drop-title">Drag &amp; drop your file here</p>
+                    <p class="up-drop-subtitle">or click to select</p>
+                    <p class="up-drop-note">CSV, XLSX, XLS</p>
+                    <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        class="up-file-input"
+                        onchange={handleFileInputChange}
+                    />
+                    <template if:true={isUploading}>
+                        <div class="up-drop-loading">
+                            <span class="up-spinner"></span>
+                            <span>Uploading...</span>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Default stage / client type -->
+                <div class="up-defaults-row">
+                    <div class="up-default-group">
+                        <label class="up-label">Default Stage</label>
+                        <select class="up-select-stage" value={defaultStage} onchange={handleStageChange}>
+                            <template for:each={stageOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="up-default-group">
+                        <label class="up-label">Default Client Type</label>
+                        <select class="up-select-client" value={defaultClientType} onchange={handleClientTypeChange}>
+                            <template for:each={clientTypeOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right side: Previous submissions -->
+            <div class="up-right">
+                <div class="up-prev-header">
+                    <h2 class="up-card-title">Previous Submissions</h2>
+                    <div class="up-prev-search">
+                        <input
+                            type="text"
+                            class="up-prev-search-input"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            oninput={handleSearchChange}
+                        />
+                        <template if:true={searchTerm}>
+                            <button class="up-prev-clear" onclick={handleSearchClear}>Clear</button>
+                        </template>
+                    </div>
+                </div>
+
+                <template if:true={isLoading}>
+                    <div class="up-prev-empty">
+                        <span class="up-spinner"></span>
+                        <span>Loading previous submissions...</span>
+                    </div>
+                </template>
+
+                <template if:false={isLoading}>
+                    <template if:true={hasSubmissions}>
+                        <div class="up-prev-list">
+                            <template for:each={filteredSubmissions} for:item="s">
+                                <div key={s.submissionId} class="up-prev-row">
+                                    <div class="up-prev-main">
+                                        <p class="up-prev-name">{s.companyName}</p>
+                                        <p class="up-prev-meta">
+                                            {s.locationDisplay}
+                                            <template if:true={s.website}>
+                                                Â· {s.website}
+                                            </template>
+                                        </p>
+                                    </div>
+                                    <div class="up-prev-status">
+                                        <span class={s.statusClass}>{s.status}</span>
+                                    </div>
+                                    <div class="up-prev-date">
+                                        {s.submittedAtDisplay}
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasSubmissions}>
+                        <div class="up-prev-empty">
+                            <p>No submissions yet. Upload your first file.</p>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>
+
+===== upload.js =====
+
+import { LightningElement, track } from 'lwc';
+import getUploadSettings from '@salesforce/apex/UploadController.getUploadSettings';
+import getPreviousSubmissions from '@salesforce/apex/UploadController.getPreviousSubmissions';
+import uploadFile from '@salesforce/apex/UploadController.uploadFile';
+
+export default class Upload extends LightningElement {
+    @track settings = { dailyLimit: 5, usedToday: 0, remaining: 5 };
+    @track submissions = [];
+    @track isLoading = true;
+    @track isUploading = false;
+    @track error = null;
+    @track successMessage = '';
+    @track defaultStage = 'PreCall';
+    @track defaultClientType = 'Prospect';
+    @track hoverDrop = false;
+    @track searchTerm = '';
+
+    stageOptions = [
+        { label: 'PreCall',          value: 'PreCall' },
+        { label: 'Appointment Set',  value: 'Appointment Set' },
+        { label: 'Face To Face',     value: 'Face To Face' },
+        { label: 'Qualification',    value: 'Qualification' }
+    ];
+
+    clientTypeOptions = [
+        { label: 'Prospect',          value: 'Prospect' },
+        { label: 'Existing Customer', value: 'Existing Customer' },
+        { label: 'Past Customer',     value: 'Past Customer' }
+    ];
+
+    connectedCallback() {
+        this.loadData();
+    }
+
+    loadData() {
+        this.isLoading = true;
+        this.error = null;
+        Promise.all([
+            getUploadSettings(),
+            getPreviousSubmissions()
+        ])
+        .then(([settingsJson, subsJson]) => {
+            this.settings = JSON.parse(settingsJson);
+            const rawSubs = JSON.parse(subsJson);
+            this.submissions = rawSubs.map(s => this.mapSubmission(s));
+            this.isLoading = false;
+        })
+        .catch(err => {
+            console.error('Error loading upload data', err);
+            this.error = err.body?.message || 'Failed to load upload data.';
+            this.isLoading = false;
+        });
+    }
+
+    mapSubmission(s) {
+        return {
+            ...s,
+            locationDisplay: [s.city, s.state].filter(Boolean).join(', '),
+            submittedAtDisplay: s.submittedAt
+                ? new Date(s.submittedAt).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: '2-digit'
+                  })
+                : '-',
+            statusClass: this.getStatusClass(s.status)
+        };
+    }
+
+    getStatusClass(status) {
+        const map = {
+            completed:  'up-status-pill up-status-completed',
+            processing: 'up-status-pill up-status-processing',
+            failed:     'up-status-pill up-status-failed'
+        };
+        return map[status] || 'up-status-pill';
+    }
+
+    // Computed
+    get usedToday()    { return this.settings.usedToday || 0; }
+    get dailyLimit()   { return this.settings.dailyLimit || 0; }
+    get remaining()    { return this.settings.remaining || Math.max(0, this.dailyLimit - this.usedToday); }
+    get hasSubmissions() {
+        return this.filteredSubmissions.length > 0;
+    }
+
+    get filteredSubmissions() {
+        let list = [...this.submissions];
+        if (this.searchTerm.trim()) {
+            const term = this.searchTerm.toLowerCase();
+            list = list.filter(s =>
+                s.companyName?.toLowerCase().includes(term) ||
+                s.website?.toLowerCase().includes(term)
+            );
+        }
+        return list.sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    }
+    get dropZoneClass() {
+        return 'up-card up-drop-card' + (this.hoverDrop ? ' up-drop-card-hover' : '');
+    }
+    // Handlers
+    handleStageChange(event)      { this.defaultStage = event.target.value; }
+    handleClientTypeChange(event) { this.defaultClientType = event.target.value; }
+
+    handleSearchChange(event) {
+        this.searchTerm = event.target.value;
+    }
+
+    handleSearchClear() {
+        this.searchTerm = '';
+    }
+
+    handleDragOver(event) {
+        event.preventDefault();
+        this.hoverDrop = true;
+    }
+
+    handleDragLeave(event) {
+        event.preventDefault();
+        this.hoverDrop = false;
+    }
+
+    handleDrop(event) {
+        event.preventDefault();
+        this.hoverDrop = false;
+        const files = event.dataTransfer.files;
+        if (files && files.length > 0) {
+            this.processFile(files[0]);
+        }
+    }
+
+    handleFileInputChange(event) {
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            this.processFile(files[0]);
+        }
+    }
+
+    processFile(file) {
+        if (this.isUploading) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            this.uploadToServer(file.name, base64);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    uploadToServer(fileName, base64Data) {
+        this.isUploading = true;
+        this.error = null;
+        this.successMessage = '';
+        uploadFile({
+            fileName,
+            base64Data,
+            defaultStage: this.defaultStage,
+            defaultClientType: this.defaultClientType
+        })
+        .then(resultJson => {
+            const res = JSON.parse(resultJson);
+            if (res.success) {
+                this.settings = {
+                    ...this.settings,
+                    dailyLimit:  res.dailyLimit,
+                    usedToday:   res.usedToday,
+                    remaining:   res.remaining
+                };
+                this.successMessage = res.message || 'File uploaded successfully.';
+                // Optionally refresh submissions
+                return getPreviousSubmissions()
+                    .then(subsJson => {
+                        const raw = JSON.parse(subsJson);
+                        this.submissions = raw.map(s => this.mapSubmission(s));
+                    });
+            } else {
+                this.error = res.message || 'Upload failed.';
+            }
+        })
+        .catch(err => {
+            console.error('Upload error', err);
+            this.error = err.body?.message || 'Upload failed.';
+        })
+        .finally(() => {
+            this.isUploading = false;
+            // clear file input value
+            const input = this.template.querySelector('.up-file-input');
+            if (input) input.value = '';
+        });
+    }
+}
+
+===== upload.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__HomePage</target>
+        <target>lightning__RecordPage</target>
+    </targets>
+</LightningComponentBundle>
+
+===== upload.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import Upload from 'c/upload';
+
+describe('c-upload', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-upload', {
+            is: Upload
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

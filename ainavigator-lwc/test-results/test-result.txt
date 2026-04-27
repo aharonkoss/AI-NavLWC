@@ -1,0 +1,24 @@
+=== Test Results
+TEST NAME                                                         OUTCOME  MESSAGE  RUNTIME (MS)
+────────────────────────────────────────────────────────────────  ───────  ───────  ────────────
+AiNavigatorEventServiceTest.testCorrelationIdFormat               Pass              26          
+AiNavigatorEventServiceTest.testCorrelationIdIsUniqueAcrossCalls  Pass              12          
+AiNavigatorEventServiceTest.testPublishSucceeds                   Pass              24          
+
+
+
+
+=== Test Summary
+NAME                 VALUE                                  
+───────────────────  ───────────────────────────────────────
+Outcome              Passed                                 
+Tests Ran            3                                      
+Pass Rate            100%                                   
+Fail Rate            0%                                     
+Skip Rate            0%                                     
+Test Run Id                                                 
+Test Setup Time      0 ms                                   
+Test Execution Time  70 ms                                  
+Test Total Time      70 ms                                  
+Org Id               00DgK00000LapYfUAJ                     
+Username             aharon.koss.630e40436ea7@agentforce.com

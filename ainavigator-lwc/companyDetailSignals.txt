@@ -1,0 +1,260 @@
+﻿
+===== companyDetailSignals.css =====
+
+.cds-wrapper { margin-top: 12px; }
+.cds-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.cds-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin: 0;
+    flex-shrink: 0;
+}
+
+.cds-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.cdu-subtabs-right {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.cdu-pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #0176d3;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+}
+
+.cdu-pdf-btn:hover {
+    background-color: #0e57a2;
+}
+
+.cdu-pdf-btn:disabled {
+    background-color: #c9c9c9;
+    color: #706e6b;
+    cursor: not-allowed;
+}
+.cds-badge   { font-size: 0.72rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+.cds-p5 { background: #fee2e2; color: #b91c1c; }
+.cds-p4 { background: #ffedd5; color: #c2410c; }
+.cds-p3 { background: #fef9c3; color: #854d0e; }
+.cds-p2 { background: #dbeafe; color: #1e40af; }
+.cds-p1 { background: #f3f4f6; color: #6b7280; }
+.cds-card {
+    background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 10px;
+    transition: box-shadow 0.15s;
+}
+.cds-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.cds-sig-top {
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap; margin-bottom: 8px;
+}
+.cds-priority { font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.cds-category { font-size: 0.72rem; font-weight: 500; padding: 2px 8px; background: #f3f4f6; color: #374151; border-radius: 999px; border: 1px solid #e5e7eb; }
+.cds-urgency  { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; border: 1px solid; }
+.cds-urgency-immediate { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.cds-urgency-timely    { background: #fefce8; color: #854d0e; border-color: #fde047; }
+.cds-urgency-low       { background: #f9fafb; color: #6b7280; border-color: #e5e7eb; }
+.cds-sig-date { font-size: 0.72rem; color: #9ca3af; margin-left: auto; }
+.cds-sig-name { font-size: 0.9rem; font-weight: 700; color: #111827; margin: 0 0 4px; }
+.cds-sig-desc { font-size: 0.8rem; color: #4b5563; margin: 0; line-height: 1.5; }
+.cds-empty    { text-align: center; color: #9ca3af; padding: 40px; font-size: 0.88rem; background: #fff; border-radius: 10px; border: 1px solid #e5e7eb; }
+button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #0176d3;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-bottom: 12px;
+}
+
+button:hover {
+    background-color: #0e57a2;
+}
+
+button:disabled {
+    background-color: #c9c9c9;
+    color: #706e6b;
+    cursor: not-allowed;
+}
+
+===== companyDetailSignals.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-03-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <c-pdf-generator></c-pdf-generator>
+    <div class="cds-wrapper">
+        <!-- Header -->
+        <div class="cds-header">
+            <h2 class="cds-title">Signals &amp; Risk Assessment</h2>
+            <div class="cds-legend">
+                <span class="cds-badge cds-p5">P5 Critical</span>
+                <span class="cds-badge cds-p4">P4 High</span>
+                <span class="cds-badge cds-p3">P3 Medium</span>
+                <span class="cds-badge cds-p2">P2 Low</span>
+            </div>
+            <div class="cdu-subtabs-right">
+                <button class="cdu-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                    <template if:true={isDownloading}>Generating...</template>
+                    <template if:false={isDownloading}>Download PDF</template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Signal cards -->
+        <template if:true={hasSignals}>
+            <template for:each={signals} for:item="sig">
+                <div key={sig.id} class={sig.cardClass}>
+                    <div class="cds-sig-top">
+                        <span class={sig.priorityClass}>{sig.priority}</span>
+                        <span class={sig.categoryClass}>{sig.signalCategory}</span>
+                        <span class={sig.urgencyClass}>{sig.urgencyLabel}</span>
+                        <span class="cds-sig-date">{sig.eventDate}</span>
+                    </div>
+                    <h3 class="cds-sig-name">{sig.signalName}</h3>
+                    <p class="cds-sig-desc">{sig.signalDescription}</p>
+                </div>
+            </template>
+        </template>
+        <template if:false={hasSignals}>
+            <div class="cds-empty">No signals found for this company.</div>
+        </template>
+    </div>
+</template>
+
+===== companyDetailSignals.js =====
+
+import { LightningElement, api, track } from 'lwc';
+
+const PRIORITY_CLASSES = {
+    P5: 'cds-priority cds-p5',
+    P4: 'cds-priority cds-p4',
+    P3: 'cds-priority cds-p3',
+    P2: 'cds-priority cds-p2',
+    P1: 'cds-priority cds-p1'
+};
+const URGENCY_MAP = {
+    P5: { label: 'Immediate',  cls: 'cds-urgency cds-urgency-immediate' },
+    P4: { label: 'Immediate',  cls: 'cds-urgency cds-urgency-immediate' },
+    P3: { label: '1â€“2 Weeks',  cls: 'cds-urgency cds-urgency-timely'    },
+    P2: { label: 'Informational', cls: 'cds-urgency cds-urgency-low'    }
+};
+
+export default class CompanyDetailSignals extends LightningElement {
+    @api signalsData = null;
+    @api company = {};
+    @track isDownloading = false;
+
+    get signals() {
+        const raw = this.signalsData?.signals || [];
+        return raw.map(s => ({
+            ...s,
+            cardClass:    'cds-card',
+            priorityClass: PRIORITY_CLASSES[s.priority] || 'cds-priority',
+            categoryClass: 'cds-category',
+            urgencyLabel: URGENCY_MAP[s.priority]?.label || 'Informational',
+            urgencyClass: URGENCY_MAP[s.priority]?.cls   || 'cds-urgency cds-urgency-low'
+        }));
+    }
+    @api handleDownloadPDF() {
+        try {
+            this.isDownloading = true;
+            const generator = this.template.querySelector('c-pdf-generator');
+            console.log('ðŸ”” Updates: generator found:', !!generator);
+            console.log('ðŸ” Signals data being passed:', JSON.stringify(this.signalsData)?.substring(0, 500));
+            if (generator) {
+                const name = this.company?.name || this.company?.Name || 'Unknown Company';
+                // Unwrap signals array from the wrapper object
+                const signalsArray = Array.isArray(this.signalsData) 
+                    ? this.signalsData 
+                    : (this.signalsData?.signals || []);
+                console.log('ðŸ” Passing signals count:', signalsArray.length);
+                generator.generatePDF('signals', name, signalsArray);
+            } else {
+                console.error('âŒ c-pdf-generator not found in template');
+            }
+            setTimeout(() => { this.isDownloading = false; }, 3000);
+        } catch(e) {
+            console.error('âŒ handleDownloadPDF error:', e.message, e.stack);
+        }
+    }
+    get hasSignals() { return this.signals.length > 0; }
+    get companyName() {
+      return this.company?.name || 'Company';
+   }
+}
+
+===== companyDetailSignals.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <isExposed>false</isExposed>
+</LightningComponentBundle>
+
+===== companyDetailSignals.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import CompanyDetailSignals from 'c/companyDetailSignals';
+
+describe('c-company-detail-signals', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-company-detail-signals', {
+            is: CompanyDetailSignals
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

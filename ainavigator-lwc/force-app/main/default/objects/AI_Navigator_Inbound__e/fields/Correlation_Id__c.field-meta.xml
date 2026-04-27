@@ -3,6 +3,6 @@
     <fullName>Correlation_Id__c</fullName>
     <label>Correlation ID</label>
     <type>Text</type>
-    <length>36</length>
+    <length>255</length>
     <description>End-to-end trace ID. Azure echoes this back on all inbound events so requests and responses can be matched.</description>
 </CustomField>

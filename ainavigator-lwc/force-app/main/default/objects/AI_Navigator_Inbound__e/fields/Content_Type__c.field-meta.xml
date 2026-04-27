@@ -3,6 +3,6 @@
     <fullName>Content_Type__c</fullName>
     <label>Content Type</label>
     <type>Text</type>
-    <length>20</length>
+    <length>255</length>
     <description>Format of Payload__c. Values: json, markdown, text, uri. When uri, Payload__c contains a Blob Storage SAS URL instead of inline content.</description>
 </CustomField>

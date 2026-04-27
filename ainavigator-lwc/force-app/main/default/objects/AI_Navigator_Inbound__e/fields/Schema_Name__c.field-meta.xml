@@ -3,6 +3,6 @@
     <fullName>Schema_Name__c</fullName>
     <label>Schema Name</label>
     <type>Text</type>
-    <length>80</length>
+    <length>255</length>
     <description>Versioned payload identifier. Values: UploadRequest.v1, ResearchRequest.v1, SignalAnalysisRequest.v1, ScoringRequest.v1</description>
 </CustomField>

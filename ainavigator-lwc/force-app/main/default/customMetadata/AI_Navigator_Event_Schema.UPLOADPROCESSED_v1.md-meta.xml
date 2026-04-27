@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomMetadata xmlns="http://soap.sforce.com/2006/04/metadata"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+    <label>UPLOADPROCESSED v1</label>
+    <protected>false</protected>
+    <values>
+        <field>Event_Type__c</field>
+        <value xsi:type="xsd:string">UPLOADPROCESSED</value>
+    </values>
+    <values>
+        <field>Schema_Version__c</field>
+        <value xsi:type="xsd:string">PENDING_AZURE_CONFIRMATION</value>
+    </values>
+    <values>
+        <field>Is_Active__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Payload_Fields__c</field>
+        <value xsi:type="xsd:string">{
+  "PENDING": "Azure developer has not confirmed if this event exists.",
+  "QUESTION": "When all companies in a batch finish, do you fire a final event?",
+  "HYPOTHESIS_A": "Separate UPLOADPROCESSED event with submissionId + finalStatus",
+  "HYPOTHESIS_B": "No separate event — completion detected when BATCHPROGRESS processed+failed === total"
+}</value>
+    </values>
+    <values>
+        <field>Notes__c</field>
+        <value xsi:type="xsd:string">BLOCKED — awaiting Azure developer confirmation. Is_Active__c = false until confirmed. Do not write LWC logic against this event type until schema is locked.</value>
+    </values>
+</CustomMetadata>

@@ -1,0 +1,571 @@
+﻿
+===== inputForm.css =====
+
+/* â”€â”€ Wrapper â”€â”€ */
+.input-wrapper {
+    padding: 24px 28px;
+    background-color: #f3f4f6;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 760px;
+}
+
+/* â”€â”€ Page Header â”€â”€ */
+.input-page-header { margin-bottom: 20px; }
+.input-page-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px 0;
+}
+.input-page-subtitle { font-size: 0.875rem; color: #6b7280; margin: 0; }
+
+/* â”€â”€ Success Toast â”€â”€ */
+.success-toast {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    gap: 12px;
+}
+.success-toast-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; }
+.success-icon {
+    width: 22px; height: 22px;
+    background: #16a34a;
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.success-text { font-size: 0.875rem; color: #15803d; margin: 0; line-height: 1.5; }
+.success-dismiss {
+    background: none; border: none; color: #6b7280;
+    cursor: pointer; font-size: 0.875rem; padding: 0 4px;
+    flex-shrink: 0;
+}
+.success-dismiss:hover { color: #374151; }
+
+/* â”€â”€ Error Toast â”€â”€ */
+.error-toast {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    font-size: 0.875rem;
+    color: #dc2626;
+}
+
+/* â”€â”€ Form Card â”€â”€ */
+.form-card {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 1px solid #f0f0f0;
+    padding: 24px;
+}
+
+/* â”€â”€ Form Layout â”€â”€ */
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+.form-group { display: flex; flex-direction: column; }
+.form-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+.required { color: #ef4444; margin-left: 2px; }
+
+/* â”€â”€ Input Fields â”€â”€ */
+.input-field {
+    padding: 9px 12px;
+    font-size: 0.875rem;
+    border: 1.5px solid #d1d5db;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    background: #fff;
+    color: #111827;
+    width: 100%;
+    box-sizing: border-box;
+}
+.input-field:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+.input-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+}
+.input-valid {
+    border-color: #22c55e !important;
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important;
+}
+
+/* â”€â”€ URL Input â”€â”€ */
+.url-input-wrapper { position: relative; display: flex; align-items: center; }
+.url-input-wrapper .input-field { padding-right: 32px; }
+.url-indicator {
+    position: absolute;
+    right: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+.url-valid-icon   { color: #16a34a; }
+.url-invalid-icon { color: #dc2626; }
+
+/* â”€â”€ Field Error / Hint â”€â”€ */
+.field-error {
+    font-size: 0.75rem;
+    color: #dc2626;
+    margin: 4px 0 0 0;
+}
+.field-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin: 4px 0 0 0;
+}
+
+/* â”€â”€ Stage / ClientType Dropdowns â”€â”€ */
+.dropdown-stage-input {
+    padding: 9px 10px;
+    font-size: 0.875rem;
+    border: 2px solid #bfdbfe;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+}
+.dropdown-stage-input:hover  { border-color: #93c5fd; }
+.dropdown-stage-input:focus  { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+
+.dropdown-clienttype-input {
+    padding: 9px 10px;
+    font-size: 0.875rem;
+    border: 2px solid #bbf7d0;
+    border-radius: 8px;
+    background: #f0fdf4;
+    color: #15803d;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+}
+.dropdown-clienttype-input:hover { border-color: #86efac; }
+.dropdown-clienttype-input:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+
+/* â”€â”€ Submit Row â”€â”€ */
+.form-submit-row { margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 20px; }
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 28px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    background: #2563eb;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.submit-btn:hover:not(:disabled) { background: #1d4ed8; }
+.submit-btn:disabled { opacity: 0.65; cursor: not-allowed; }
+.submit-btn-loading { background: #3b82f6; }
+
+/* â”€â”€ Button Spinner â”€â”€ */
+.btn-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.submit-hint {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin: 10px 0 0 0;
+}
+
+===== inputForm.html =====
+
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-26-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="input-wrapper">
+
+        <!-- Page Header -->
+        <div class="input-page-header">
+            <h1 class="input-page-title">Add New Company</h1>
+            <p class="input-page-subtitle">Enter company details to start research</p>
+        </div>
+
+        <!-- Success Toast -->
+        <template if:true={submitSuccess}>
+            <div class="success-toast">
+                <div class="success-toast-left">
+                    <span class="success-icon">âœ“</span>
+                    <p class="success-text">{successMessage}</p>
+                </div>
+                <button class="success-dismiss" onclick={handleDismissSuccess}>âœ•</button>
+            </div>
+        </template>
+
+        <!-- Submit Error -->
+        <template if:true={errors.submit}>
+            <div class="error-toast">
+                <span>âš  {errors.submit}</span>
+            </div>
+        </template>
+
+        <!-- Form Card -->
+        <div class="form-card">
+            <form onsubmit={handleSubmit}>
+
+                <!-- Row 1: Company Name + Website -->
+                <div class="form-row-2">
+
+                    <!-- Company Name -->
+                    <div class="form-group">
+                        <label class="form-label">Company Name <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            class={companyNameInputClass}
+                            placeholder="e.g. Acme Manufacturing"
+                            value={companyName}
+                            onchange={handleCompanyNameChange}
+                            maxlength="200"
+                        />
+                        <template if:true={errors.companyName}>
+                            <p class="field-error">âš  {errors.companyName}</p>
+                        </template>
+                    </div>
+
+                    <!-- Website URL -->
+                    <div class="form-group">
+                        <label class="form-label">Website <span class="required">*</span></label>
+                        <div class="url-input-wrapper">
+                            <input
+                                type="text"
+                                class={websiteInputClass}
+                                placeholder="https://example.com"
+                                value={website}
+                                onfocus={handleWebsiteFocus}
+                                onchange={handleWebsiteChange}
+                            />
+                            <template if:true={showUrlValid}>
+                                <span class="url-indicator url-valid-icon" title="Valid URL">âœ“</span>
+                            </template>
+                            <template if:true={showUrlInvalid}>
+                                <span class="url-indicator url-invalid-icon" title="Invalid URL">âœ•</span>
+                            </template>
+                        </div>
+                        <template if:true={errors.website}>
+                            <p class="field-error">âš  {errors.website}</p>
+                        </template>
+                        <template if:true={showUrlHint}>
+                            <p class="field-hint">Enter a valid URL (e.g., https://example.com)</p>
+                        </template>
+                    </div>
+
+                </div>
+
+                <!-- Row 2: City + State -->
+                <div class="form-row-2">
+
+                    <div class="form-group">
+                        <label class="form-label">City <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            class={cityInputClass}
+                            placeholder="e.g. Milwaukee"
+                            value={city}
+                            onchange={handleCityChange}
+                            maxlength="100"
+                        />
+                        <template if:true={errors.city}>
+                            <p class="field-error">âš  {errors.city}</p>
+                        </template>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">State <span class="required">*</span></label>
+                        <input
+                            type="text"
+                            class={stateInputClass}
+                            placeholder="e.g. WI"
+                            value={state}
+                            onchange={handleStateChange}
+                            maxlength="50"
+                        />
+                        <template if:true={errors.state}>
+                            <p class="field-error">âš  {errors.state}</p>
+                        </template>
+                    </div>
+
+                </div>
+
+                <!-- Row 3: Stage + Client Type -->
+                <div class="form-row-2">
+
+                    <div class="form-group">
+                        <label class="form-label">Stage</label>
+                        <select class="dropdown-stage-input" value={stage} onchange={handleStageChange}>
+                            <template for:each={stageOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Client Type</label>
+                        <select class="dropdown-clienttype-input" value={clientType} onchange={handleClientTypeChange}>
+                            <template for:each={clientTypeOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-submit-row">
+                    <button type="submit" class={submitBtnClass} disabled={isSubmitting}>
+                        <template if:true={isSubmitting}>
+                            <span class="btn-spinner"></span> Submitting...
+                        </template>
+                        <template if:false={isSubmitting}>
+                            Submit Company
+                        </template>
+                    </button>
+                    <p class="submit-hint">Once submitted, your company will be processed and appear in Dashboard</p>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</template>
+
+===== inputForm.js =====
+
+import { LightningElement, track } from 'lwc';
+import submitCompany from '@salesforce/apex/InputController.submitCompany';
+
+export default class InputForm extends LightningElement {
+    @track companyName = '';
+    @track website = '';
+    @track city = '';
+    @track state = '';
+    @track stage = 'PreCall';
+    @track clientType = 'Prospect';
+
+    @track errors = {};
+    @track urlValid = null;   // null = untouched, true = valid, false = invalid
+    @track isSubmitting = false;
+    @track submitSuccess = false;
+    @track successMessage = '';
+
+    stageOptions = [
+        { label: 'PreCall',          value: 'PreCall' },
+        { label: 'Appointment Set',  value: 'Appointment Set' },
+        { label: 'Face To Face',     value: 'Face To Face' },
+        { label: 'Qualification',    value: 'Qualification' }
+    ];
+
+    clientTypeOptions = [
+        { label: 'Prospect',          value: 'Prospect' },
+        { label: 'Existing Customer', value: 'Existing Customer' },
+        { label: 'Past Customer',     value: 'Past Customer' }
+    ];
+
+    // â”€â”€ Computed classes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    get companyNameInputClass() {
+        return `input-field${this.errors.companyName ? ' input-error' : ''}`;
+    }
+    get websiteInputClass() {
+        return `input-field${this.errors.website ? ' input-error' : this.urlValid === true ? ' input-valid' : ''}`;
+    }
+    get cityInputClass() {
+        return `input-field${this.errors.city ? ' input-error' : ''}`;
+    }
+    get stateInputClass() {
+        return `input-field${this.errors.state ? ' input-error' : ''}`;
+    }
+    get showUrlValid()   { return this.urlValid === true && this.website && this.website !== 'https://'; }
+    get showUrlInvalid() { return this.urlValid === false && this.website && this.website !== 'https://'; }
+    get showUrlError()   { return !!this.errors.website; }
+    get showUrlHint()    { return !this.errors.website && this.urlValid === false && this.website !== 'https://'; }
+    get submitBtnClass() { return `submit-btn${this.isSubmitting ? ' submit-btn-loading' : ''}`; }
+
+    // â”€â”€ URL Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    validateUrl(url) {
+        if (!url || url === 'https://') return false;
+        try {
+            const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+            const u = new URL(fullUrl);
+            return (u.protocol === 'http:' || u.protocol === 'https:') &&
+                   u.hostname.includes('.') && u.hostname.length > 3;
+        } catch {
+            return false;
+        }
+    }
+
+    // â”€â”€ Form Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    validate() {
+        const e = {};
+        if (!this.companyName.trim()) e.companyName = 'Company name is required';
+        if (!this.website.trim() || this.website === 'https://') {
+            e.website = 'Website is required';
+        } else if (!this.validateUrl(this.website)) {
+            e.website = 'Please enter a valid URL (e.g., https://example.com)';
+        }
+        if (!this.city.trim()) e.city = 'City is required';
+        if (!this.state.trim()) e.state = 'State is required';
+        this.errors = e;
+        return Object.keys(e).length === 0;
+    }
+
+    // â”€â”€ Event Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    handleCompanyNameChange(event) {
+        this.companyName = event.target.value;
+        if (this.errors.companyName) this.errors = { ...this.errors, companyName: '' };
+    }
+
+    handleWebsiteFocus() {
+        if (!this.website) this.website = 'https://';
+    }
+
+    handleWebsiteChange(event) {
+        let value = event.target.value;
+        if (!value.startsWith('https://') && !value.startsWith('http://')) {
+            if (value.startsWith('https:/') || value.startsWith('https:')) {
+                value = 'https://';
+            } else if (value.startsWith('http:/') || value.startsWith('http:')) {
+                value = 'http://';
+            } else if (value) {
+                value = 'https://' + value;
+            }
+        }
+        this.website = value;
+        if (value && value !== 'https://') {
+            this.urlValid = this.validateUrl(value);
+        } else {
+            this.urlValid = null;
+        }
+        if (this.errors.website) this.errors = { ...this.errors, website: '' };
+    }
+
+    handleCityChange(event) {
+        this.city = event.target.value;
+        if (this.errors.city) this.errors = { ...this.errors, city: '' };
+    }
+
+    handleStateChange(event) {
+        this.state = event.target.value;
+        if (this.errors.state) this.errors = { ...this.errors, state: '' };
+    }
+
+    handleStageChange(event)      { this.stage = event.target.value; }
+    handleClientTypeChange(event) { this.clientType = event.target.value; }
+
+    handleSubmit(event) {
+        event.preventDefault();
+        if (!this.validate()) return;
+        this.isSubmitting = true;
+        submitCompany({
+            companyName: this.companyName.trim(),
+            website:     this.website.trim(),
+            city:        this.city.trim(),
+            state:       this.state.trim(),
+            stage:       this.stage,
+            clientType:  this.clientType
+        })
+        .then(() => {
+            this.isSubmitting = false;
+            this.submitSuccess = true;
+            this.successMessage = `${this.companyName} submitted successfully! Once processed, you can view it from the Dashboard.`;
+            this.companyName = '';
+            this.website = '';
+            this.city = '';
+            this.state = '';
+            this.stage = 'PreCall';
+            this.clientType = 'Prospect';
+            this.errors = {};
+            this.urlValid = null;
+            // Auto-clear success after 6 seconds
+            setTimeout(() => { this.submitSuccess = false; }, 6000);
+        })
+        .catch(error => {
+            this.isSubmitting = false;
+            this.errors = { ...this.errors, submit: error.body?.message || 'Failed to submit. Please try again.' };
+        });
+    }
+
+    handleDismissSuccess() {
+        this.submitSuccess = false;
+    }
+}
+
+===== inputForm.js-meta.xml =====
+
+<?xml version="1.0" encoding="UTF-8"?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>59.0</apiVersion>
+    <isExposed>true</isExposed>
+    <targets>
+        <target>lightning__AppPage</target>
+        <target>lightning__Tab</target>
+    </targets>
+</LightningComponentBundle>
+
+===== inputForm.test.js =====
+
+import { createElement } from '@lwc/engine-dom';
+import InputForm from 'c/inputForm';
+
+describe('c-input-form', () => {
+    afterEach(() => {
+        // The jsdom instance is shared across test cases in a single file so reset the DOM
+        while (document.body.firstChild) {
+            document.body.removeChild(document.body.firstChild);
+        }
+    });
+
+    it('TODO: test case generated by CLI command, please fill in test logic', () => {
+        // Arrange
+        const element = createElement('c-input-form', {
+            is: InputForm
+        });
+
+        // Act
+        document.body.appendChild(element);
+
+        // Assert
+        // const div = element.shadowRoot.querySelector('div');
+        expect(1).toBe(1);
+    });
+});

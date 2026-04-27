@@ -3,6 +3,6 @@
     <fullName>Msg_Type__c</fullName>
     <label>Message Type</label>
     <type>Text</type>
-    <length>20</length>
+    <length>255</length>
     <description>Semantic classification. Values: Request, Message</description>
 </CustomField>
