@@ -108,4 +108,14 @@ public without sharing class AI_Navigator_Event_Publisher {
                hex.substring(16,20) + '-' +
                hex.substring(20,32);
     }
+        /**
+     * Generate a correlation ID in the format Azure APIM requires:
+     * SF-<unix-epoch-ms>-<8-char-hex>
+     * Example: SF-1777404715585-50cd8363
+     */
+        public static String generateCorrelationId() {
+            String unixMs  = String.valueOf(DateTime.now().getTime());
+            String hexPart = EncodingUtil.convertToHex(Crypto.generateAesKey(128)).substring(0, 8);
+            return 'SF-' + unixMs + '-' + hexPart;
+        }
 }

@@ -100,4 +100,9 @@
         <enabled>true</enabled>
         <name>ApiEnabled</name>
     </userPermissions>
+    <!-- ── External Credential Principal Access (Azure APIM callouts) ── -->
+    <externalCredentialPrincipalAccesses>
+        <enabled>true</enabled>
+        <externalCredentialPrincipal>Azure_APIM_Dev-AzureAPIMDev</externalCredentialPrincipal>
+    </externalCredentialPrincipalAccesses>
 </PermissionSet>

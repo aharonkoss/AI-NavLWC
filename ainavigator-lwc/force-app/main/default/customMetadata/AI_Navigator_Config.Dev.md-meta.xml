@@ -6,7 +6,7 @@
     <protected>false</protected>
     <values>
         <field>Client_Id__c</field>
-        <value xsi:type="xsd:string">AI Navigator Sandbox</value>
+        <value xsi:type="xsd:string">00DgK00000LapYfUAJ</value>
     </values>
     <values>
         <field>Azure_APIM_Base_URL__c</field>
@@ -35,5 +35,9 @@
     <values>
         <field>Is_Active__c</field>
         <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>ApimSubscriptionKey__c</field>
+        <value xsi:type="xsd:string">71d320ca64004930bf6143f34aa4598d</value>
     </values>
 </CustomMetadata>

@@ -1,24 +1,55 @@
 /**
- * @description Dashboard LWC controller.
- *              All methods use real SOQL against confirmed Company__c and Signal__c schemas.
- *              Zero MockDataProvider calls remain.
- * @group       AI Navigator - LWC Controllers
- * @last-modified 2026-04-24
+ * @description DashboardController — real SOQL, no MockDataProvider.
+ *
+ *   Company__c fields (verified from org):
+ *     Name, City__c, State__c, Website__c, Status__c, Stage__c,
+ *     Client_Type__c, Azure_Company_Id__c, Is_Hidden__c,
+ *     OwnerId, CreatedDate
+ *
+ *   Signal__c fields (verified from org):
+ *     Company__c (MD lookup), Detected_At__c, Headline__c,
+ *     Impact__c, Is_New__c, Priority__c, Name (auto-number),
+ *     Signal_Type__c, Source__c
+ *
+ *   Soft-delete: uses Is_Hidden__c = true (not Status__c = 'hidden')
+ *
+ * @group AI Navigator - Apex
+ * @last-modified 2026-04-27
  */
 public with sharing class DashboardController {
 
-    // ─── Dashboard Stats ──────────────────────────────────────────────────────
+    private static final String NAMED_CRED  = 'callout:AI_Navigator_Azure';
+    private static final Integer TIMEOUT_MS = 30000;
 
-    @AuraEnabled(cacheable=true)
+    // -------------------------------------------------------------------------
+    // getDashboardStats
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=false)
     public static String getDashboardStats() {
         try {
-            Integer total      = [SELECT COUNT() FROM Company__c WITH SECURITY_ENFORCED];
-            Integer processing = [SELECT COUNT() FROM Company__c WHERE Status__c = 'processing' WITH SECURITY_ENFORCED];
-            Integer completed  = [SELECT COUNT() FROM Company__c WHERE Status__c = 'completed'  WITH SECURITY_ENFORCED];
-            Integer opened     = [SELECT COUNT() FROM Company__c WHERE Status__c = 'opened'     WITH SECURITY_ENFORCED];
+            AggregateResult[] rows = [
+                SELECT Status__c status, COUNT(Id) cnt
+                FROM   Company__c
+                WHERE  OwnerId = :UserInfo.getUserId()
+                AND    Is_Hidden__c = false
+                GROUP BY Status__c
+            ];
+
+            Integer totalCompanies = 0;
+            Integer processing     = 0;
+            Integer completed      = 0;
+            Integer opened         = 0;
+
+            for (AggregateResult ar : rows) {
+                Integer cnt = Integer.valueOf(ar.get('cnt'));
+                totalCompanies += cnt;
+                String st = String.valueOf(ar.get('status')).toLowerCase();
+                if      (st == 'processing') { processing = cnt; }
+                else if (st == 'completed')  { completed  = cnt; }
+            }
 
             return JSON.serialize(new Map<String, Object>{
-                'totalCompanies' => total,
+                'totalCompanies' => totalCompanies,
                 'processing'     => processing,
                 'completed'      => completed,
                 'opened'         => opened
@@ -28,147 +59,169 @@ public with sharing class DashboardController {
         }
     }
 
-    // ─── Company List ─────────────────────────────────────────────────────────
-
-    @AuraEnabled(cacheable=true)
+    // -------------------------------------------------------------------------
+    // getCompanies
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=false)
     public static String getCompanies() {
         try {
             List<Company__c> records = [
-                SELECT Id, Name, Website__c, City__c, State__c,
+                SELECT Id, Name, City__c, State__c, Website__c,
                        Status__c, Stage__c, Client_Type__c,
-                       Industry__c, CreatedDate
+                       Azure_Company_Id__c, CreatedDate
                 FROM   Company__c
-                WITH   SECURITY_ENFORCED
+                WHERE  OwnerId = :UserInfo.getUserId()
+                AND    Is_Hidden__c = false
                 ORDER BY CreatedDate DESC
-                LIMIT  200
+                LIMIT  500
             ];
 
-            List<Map<String, Object>> result = new List<Map<String, Object>>();
+            List<Map<String, Object>> companies = new List<Map<String, Object>>();
             for (Company__c c : records) {
-                result.add(new Map<String, Object>{
-                    'companyId'  => c.Id,
-                    'name'       => c.Name,
-                    'website'    => c.Website__c,
-                    'city'       => c.City__c,
-                    'state'      => c.State__c,
-                    'status'     => c.Status__c,
-                    'stage'      => c.Stage__c,
-                    'clientType' => c.Client_Type__c,
-                    'createdAt'  => String.valueOf(c.CreatedDate)
+                companies.add(new Map<String, Object>{
+                    'id'             => c.Id,
+                    'companyId'      => c.Id,
+                    'azureCompanyId' => c.Azure_Company_Id__c,
+                    'name'           => c.Name,
+                    'city'           => c.City__c,
+                    'state'          => c.State__c,
+                    'website'        => c.Website__c,
+                    'status'         => c.Status__c?.toLowerCase(),
+                    'stage'          => c.Stage__c,
+                    'clientType'     => c.Client_Type__c,
+                    'createdAt'      => c.CreatedDate
                 });
             }
-            return JSON.serialize(result);
+            return JSON.serialize(companies);
         } catch (Exception e) {
             throw new AuraHandledException('Error fetching companies: ' + e.getMessage());
         }
     }
 
-    // ─── Signals for a Company ────────────────────────────────────────────────
-
-    @AuraEnabled(cacheable=true)
+    // -------------------------------------------------------------------------
+    // getSignals — Signal__c rows for one company
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=false)
     public static String getSignals(String companyId) {
+        if (String.isBlank(companyId)) {
+            throw new AuraHandledException('companyId is required');
+        }
         try {
-            if (String.isBlank(companyId)) {
-                return JSON.serialize(new List<Object>());
-            }
-
-            List<Signal__c> signals = [
-                SELECT Id, Signal_Type__c, Headline__c, Impact__c,
-                       Priority__c, Source__c, Detected_At__c, Is_New__c
+            List<Signal__c> rows = [
+                SELECT Id, Name, Signal_Type__c, Headline__c,
+                       Priority__c, Impact__c, Source__c,
+                       Is_New__c, Detected_At__c
                 FROM   Signal__c
                 WHERE  Company__c = :companyId
-                WITH   SECURITY_ENFORCED
-                ORDER BY Detected_At__c DESC
-                LIMIT  50
+                ORDER BY Detected_At__c DESC NULLS LAST
+                LIMIT  200
             ];
 
-            List<Map<String, Object>> result = new List<Map<String, Object>>();
-            for (Signal__c s : signals) {
-                result.add(new Map<String, Object>{
-                    'signalType'        => s.Signal_Type__c,
+            List<Map<String, Object>> signals = new List<Map<String, Object>>();
+            for (Signal__c s : rows) {
+                signals.add(new Map<String, Object>{
+                    'id'         => s.Id,
+                    'signalName' => s.Name,
+                    'signalType' => s.Signal_Type__c,
+                    'headline'   => s.Headline__c,
+                    'priority'   => s.Priority__c,
+                    'impact'     => s.Impact__c,
+                    'source'     => s.Source__c,
+                    'isNew'      => s.Is_New__c,
+                    'detectedAt' => s.Detected_At__c,
+                    // Map to keys expected by dashboard.js / companyDetailSignals.js
                     'signalCategory'    => s.Signal_Type__c,
-                    'signalName'        => s.Headline__c,
-                    'signalDescription' => s.Impact__c,
-                    'priority'          => s.Priority__c,
-                    'confidence'        => 'Medium',
-                    'timeframe'         => 'Near-term',
-                    'eventDate'         => s.Detected_At__c != null
-                                            ? String.valueOf(s.Detected_At__c.date())
-                                            : null,
-                    'sourceUrls'        => String.isNotBlank(s.Source__c)
-                                            ? new List<String>{ s.Source__c }
-                                            : new List<String>(),
-                    'keyIndicators'     => new List<String>(),
-                    'suggestedActions'  => '',
-                    'isNew'             => s.Is_New__c
+                    'signalDescription' => s.Headline__c,
+                    'eventDate'         => s.Detected_At__c
                 });
             }
-            return JSON.serialize(result);
+            return JSON.serialize(signals);
         } catch (Exception e) {
             throw new AuraHandledException('Error fetching signals: ' + e.getMessage());
         }
     }
 
-    // ─── Update Company ───────────────────────────────────────────────────────
-
+    // -------------------------------------------------------------------------
+    // updateCompany — DML + Azure PUT
+    // -------------------------------------------------------------------------
     @AuraEnabled
     public static String updateCompany(String companyId, String stage, String clientType) {
+        if (String.isBlank(companyId)) {
+            throw new AuraHandledException('companyId is required');
+        }
         try {
-            if (String.isBlank(companyId)) {
-                throw new AuraHandledException('companyId is required.');
-            }
-
-            List<Company__c> records = [
-                SELECT Id, Stage__c, Client_Type__c
+            Company__c company = [
+                SELECT Id, Azure_Company_Id__c, Stage__c, Client_Type__c
                 FROM   Company__c
                 WHERE  Id = :companyId
-                WITH   SECURITY_ENFORCED
+                AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
             ];
-            if (records.isEmpty()) {
-                throw new AuraHandledException('Company not found: ' + companyId);
+
+            Boolean changed = false;
+            if (String.isNotBlank(stage) && stage != company.Stage__c) {
+                company.Stage__c = stage;
+                changed = true;
             }
+            if (String.isNotBlank(clientType) && clientType != company.Client_Type__c) {
+                company.Client_Type__c = clientType;
+                changed = true;
+            }
+            if (changed) { update company; }
 
-            Company__c company = records[0];
-            if (String.isNotBlank(stage))      { company.Stage__c       = stage;      }
-            if (String.isNotBlank(clientType)) { company.Client_Type__c = clientType; }
-
-            update company;
+            if (String.isNotBlank(company.Azure_Company_Id__c)) {
+                Map<String, Object> body = new Map<String, Object>();
+                if (String.isNotBlank(stage))      { body.put('stage',      stage);      }
+                if (String.isNotBlank(clientType)) { body.put('clientType', clientType); }
+                HttpResponse res = azureCallout(
+                    'PUT',
+                    '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8'),
+                    body, TIMEOUT_MS
+                );
+                handleCalloutResponse(res, 'updateCompany', company.Azure_Company_Id__c);
+            }
 
             return JSON.serialize(new Map<String, Object>{
                 'success'    => true,
                 'companyId'  => companyId,
-                'stage'      => company.Stage__c,
-                'clientType' => company.Client_Type__c
+                'stage'      => stage,
+                'clientType' => clientType
             });
         } catch (AuraHandledException ahe) {
             throw ahe;
-        } catch (DmlException dmlEx) {
-            throw new AuraHandledException('Could not update the company record. ' + dmlEx.getDmlMessage(0));
         } catch (Exception e) {
             throw new AuraHandledException('Error updating company: ' + e.getMessage());
         }
     }
 
-    // ─── Delete Company ───────────────────────────────────────────────────────
-
+    // -------------------------------------------------------------------------
+    // deleteCompany — Azure /hide + Is_Hidden__c = true
+    // -------------------------------------------------------------------------
     @AuraEnabled
     public static String deleteCompany(String companyId) {
+        if (String.isBlank(companyId)) {
+            throw new AuraHandledException('companyId is required');
+        }
         try {
-            if (String.isBlank(companyId)) {
-                throw new AuraHandledException('companyId is required.');
-            }
-
-            List<Company__c> records = [
-                SELECT Id FROM Company__c
+            Company__c company = [
+                SELECT Id, Azure_Company_Id__c, Is_Hidden__c
+                FROM   Company__c
                 WHERE  Id = :companyId
-                WITH   SECURITY_ENFORCED
+                AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
             ];
 
-            if (!records.isEmpty()) {
-                delete records[0];
+            if (String.isNotBlank(company.Azure_Company_Id__c)) {
+                HttpResponse res = azureCallout(
+                    'POST',
+                    '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8') + '/hide',
+                    new Map<String, Object>(), TIMEOUT_MS
+                );
+                handleCalloutResponse(res, 'deleteCompany', company.Azure_Company_Id__c);
             }
+
+            company.Is_Hidden__c = true;
+            update company;
 
             return JSON.serialize(new Map<String, Object>{
                 'success'   => true,
@@ -176,39 +229,49 @@ public with sharing class DashboardController {
             });
         } catch (AuraHandledException ahe) {
             throw ahe;
-        } catch (DmlException dmlEx) {
-            throw new AuraHandledException('Could not delete the company record. ' + dmlEx.getDmlMessage(0));
         } catch (Exception e) {
             throw new AuraHandledException('Error deleting company: ' + e.getMessage());
         }
     }
 
-    // ─── Retry Company ────────────────────────────────────────────────────────
-
+    // -------------------------------------------------------------------------
+    // retryCompany — Azure /retry + Status__c = 'pending'
+    // -------------------------------------------------------------------------
     @AuraEnabled
     public static String retryCompany(String companyId) {
+        if (String.isBlank(companyId)) {
+            throw new AuraHandledException('companyId is required');
+        }
         try {
-            if (String.isBlank(companyId)) {
-                throw new AuraHandledException('companyId is required.');
-            }
-
-            List<Company__c> records = [
-                SELECT Id FROM Company__c
+            Company__c company = [
+                SELECT Id, Azure_Company_Id__c, Status__c
+                FROM   Company__c
                 WHERE  Id = :companyId
-                WITH   SECURITY_ENFORCED
+                AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
             ];
-            if (records.isEmpty()) {
-                throw new AuraHandledException('Company not found: ' + companyId);
+
+            if (company.Status__c?.toLowerCase() != 'failed') {
+                throw new AuraHandledException(
+                    'Only failed companies can be retried. Current status: ' + company.Status__c
+                );
             }
 
-            // Confirmed signature: requestResearch(String companyId)
-            AzureResearchService.requestResearch(companyId);
+            if (String.isNotBlank(company.Azure_Company_Id__c)) {
+                HttpResponse res = azureCallout(
+                    'POST',
+                    '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8') + '/retry',
+                    new Map<String, Object>(), TIMEOUT_MS
+                );
+                handleCalloutResponse(res, 'retryCompany', company.Azure_Company_Id__c);
+            }
+
+            company.Status__c = 'pending';
+            update company;
 
             return JSON.serialize(new Map<String, Object>{
                 'success'   => true,
-                'companyId' => companyId,
-                'status'    => 'processing'
+                'companyId' => companyId
             });
         } catch (AuraHandledException ahe) {
             throw ahe;
@@ -217,25 +280,114 @@ public with sharing class DashboardController {
         }
     }
 
-    // ─── Call Plan (pass-through) ─────────────────────────────────────────────
-
-    @AuraEnabled(cacheable=true)
-    public static String getCallPlan(String companyId) {
-        try {
-            return CompanyDetailController.getCallPlan(companyId);
-        } catch (Exception e) {
-            throw new AuraHandledException('Error fetching call plan: ' + e.getMessage());
-        }
-    }
-
-    // ─── Company Info (pass-through) ──────────────────────────────────────────
-
-    @AuraEnabled(cacheable=true)
+    // -------------------------------------------------------------------------
+    // getCompanyInfo — lightweight header (backward-compat)
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=false)
     public static String getCompanyInfo(String companyId) {
+        if (String.isBlank(companyId)) {
+            throw new AuraHandledException('companyId is required');
+        }
         try {
-            return CompanyDetailController.getCompany(companyId);
+            Company__c c = [
+                SELECT Id, Name, City__c, State__c, Website__c,
+                       Status__c, Stage__c, Client_Type__c,
+                       Azure_Company_Id__c, CreatedDate
+                FROM   Company__c
+                WHERE  Id = :companyId
+                LIMIT  1
+            ];
+            return JSON.serialize(new Map<String, Object>{
+                'id'             => c.Id,
+                'companyId'      => c.Id,
+                'azureCompanyId' => c.Azure_Company_Id__c,
+                'name'           => c.Name,
+                'city'           => c.City__c,
+                'state'          => c.State__c,
+                'website'        => c.Website__c,
+                'status'         => c.Status__c?.toLowerCase(),
+                'stage'          => c.Stage__c,
+                'clientType'     => c.Client_Type__c,
+                'createdAt'      => c.CreatedDate
+            });
         } catch (Exception e) {
             throw new AuraHandledException('Error fetching company info: ' + e.getMessage());
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // getCallPlan — stub; real data from CompanyDetailController.getAiResearch
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=false)
+    public static String getCallPlan(String companyId) {
+        return JSON.serialize(new Map<String, Object>{
+            'companyId' => companyId,
+            'callPlan'  => null,
+            'message'   => 'Use CompanyDetailController.getAiResearch for full call plan data.'
+        });
+    }
+
+    // =========================================================================
+    // Private helpers
+    // =========================================================================
+
+    private static HttpResponse azureCallout(
+        String method, String path,
+        Map<String, Object> body, Integer timeoutMs
+    ) {
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(NAMED_CRED + path);
+        req.setMethod(method);
+        req.setTimeout(timeoutMs);
+        req.setHeader('Content-Type', 'application/json');
+        req.setHeader('X-Correlation-Id', generateCorrelationId());
+        if (body != null && !body.isEmpty()) {
+            req.setBody(JSON.serialize(body));
+        }
+        return new Http().send(req);
+    }
+
+    @TestVisible
+    private static void handleCalloutResponse(HttpResponse res, String operation, String azureId) {
+        Integer statusCode = res.getStatusCode();
+        if (statusCode >= 200 && statusCode < 300) { return; }
+
+        String correlationId = res.getHeader('X-Correlation-Id');
+        String errorMsg;
+
+        if      (statusCode == 400) { errorMsg = operation + ': Validation error (400). Azure Id: ' + azureId; }
+        else if (statusCode == 401) { errorMsg = operation + ': Authentication failed (401). Check Named Credential token.'; }
+        else if (statusCode == 403) { errorMsg = operation + ': Forbidden (403).'; }
+        else if (statusCode == 404) { errorMsg = operation + ': Company not found on Azure (404). Azure Id: ' + azureId; }
+        else if (statusCode == 409) { errorMsg = operation + ': Conflict (409). ' + res.getBody(); }
+        else if (statusCode == 429) { errorMsg = operation + ': Rate limited (429). Retry-After: ' + res.getHeader('Retry-After'); }
+        else if (statusCode == 500) { errorMsg = operation + ': Azure internal error (500). CorrelationId: ' + correlationId; }
+        else if (statusCode == 502 || statusCode == 503) { errorMsg = operation + ': Upstream unavailable (' + statusCode + ').'; }
+        else if (statusCode == 504) { errorMsg = operation + ': Gateway timeout (504). Verify state before retrying.'; }
+        else                        { errorMsg = operation + ': Unexpected status (' + statusCode + '). CorrelationId: ' + correlationId; }
+
+        System.debug(LoggingLevel.ERROR, 'DashboardController.' + errorMsg);
+
+        try {
+             insert new Azure_Request_Log__c(
+                HTTP_Method__c      = operation,
+                Endpoint_Name__c    = operation,
+                Status__c           = 'Error',
+                HTTP_Status_Code__c = statusCode,
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = errorMsg
+            );
+        } catch (DmlException de) {
+            System.debug(LoggingLevel.WARN, 'DashboardController: failed to write request log: ' + de.getMessage());
+        }
+
+        if (statusCode != 404) {
+            throw new AuraHandledException(errorMsg);
+        }
+    }
+
+    private static String generateCorrelationId() {
+        return EncodingUtil.convertToHex(Crypto.generateAesKey(128)).substring(0, 8)
+            + '-' + String.valueOf(DateTime.now().getTime());
     }
 }
