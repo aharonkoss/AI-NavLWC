@@ -1,0 +1,160 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="up-wrapper">
+
+        <!-- Page header -->
+        <div class="up-header">
+            <h1 class="up-title">Upload Company List</h1>
+            <p class="up-subtitle">
+                Daily limit: {usedToday} / {dailyLimit} companies used
+                <span class="up-remaining">({remaining} remaining)</span>
+            </p>
+        </div>
+
+        <!-- Error / success messages -->
+        <template if:true={error}>
+            <div class="up-banner up-banner-error">⚠ {error}</div>
+        </template>
+        <template if:true={successMessage}>
+            <div class="up-banner up-banner-success">✓ {successMessage}</div>
+        </template>
+
+        <!-- Main layout -->
+        <div class="up-main-grid">
+
+            <!-- Left side: File format + drop zone + defaults -->
+            <div class="up-left">
+
+                <!-- File format card -->
+                <div class="up-card up-card-format">
+                    <h2 class="up-card-title">File Format</h2>
+                    <p class="up-card-caption">Required columns:</p>
+                    <ul class="up-list">
+                        <li><span class="up-field-name">Company Name</span></li>
+                        <li><span class="up-field-name">Company URL</span></li>
+                        <li><span class="up-field-name">City</span> <span class="up-field-note">(recommended for UCC data)</span></li>
+                        <li><span class="up-field-name">State</span> <span class="up-field-note">(recommended for UCC data)</span></li>
+                    </ul>
+                    <p class="up-card-caption">Optional columns:</p>
+                    <ul class="up-list">
+                        <li><span class="up-field-name">Stage</span> (PreCall, Appointment Set, Face To Face, Qualification)</li>
+                        <li><span class="up-field-name">Client Type</span> (Prospect, Existing Customer, Past Customer)</li>
+                    </ul>
+                    <p class="up-card-caption">Download template:</p>
+                    <p class="up-template-links">
+                        <a href="javascript:void(0)">CSV</a> ·
+                        <a href="javascript:void(0)">XLSX</a> ·
+                        <a href="javascript:void(0)">XLS</a>
+                    </p>
+                </div>
+
+                <!-- Drag-and-drop card -->
+                <div
+                        class={dropZoneClass}
+                        ondragover={handleDragOver}
+                        ondragleave={handleDragLeave}
+                        ondrop={handleDrop}
+                    >
+                    <p class="up-drop-title">Drag &amp; drop your file here</p>
+                    <p class="up-drop-subtitle">or click to select</p>
+                    <p class="up-drop-note">CSV, XLSX, XLS</p>
+                    <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        class="up-file-input"
+                        onchange={handleFileInputChange}
+                    />
+                    <template if:true={isUploading}>
+                        <div class="up-drop-loading">
+                            <span class="up-spinner"></span>
+                            <span>Uploading...</span>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Default stage / client type -->
+                <div class="up-defaults-row">
+                    <div class="up-default-group">
+                        <label class="up-label">Default Stage</label>
+                        <select class="up-select-stage" value={defaultStage} onchange={handleStageChange}>
+                            <template for:each={stageOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="up-default-group">
+                        <label class="up-label">Default Client Type</label>
+                        <select class="up-select-client" value={defaultClientType} onchange={handleClientTypeChange}>
+                            <template for:each={clientTypeOptions} for:item="opt">
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right side: Previous submissions -->
+            <div class="up-right">
+                <div class="up-prev-header">
+                    <h2 class="up-card-title">Previous Submissions</h2>
+                    <div class="up-prev-search">
+                        <input
+                            type="text"
+                            class="up-prev-search-input"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            oninput={handleSearchChange}
+                        />
+                        <template if:true={searchTerm}>
+                            <button class="up-prev-clear" onclick={handleSearchClear}>Clear</button>
+                        </template>
+                    </div>
+                </div>
+
+                <template if:true={isLoading}>
+                    <div class="up-prev-empty">
+                        <span class="up-spinner"></span>
+                        <span>Loading previous submissions...</span>
+                    </div>
+                </template>
+
+                <template if:false={isLoading}>
+                    <template if:true={hasSubmissions}>
+                        <div class="up-prev-list">
+                            <template for:each={filteredSubmissions} for:item="s">
+                                <div key={s.submissionId} class="up-prev-row">
+                                    <div class="up-prev-main">
+                                        <p class="up-prev-name">{s.companyName}</p>
+                                        <p class="up-prev-meta">
+                                            {s.locationDisplay}
+                                            <template if:true={s.website}>
+                                                · {s.website}
+                                            </template>
+                                        </p>
+                                    </div>
+                                    <div class="up-prev-status">
+                                        <span class={s.statusClass}>{s.status}</span>
+                                    </div>
+                                    <div class="up-prev-date">
+                                        {s.submittedAtDisplay}
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                    <template if:false={hasSubmissions}>
+                        <div class="up-prev-empty">
+                            <p>No submissions yet. Upload your first file.</p>
+                        </div>
+                    </template>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>

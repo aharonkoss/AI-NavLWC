@@ -1,0 +1,16 @@
+.cde-wrapper {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 60vh; text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.cde-icon  { font-size: 3rem; margin-bottom: 16px; }
+.cde-title { font-size: 1.4rem; font-weight: 700; color: #111827; margin: 0 0 8px; }
+.cde-subtitle { font-size: 0.95rem; color: #6b7280; max-width: 420px; margin-bottom: 24px; }
+.cde-btn {
+    padding: 10px 22px; border-radius: 8px;
+    background: #1d4ed8; color: #fff;
+    border: none; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer;
+}
+.cde-btn:hover { background: #1e40af; }

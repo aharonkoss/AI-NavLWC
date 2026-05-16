@@ -1,0 +1,94 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="sub-wrapper">
+        <!-- Header -->
+        <div class="sub-header">
+            <div>
+                <h1 class="sub-title">Submissions</h1>
+                <p class="sub-subtitle">View recent uploads and manual input submissions</p>
+            </div>
+            <button class="sub-refresh-btn" onclick={handleRefresh} disabled={isLoading}>
+                ⟳ Refresh
+            </button>
+        </div>
+
+        <!-- Filters -->
+        <div class="sub-filters">
+            <div class="sub-search">
+                <input
+                    type="text"
+                    class="sub-search-input"
+                    placeholder="Search by company or website..."
+                    value={searchTerm}
+                    oninput={handleSearchChange}
+                />
+                <template if:true={searchTerm}>
+                    <button class="sub-search-clear" onclick={handleClearSearch}>Clear</button>
+                </template>
+            </div>
+            <div>
+                <select class="sub-filter-select" value={filter} onchange={handleFilterChange}>
+                    <template for:each={filterOptions} for:item="opt">
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="sub-error">
+                ⚠ {error}
+            </div>
+        </template>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="sub-loading">
+                <span class="sub-spinner"></span>
+                <span>Loading submissions...</span>
+            </div>
+        </template>
+
+        <!-- List -->
+        <template if:false={isLoading}>
+            <template if:true={hasSubmissions}>
+                <div class="sub-list">
+                    <template for:each={filteredSubmissions} for:item="s">
+                        <div key={s.submissionId} class="sub-row">
+                            <div class="sub-col-main">
+                                <p class="sub-company-name">{s.companyName}</p>
+                                <p class="sub-company-meta">
+                                    {s.locationDisplay}
+                                    <template if:true={s.website}>
+                                        • {s.website}
+                                    </template>
+                                </p>
+                            </div>
+                            <div class="sub-col-mid">
+                                <span class={s.sourceClass}>{s.sourceLabel}</span>
+                            </div>
+                            <div class="sub-col-mid">
+                                <span class={s.statusClass}>{s.status}</span>
+                            </div>
+                            <div class="sub-col-date">
+                                <span class="sub-date-label">{s.submittedAtDisplay}</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template if:false={hasSubmissions}>
+                <div class="sub-empty">
+                    <p>{emptyMessage}</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

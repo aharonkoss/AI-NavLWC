@@ -1,0 +1,65 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-31-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <!-- Hidden PDF generator -->
+    <c-pdf-generator></c-pdf-generator>
+    <div class="cdu-wrapper">
+        <!-- Sub-section tabs -->
+        <div class="cdu-subtabs">
+            <template for:each={sections} for:item="sec">
+                <button
+                    key={sec.id}
+                    class={sec.cls}
+                    data-section={sec.id}
+                    onclick={handleSectionClick}>
+                    {sec.name}
+                </button>
+            </template>
+            <div class="cdu-subtabs-right">
+                <button class="cdu-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                    <template if:true={isDownloading}>Generating...</template>
+                    <template if:false={isDownloading}>Download PDF</template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Update cards grid -->
+        <div class="cdu-cards">
+            <template if:true={isLoading}>
+                <p class="cdu-loading">Loading updates...</p>
+            </template>
+            <template if:false={isLoading}>
+                <template if:true={hasUpdates}>
+                    <template for:each={currentUpdates} for:item="update">
+                        <div key={update.headline} class="cdu-card">
+                            <div class="cdu-card-header">
+                                <span class="cdu-category">{update.category}</span>
+                                <span class={update.impactClass}>{update.impact}</span>
+                            </div>
+                            <h3 class="cdu-headline">{update.headline}</h3>
+                            <p class="cdu-summary">{update.summary}</p>
+                            <div class="cdu-footer">
+                                <span class="cdu-date">{update.date}</span>
+                                <template if:true={update.source}>
+                                    <a href={update.sourceUrl} target="_blank" rel="noopener noreferrer" class="cdu-source">
+                                        🔗 {update.source}
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+                <template if:false={hasUpdates}>
+                    <div class="cdu-empty">
+                        <p>No updates available for this section.</p>
+                    </div>
+                </template>
+            </template>
+        </div>
+    </div>
+</template>

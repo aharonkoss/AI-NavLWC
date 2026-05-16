@@ -1,12 +1,8 @@
 /**
  * @description Controller for the inputForm LWC.
- *              Handles single-company manual submission:
- *              1. Creates a Company__c record (Status = processing)
- *              2. Publishes AINavigatorOutbound__e (RESEARCHREQUEST)
- *              3. Returns the real Salesforce record ID to the LWC
- *
- * @group       AI Navigator - LWC Controllers
- * @last-modified 2026-04-21
+ *              1. Creates Company__c with Status__c = 'processing'
+ *              2. Returns SF record ID to LWC immediately (no waiting on Azure)
+ *              3. Enqueues AzureManualCompanyCallout — fires async after commit
  */
 public with sharing class InputController {
 
@@ -20,10 +16,11 @@ public with sharing class InputController {
         String clientType
     ) {
         try {
-            // ── 1. Generate correlation ID ──────────────────────────────────
-            String correlationId = AiNavigatorEventService.generateCorrelationId();
+            // 1. Generate correlation ID
+            String correlationId = AI_Navigator_Event_Publisher.generateCorrelationId();
+            String currentUserId = UserInfo.getUserId();
 
-            // ── 2. Create Company__c record ─────────────────────────────────
+            // 2. Create Company__c — status pending until Azure confirms
             Company__c company = new Company__c(
                 Name             = companyName,
                 Website__c       = website,
@@ -31,38 +28,25 @@ public with sharing class InputController {
                 State__c         = state,
                 Stage__c         = stage,
                 Client_Type__c   = clientType,
-                Status__c        = 'processing',
-                Correlation_Id__c = correlationId,
-                Assigned_User__c = UserInfo.getUserId()
+                Status__c        = 'pending',
+                Correlation_Id__c = correlationId
             );
             insert company;
 
-            // ── 3. Build versioned payload ──────────────────────────────────
-            // AZURE-Q5: Confirm SF owns correlationId generation.
-            // AZURE-Q4: Confirm channel = /event/AINavigatorOutbound__e
-            Map<String, Object> payload = new Map<String, Object>{
-                'companyId'   => company.Id,
-                'name'        => companyName,
-                'website'     => website,
-                'city'        => city,
-                'state'       => state,
-                'stage'       => stage,
-                'clientType'  => clientType,
-                'submittedBy' => UserInfo.getUserId(),
-                'submittedAt' => String.valueOf(DateTime.now())
-                // AZURE-Q2: Add any additional fields Azure needs for RESEARCHREQUEST here
-                //           without changing schema — just add keys to this map.
-            };
+            // 3. Enqueue async callout — runs after DML commits
+            //    Carries all fields needed to build the Azure payload
+            System.enqueueJob(new AzureManualCompanyCallout(
+                                company.Id,      // recordId — used to update the Company__c after callout
+                                companyName,
+                                website,
+                                city,
+                                state,
+                                stage,
+                                clientType,
+                                company.Id       // salesforceId — echoed back by Azure on every callback
+                            ));
 
-            // ── 4. Publish outbound Platform Event ──────────────────────────
-            AiNavigatorEventService.publish(
-                'RESEARCHREQUEST',
-                'ResearchRequest.v1',
-                payload,
-                correlationId
-            );
-
-            // ── 5. Return real record data to LWC ───────────────────────────
+            // 4. Return SF record data to LWC immediately
             return JSON.serialize(new Map<String, Object>{
                 'success'       => true,
                 'companyId'     => company.Id,
@@ -73,7 +57,7 @@ public with sharing class InputController {
                 'state'         => state,
                 'stage'         => stage,
                 'clientType'    => clientType,
-                'status'        => 'processing',
+                'status'        => 'pending',
                 'createdAt'     => String.valueOf(DateTime.now())
             });
 
@@ -81,13 +65,13 @@ public with sharing class InputController {
             System.debug(LoggingLevel.ERROR,
                 'InputController.submitCompany DML error: ' + dmlEx.getMessage());
             throw new AuraHandledException(
-                'Could not save the company record. ' + dmlEx.getDmlMessage(0)
+                'Could not save the company record: ' + dmlEx.getDmlMessage(0)
             );
         } catch (AuraHandledException ahe) {
-            throw ahe; // re-throw event publish failures as-is
+            throw ahe;
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR,
-                'InputController.submitCompany unexpected error: ' + e.getMessage());
+                'InputController.submitCompany unexpected: ' + e.getMessage());
             throw new AuraHandledException(
                 'An unexpected error occurred. Please try again.'
             );

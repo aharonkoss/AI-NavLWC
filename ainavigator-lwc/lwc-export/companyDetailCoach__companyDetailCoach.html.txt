@@ -1,0 +1,118 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-30-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="coach-wrapper">
+
+        <!-- HEADER -->
+        <div class="coach-header">
+            <div class="coach-header-left">
+                <h2 class="coach-title">Discovery Call Coach</h2>
+                <p class="coach-subtitle">Test your knowledge about {companyName}</p>
+            </div>
+            <div class="coach-header-right">
+                <span class="coach-score">Score: {correctCount}/{answeredCount}</span>
+                <button class="btn-reset" onclick={handleReset}>Reset</button>
+            </div>
+        </div>
+
+        <!-- CATEGORY FILTER TABS -->
+        <div class="coach-filters">
+            <template for:each={categoryButtons} for:item="cat">
+                <button key={cat.id}
+                        class={cat.cls}
+                        data-cat={cat.id}
+                        onclick={handleCategoryChange}>
+                    {cat.label}
+                </button>
+            </template>
+        </div>
+
+        <!-- QUIZ BODY -->
+        <div class="coach-body">
+
+            <!-- Empty state -->
+            <template if:false={hasQuestions}>
+                <div class="coach-empty">
+                    <p>No questions available for this category yet.</p>
+                    <p class="coach-empty-sub">
+                        Questions are generated based on the company research data.
+                    </p>
+                </div>
+            </template>
+
+            <!-- Quiz -->
+            <template if:true={hasQuestions}>
+                <div class="quiz-inner">
+
+                    <!-- Progress row -->
+                    <div class="quiz-progress">
+                        <span>Question {currentIndex} of {totalQuestions}</span>
+                        <span class={currentTypeBadgeCls}>{currentQuestion.typeLabel}</span>
+                    </div>
+
+                    <!-- Question box -->
+                    <div class="quiz-question-box">
+                        <p class="quiz-question-text">{currentQuestion.question}</p>
+                    </div>
+
+                    <!-- Answer options -->
+                    <div class="quiz-options">
+                        <template for:each={currentOptions} for:item="opt">
+                            <button key={opt.label}
+                                    class={opt.cls}
+                                    data-answer={opt.text}
+                                    onclick={handleAnswer}
+                                    disabled={answered}>
+                                <span class={opt.dotCls}>{opt.label}</span>
+                                <span class="opt-text">{opt.text}</span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Coach Tip — visible after answering -->
+                    <template if:true={answered}>
+                        <div class="coach-tip">
+                            <div class="tip-icon">
+                                <svg class="tip-svg" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0
+                                        11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001
+                                        1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                        clip-rule="evenodd">
+                                    </path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="tip-label">Coach Tip</p>
+                                <p class="tip-body">{currentQuestion.tip}</p>
+                            </div>
+                        </div>
+                        <template if:true={currentQuestion.context}>
+                            <div class="coach-context">
+                                <span class="context-label">Context: </span>
+                                {currentQuestion.context}
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- Navigation -->
+                    <div class="quiz-nav">
+                        <button class="btn-prev" onclick={handlePrevious} disabled={isFirst}>
+                            &#8592; Previous
+                        </button>
+                        <button class="btn-next" onclick={handleNext} disabled={isLast}>
+                            Next &#8594;
+                        </button>
+                    </div>
+
+                </div>
+            </template>
+        </div>
+
+    </div>
+</template>

@@ -12,6 +12,7 @@
             <value><fullName>completed</fullName><label>Completed</label><default>false</default></value>
             <value><fullName>partial</fullName><label>Partial</label><default>false</default></value>
             <value><fullName>failed</fullName><label>Failed</label><default>false</default></value>
+            <value><fullName>failed</fullName><label>Submitted</label><default>false</default></value>
         </valueSetDefinition>
     </valueSet>
 </CustomField>

@@ -1,0 +1,25 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-02-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="cdh-wrapper">
+        <div class="cdh-left">
+            <button class="cdh-back" onclick={handleBack}>←</button>
+            <h1 class="cdh-name">{companyName}</h1>
+            <span class="cdh-sep">|</span>
+            <span class="cdh-location">{companyCity}, {companyState}</span>
+            <template if:true={hasWebsite}>
+                <span class="cdh-sep">|</span>
+                <a href={companyWebsite} target="_blank" rel="noopener noreferrer" class="cdh-website">{companyWebsite}</a>
+            </template>
+            <span class={statusClass}>{companyStatus}</span>
+        </div>
+        <div class="cdh-right">
+            <button class="cdh-pdf" onclick={handleDownloadPDF}>Download PDF</button>
+        </div>
+    </div>
+</template>

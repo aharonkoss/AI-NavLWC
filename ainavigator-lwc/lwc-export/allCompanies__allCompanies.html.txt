@@ -1,0 +1,92 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="ac-wrapper">
+        <!-- Header -->
+        <div class="ac-header">
+            <div>
+                <h1 class="ac-title">All Companies</h1>
+                <p class="ac-subtitle">Full directory of companies in your workspace</p>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="ac-filters">
+            <div class="ac-search">
+                <input
+                    type="text"
+                    class="ac-search-input"
+                    placeholder="Search by name, city, state, or website..."
+                    value={searchTerm}
+                    oninput={handleSearchChange}
+                />
+                <template if:true={searchTerm}>
+                    <button class="ac-search-clear" onclick={handleClearSearch}>Clear</button>
+                </template>
+            </div>
+            <div>
+                <select class="ac-filter-select" value={filter} onchange={handleFilterChange}>
+                    <template for:each={filterOptions} for:item="opt">
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    </template>
+                </select>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="ac-error">⚠ {error}</div>
+        </template>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="ac-loading">
+                <span class="ac-spinner"></span>
+                <span>Loading companies...</span>
+            </div>
+        </template>
+
+        <!-- List -->
+        <template if:false={isLoading}>
+            <template if:true={hasCompanies}>
+                <div class="ac-list">
+                    <template for:each={filteredCompanies} for:item="c">
+                        <div key={c.companyId} class="ac-row">
+                            <div class="ac-col-main">
+                                <p class="ac-name">{c.name}</p>
+                                <p class="ac-meta">
+                                    {c.locationDisplay}
+                                    <template if:true={c.website}>
+                                        · {c.website}
+                                    </template>
+                                </p>
+                            </div>
+                            <div class="ac-col-pill">
+                                <span class="ac-pill ac-pill-stage">{c.stageLabel}</span>
+                            </div>
+                            <div class="ac-col-pill">
+                                <span class="ac-pill ac-pill-client">{c.clientTypeLabel}</span>
+                            </div>
+                            <div class="ac-col-status">
+                                <span class={c.statusClass}>{c.statusLabel}</span>
+                            </div>
+                            <div class="ac-col-date">
+                                <span class="ac-date">{c.createdAtDisplay}</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            <template if:false={hasCompanies}>
+                <div class="ac-empty">
+                    <p>{emptyMessage}</p>
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

@@ -1,0 +1,208 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="dashboard-wrapper">
+
+        <!-- Page Title -->
+        <div class="page-header">
+            <h1 class="page-title">Dashboard</h1>
+        </div>
+
+        <!-- KPI Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card" title="Companies currently being analyzed by AI">
+                <div class="stat-row">
+                    <div class="stat-icon icon-blue"><span class="icon-letter">T</span></div>
+                    <div>
+                        <p class="stat-label">Total</p>
+                        <p class="stat-value">{totalCompanies}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card" title="Companies currently being analyzed by AI">
+                <div class="stat-row">
+                    <div class="stat-icon icon-amber"><span class="icon-letter">P</span></div>
+                    <div>
+                        <p class="stat-label">Processing</p>
+                        <p class="stat-value text-amber">{processing}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card" title="Companies currently being analyzed by AI">
+                <div class="stat-row">
+                    <div class="stat-icon icon-green"><span class="icon-letter">C</span></div>
+                    <div>
+                        <p class="stat-label">Completed</p>
+                        <p class="stat-value text-green">{completed}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card" title="Companies currently being analyzed by AI">
+                <div class="stat-row">
+                    <div class="stat-icon icon-purple"><span class="icon-letter">O</span></div>
+                    <div>
+                        <p class="stat-label">Opened</p>
+                        <p class="stat-value text-purple">{opened}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Companies Section -->
+        <div class="companies-card">
+
+            <!-- Companies Header -->
+            <div class="companies-header">
+                <h2 class="companies-title">
+                    Companies <span class="companies-count">({filteredCount})</span>
+                </h2>
+                <div class="search-wrapper">
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onchange={handleSearchChange}
+                        class="search-input"
+                    />
+                    <template if:true={searchTerm}>
+                        <button onclick={handleClearSearch} class="search-clear-btn">Clear</button>
+                    </template>
+                </div>
+                <div class="filter-wrapper">
+                    <select value={companyFilter} onchange={handleFilterChange} class="filter-select">
+                        <template for:each={filterOptions} for:item="opt">
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        </template>
+                    </select>
+                    <template if:true={showDateFilter}>
+                        <input type="date" value={dateFilter} onchange={handleDateFilterChange} class="date-input" />
+                    </template>
+                    <template if:true={showClearFilter}>
+                        <button onclick={handleClearFilter} class="clear-filter-btn">✕ Clear</button>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Companies List -->
+            <div class="companies-list">
+                <template if:true={hasCompanies}>
+                    <template for:each={paginatedCompanies} for:item="company">
+                        <div key={company.companyId} 
+                            class="company-row"
+                            data-company-id={company.companyId}
+                            onclick={handleCompanyClick}
+                        >
+
+                            <!-- Company Name + Location -->
+                            <div class="company-name-col">
+                                <button
+                                    class="company-name-btn"
+                                    data-companyid={company.companyId}
+                                    onclick={handleOpenSignals}
+                                    title="View signals"
+                                >
+                                    {company.name}
+                                </button>
+                                <p class="company-location">{company.locationDisplay}</p>
+                            </div>
+
+                            <!-- Submitted Date -->
+                            <div class="company-date-col">
+                                <span class="date-text">{company.createdAtDisplay}</span>
+                            </div>
+
+                            <!-- Stage Dropdown -->
+                            <div class="company-dropdown-col">
+                                <select class="dropdown-stage" data-companyid={company.companyId} onchange={handleStageChange}>
+                                    <option value="PreCall"         selected={company.stageIsPreCall}>PreCall</option>
+                                    <option value="Appointment Set" selected={company.stageIsAppointmentSet}>Appointment Set</option>
+                                    <option value="Face To Face"    selected={company.stageIsFaceToFace}>Face To Face</option>
+                                    <option value="Qualification"   selected={company.stageIsQualification}>Qualification</option>
+                                </select>
+                            </div>
+
+                            <!-- Client Type Dropdown -->
+                            <div class="company-dropdown-col">
+                                <select class="dropdown-clienttype" data-companyid={company.companyId} onchange={handleClientTypeChange}>
+                                    <option value="Prospect"          selected={company.clientTypeIsProspect}>Prospect</option>
+                                    <option value="Existing Customer" selected={company.clientTypeIsExisting}>Existing Customer</option>
+                                    <option value="Past Customer"     selected={company.clientTypeIsPast}>Past Customer</option>
+                                </select>
+                            </div>
+
+                            <!-- Signals Badge -->
+                            <div class="company-signals-col">
+                                <template if:true={company.hasSignals}>
+                                    <button
+                                        class={company.signalBadgeClass}
+                                        data-companyid={company.companyId}
+                                        onclick={handleOpenSignals}
+                                        title="View signals"
+                                    >
+                                        ⚡ {company.signalCount}
+                                        <template if:true={company.showSignalWarning}>
+                                            <span class="signal-warning-dot"> ▲{company.signalWarningCount}</span>
+                                        </template>
+                                    </button>
+                                </template>
+                            </div>
+
+                            <!-- Status Badge -->
+                            <div class="company-status-col">
+                                <span class={company.statusClass}>{company.statusLabel}</span>
+                            </div>
+
+                    <!-- Actions -->
+                    <div class="company-actions-col">
+                        <template if:true={company.isProcessingOrPending}>
+                            <button
+                                class="btn-retry"
+                                data-companyid={company.companyId}
+                                onclick={handleRetry}
+                            >↺ Retry</button>
+                        </template>
+                        <button
+                            class="btn-delete"
+                            data-companyid={company.companyId}
+                            onclick={handleDelete}
+                        >✕</button>
+                    </div>
+
+                        </div>
+                    </template>
+                </template>
+                <template if:false={hasCompanies}>
+                    <div class="empty-state">
+                        <p>{emptyMessage}</p>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Pagination -->
+            <template if:true={showPagination}>
+                <div class="pagination">
+                    <button onclick={handlePrevPage} disabled={isFirstPage} class="page-btn">← Prev</button>
+                    <span class="page-label">{paginationLabel}</span>
+                    <button onclick={handleNextPage} disabled={isLastPage} class="page-btn">Next →</button>
+                </div>
+            </template>
+
+        </div>
+
+        <!-- Signals Modal -->
+        <template if:true={isModalOpen}>
+            <c-signals-modal
+                company-name={selectedCompany.name}
+                company-id={selectedCompany.companyId}
+                signals={selectedCompany.signals}
+                onclose={handleCloseModal}
+            ></c-signals-modal>
+        </template>
+
+    </div>
+</template>

@@ -1,0 +1,153 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-30-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="sim-wrapper">
+
+        <!-- HEADER -->
+        <div class="sim-header">
+            <div class="sim-header-left">
+                <h2 class="sim-title">Discovery Call Simulator</h2>
+                <p class="sim-subtitle">Practice your discovery call with {companyName}</p>
+            </div>
+            <div class="sim-header-right">
+                <select class="sim-prospect-select"
+                        onchange={handleProspectChange}>
+                    <option value="">Select Prospect</option>
+                    <template for:each={prospectOptions} for:item="opt">
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    </template>
+                </select>
+                <button class="btn-reset" onclick={handleReset}>Reset Call</button>
+            </div>
+        </div>
+
+        <!-- STAGE PROGRESS BAR -->
+        <div class="sim-stages">
+            <template for:each={stages} for:item="stage">
+                <div key={stage.id}
+                     class="stage-col"
+                     data-index={stage.id}
+                     onclick={handleStageClick}>
+                    <div class={stage.barCls}></div>
+                    <span class={stage.labelCls}>{stage.stageName}</span>
+                </div>
+            </template>
+        </div>
+
+        <!-- CHAT SPLIT VIEW -->
+        <div class="sim-chat">
+
+            <!-- LEFT: Banker panel -->
+            <div class="sim-panel sim-panel--banker">
+                <div class="sim-panel-header sim-panel-header--banker">
+                    <div class="sim-avatar sim-avatar--banker">B</div>
+                    <div>
+                        <p class="sim-panel-name">Banker</p>
+                        <p class="sim-panel-role">Banker</p>
+                    </div>
+                </div>
+
+                <!-- Banker messages -->
+                <div class="sim-messages" id="bankerScroll">
+                    <template if:false={hasBankerMessages}>
+                        <p class="sim-empty">
+                            Start the conversation by typing or selecting a suggested question below
+                        </p>
+                    </template>
+                    <template if:true={hasBankerMessages}>
+                        <template for:each={bankerMessages} for:item="msg">
+                            <div key={msg.id} class={msg.bubbleCls}>
+                                <template if:true={msg.isCoach}>
+                                    <p class="msg-coach">{msg.content}</p>
+                                </template>
+                                <template if:false={msg.isCoach}>
+                                    <p class="msg-text">{msg.content}</p>
+                                </template>
+                                <p class="msg-time">{msg.time}</p>
+                            </div>
+                        </template>
+                    </template>
+
+                    <!-- Typing indicator -->
+                    <template if:true={isLoading}>
+                        <div class="sim-typing">
+                            <span></span><span></span><span></span>
+                            <p class="sim-thinking">Thinking...</p>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Suggested Questions -->
+                <div class="sim-suggested">
+                    <button class="sim-suggested-toggle"
+                            onclick={handleToggleQuestions}>
+                        <span>{suggestedQuestionsLabel}</span>
+                        <span>{questionsToggleIcon}</span>
+                    </button>
+                    <template if:true={questionsExpanded}>
+                        <div class="sim-suggested-list">
+                            <template for:each={currentSuggestedQuestions} for:item="q">
+                                <button key={q}
+                                        class="sim-suggested-btn"
+                                        data-question={q}
+                                        onclick={handleSuggestedQuestion}
+                                        disabled={isLoading}>
+                                    {q}
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Input -->
+                <div class="sim-input-bar">
+                    <input type="text"
+                           class="sim-input"
+                           value={inputText}
+                           placeholder="Type your message..."
+                           onchange={handleInputChange}
+                           onkeydown={handleKeyDown}
+                           disabled={isLoading} />
+                    <button class="btn-send"
+                            onclick={handleSendClick}
+                            disabled={isSendDisabled}>
+                        Send
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIGHT: Prospect panel -->
+            <div class="sim-panel sim-panel--prospect">
+                <div class="sim-panel-header sim-panel-header--prospect">
+                    <div class="sim-avatar sim-avatar--prospect">{prospectInitial}</div>
+                    <div>
+                        <p class="sim-panel-name">Prospect</p>
+                        <p class="sim-panel-role">{prospectTitle} at {companyName}</p>
+                    </div>
+                </div>
+
+                <!-- Prospect messages -->
+                <div class="sim-messages">
+                    <template if:false={hasProspectMessages}>
+                        <p class="sim-empty">Prospect responses will appear here</p>
+                    </template>
+                    <template if:true={hasProspectMessages}>
+                        <template for:each={prospectMessages} for:item="msg">
+                            <div key={msg.id} class="msg-bubble msg-bubble--prospect">
+                                <p class="msg-text">{msg.content}</p>
+                                <p class="msg-time">{msg.time}</p>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</template>

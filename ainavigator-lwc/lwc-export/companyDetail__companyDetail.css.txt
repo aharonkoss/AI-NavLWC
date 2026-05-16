@@ -1,0 +1,29 @@
+.cd-wrapper { background: #f3f4f6; min-height: 100vh; }
+.cd-loading {
+    display: flex; gap: 10px; align-items: center;
+    justify-content: center; height: 200px;
+    font-size: 0.9rem; color: #6b7280;
+}
+.cd-spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(107,114,128,0.3);
+    border-top-color: #374151;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.cd-content { padding: 0 20px 20px; }
+.cd-coming-soon {
+    background: #fff; border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    padding: 60px; text-align: center;
+    color: #6b7280; font-size: 1rem; margin-top: 12px;
+}
+.cd-quick-name {
+    margin: 0;
+    padding: 8px 20px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #111827;
+}

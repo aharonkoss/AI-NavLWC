@@ -1,0 +1,268 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-25-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="modal-backdrop" onclick={handleBackdropClick}>
+        <div class="modal-container">
+
+            <!-- Header -->
+            <div class="modal-header">
+                <div>
+                    <h3 class="modal-company-name">{companyName}</h3>
+                    <p class="modal-signal-count">{sortedSignals.length} signals detected</p>
+                </div>
+                <button class="modal-close-btn" onclick={handleClose}>✕</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="modal-tabs">
+                <button class={signalsTabClass} onclick={handleTabSignals}>
+                    All Signals ({sortedSignals.length})
+                </button>
+                <button class={callPlanTabClass} onclick={handleTabCallPlan}>
+                    Call Plan Summary
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="modal-body">
+
+                <!-- ── SIGNALS TAB ── -->
+                <template if:true={isSignalsTab}>
+                    <div class="signal-stats-grid">
+                        <div class="signal-stat-card stat-red">
+                            <p class="signal-stat-label">Warning Signals</p>
+                            <p class="signal-stat-value stat-red-value">{warningCount}</p>
+                        </div>
+                        <div class="signal-stat-card stat-green">
+                            <p class="signal-stat-label">Opportunities</p>
+                            <p class="signal-stat-value stat-green-value">{opportunityCount}</p>
+                        </div>
+                        <div class="signal-stat-card stat-blue">
+                            <p class="signal-stat-label">Top Priority</p>
+                            <p class="signal-stat-value stat-blue-value">{topPriority}</p>
+                        </div>
+                    </div>
+
+                    <template if:true={hasSignals}>
+                        <div class="signal-list">
+                            <template for:each={sortedSignals} for:item="signal">
+                                <div key={signal.index} class={signal.rowClass}>
+                                    <button class="signal-header-btn" data-index={signal.index} onclick={handleToggleSignal}>
+                                        <div class="signal-header-left">
+                                            <div class="signal-badges-row">
+                                                <span class={signal.priorityClass}>{signal.priorityLabel}</span>
+                                                <span class={signal.signalTypeClass}>{signal.signalType}</span>
+                                                <template if:true={signal.signalCategory}>
+                                                    <span class={signal.categoryClass}>{signal.signalCategory}</span>
+                                                </template>
+                                            </div>
+                                            <h4 class="signal-name">{signal.signalName}</h4>
+                                        </div>
+                                        <span class="signal-chevron">▼</span>
+                                    </button>
+                                    <template if:true={signal.isExpanded}>
+                                        <div class="signal-body">
+                                            <p class="signal-description">{signal.signalDescription}</p>
+                                            <template if:true={signal.hasKeyIndicators}>
+                                                <div class="signal-section">
+                                                    <h5 class="signal-section-title">Key Indicators</h5>
+                                                    <ul class="signal-indicators">
+                                                        <template for:each={signal.keyIndicators} for:item="indicator">
+                                                            <li key={indicator}>— {indicator}</li>
+                                                        </template>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                            <template if:true={signal.hasSuggestedActions}>
+                                                <div class="signal-actions-box">
+                                                    <h5 class="signal-actions-title">Suggested Actions</h5>
+                                                    <p class="signal-actions-text">{signal.suggestedActions}</p>
+                                                </div>
+                                            </template>
+                                            <div class="signal-meta">
+                                                <template if:true={signal.hasDate}>
+                                                    <span>Event Date: <strong>{signal.displayDate}</strong></span>
+                                                </template>
+                                                <template if:true={signal.confidence}>
+                                                    <span>Confidence: <strong>{signal.confidence}</strong></span>
+                                                </template>
+                                                <template if:true={signal.timeframe}>
+                                                    <span>Timeframe: <strong>{signal.timeframe}</strong></span>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template if:false={hasSignals}>
+                        <div class="empty-signals">
+                            <p>No signals detected yet.</p>
+                            <p class="empty-signals-sub">Signals will appear once analysis is complete.</p>
+                        </div>
+                    </template>
+                </template>
+
+                <!-- ── CALL PLAN TAB ── -->
+                <template if:true={isCallPlanTab}>
+
+                    <!-- Loading -->
+                    <template if:true={isLoadingCallPlan}>
+                        <div class="cp-loading">
+                            <div class="cp-spinner"></div>
+                            <p>Loading call plan...</p>
+                            <p class="cp-loading-sub">Analyzing company data and signals</p>
+                        </div>
+                    </template>
+
+                    <!-- Error -->
+                    <template if:true={callPlanError}>
+                        <div class="cp-error">
+                            <p>{callPlanError}</p>
+                            <button onclick={handleRetryCallPlan} class="cp-retry-btn">Try Again</button>
+                        </div>
+                    </template>
+
+                    <!-- Call Plan Content -->
+                    <template if:true={hasCallPlans}>
+
+                        <!-- Company Research Card -->
+                        <template if:true={hasCompanyInfo}>
+                            <div class="cp-research-card">
+                                <div class="cp-research-header">
+                                    <h3 class="cp-research-company">{companyInfo.name}</h3>
+                                    <template if:true={hasWebsite}>
+                                        <span class="cp-website">{companyInfo.website}</span>
+                                    </template>
+                                </div>
+                                <div class="cp-research-body">
+                                    <!-- Company Profile -->
+                                    <div class="cp-info-section">
+                                        <h4 class="cp-info-title">🏢 Company Profile</h4>
+                                        <template if:true={companyInfo.timeInBusiness}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Time In Business</span>
+                                                <span class="cp-info-value">{companyInfo.timeInBusiness}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.entityType}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Entity Type</span>
+                                                <span class="cp-info-value">{companyInfo.entityType}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.headquarterAddress}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Headquarters</span>
+                                                <span class="cp-info-value">{companyInfo.headquarterAddress}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.industryAndBusinessModel}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Industry</span>
+                                                <span class="cp-info-value">{companyInfo.industryAndBusinessModel}</span>
+                                            </div>
+                                        </template>
+                                        <template if:true={companyInfo.numberOfEmployees}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Employees</span>
+                                                <span class="cp-info-value">{companyInfo.numberOfEmployees}</span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <!-- Financial -->
+                                    <div class="cp-info-section">
+                                        <h4 class="cp-info-title">💰 Financial</h4>
+                                        <template if:true={hasRevenue}>
+                                            <div class="cp-info-row">
+                                                <span class="cp-info-label">Annual Revenue</span>
+                                                <span class="cp-info-value">{companyInfo.annualRevenue}</span>
+                                            </div>
+                                        </template>
+                                        <template if:false={hasRevenue}>
+                                            <p class="cp-no-data">Financial data not available</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Overall Strategy -->
+                        <template if:true={hasOverallStrategy}>
+                            <div class="cp-strategy-box">
+                                <h4 class="cp-strategy-title">Overall Strategy</h4>
+                                <p class="cp-strategy-text">{overallStrategy}</p>
+                            </div>
+                        </template>
+
+                        <!-- Call Plan Cards -->
+                        <div class="cp-plans-list">
+                            <template for:each={callPlans} for:item="plan">
+                                <div key={plan.index} class={plan.cardClass}>
+                                    <div class={plan.headerClass}>
+                                        <div class="cp-plan-header-row">
+                                            <span class="cp-plan-number">#{plan.planNumber}</span>
+                                            <h4 class="cp-plan-signal-name">{plan.signalName}</h4>
+                                        </div>
+                                        <span class={plan.priorityClass}>{plan.priorityLabel}</span>
+                                    </div>
+                                    <div class="cp-plan-body">
+                                        <!-- Insight -->
+                                        <div class="cp-plan-section cp-section-insight">
+                                            <h5 class="cp-plan-section-title">Insight</h5>
+                                            <p class="cp-plan-section-text">{plan.insight}</p>
+                                        </div>
+                                        <!-- Call Objective -->
+                                        <div class="cp-plan-section cp-section-objective">
+                                            <h5 class="cp-plan-section-title">Call Objective</h5>
+                                            <p class="cp-plan-section-text">{plan.callObjective}</p>
+                                        </div>
+                                        <!-- Opening Statement -->
+                                        <div class="cp-plan-section cp-section-opening">
+                                            <h5 class="cp-plan-section-title">Opening Statement</h5>
+                                            <p class="cp-plan-section-text cp-italic">{plan.openingStatement}</p>
+                                        </div>
+                                        <!-- Discovery Questions -->
+                                        <template if:true={plan.hasDiscoveryQuestions}>
+                                            <div class="cp-plan-section cp-section-questions">
+                                                <h5 class="cp-plan-section-title">Discovery Questions</h5>
+                                                <ul class="cp-questions-list">
+                                                    <template for:each={plan.discoveryQuestions} for:item="question">
+                                                        <li key={question}>
+                                                            <span class="cp-q-bullet">›</span> {question}
+                                                        </li>
+                                                    </template>
+                                                </ul>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                    </template>
+
+                    <!-- No call plan yet -->
+                    <template if:false={hasCallPlans}>
+                        <template if:false={isLoadingCallPlan}>
+                            <template if:false={callPlanError}>
+                                <div class="empty-signals">
+                                    <p>Click "Call Plan Summary" to generate the call plan.</p>
+                                </div>
+                            </template>
+                        </template>
+                    </template>
+
+                </template>
+
+            </div>
+        </div>
+    </div>
+</template>

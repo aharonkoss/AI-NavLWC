@@ -1,0 +1,127 @@
+.cdu-wrapper { margin-top: 12px; }
+
+/* Sub-tabs row */
+.cdu-subtabs {
+    display: flex;
+    align-items: center;
+    background: #fff;
+    border-radius: 10px 10px 0 0;
+    border: 1px solid #e5e7eb;
+    border-bottom: none;
+    padding: 0 12px;
+    overflow-x: auto;
+}
+.cdu-subtab {
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.15s;
+}
+.cdu-subtab:hover { color: #374151; }
+.cdu-subtab-active {
+    color: #1d4ed8;
+    border-bottom-color: #1d4ed8;
+    font-weight: 600;
+}
+.cdu-subtabs-right { margin-left: auto; padding: 6px 0; }
+.cdu-pdf-btn {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.cdu-pdf-btn:hover { background: #1e40af; }
+
+/* Cards grid */
+.cdu-cards {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0 0 10px 10px;
+    padding: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    min-height: 300px;
+}
+.cdu-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    background: #fafafa;
+    transition: box-shadow 0.15s;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.cdu-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+/* Card header: category + impact badges */
+.cdu-card-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.cdu-category {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    background: #f3f4f6;
+    color: #374151;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+}
+.cdu-impact        { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.cdu-impact-high   { background: #dbeafe; color: #1e40af; }
+.cdu-impact-medium { background: #f3f4f6; color: #374151; }
+.cdu-impact-low    { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+
+/* Card body */
+.cdu-headline {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 0;
+    line-height: 1.35;
+}
+.cdu-summary {
+    font-size: 0.8rem;
+    color: #4b5563;
+    margin: 0;
+    line-height: 1.5;
+    flex: 1;
+}
+
+/* Card footer */
+.cdu-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+.cdu-date   { font-size: 0.74rem; color: #9ca3af; }
+.cdu-source {
+    font-size: 0.74rem;
+    color: #2563eb;
+    text-decoration: none;
+}
+.cdu-source:hover { text-decoration: underline; }
+
+/* Empty / loading states */
+.cdu-loading,
+.cdu-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.88rem;
+    padding: 40px;
+}

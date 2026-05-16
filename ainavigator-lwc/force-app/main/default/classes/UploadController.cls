@@ -149,8 +149,12 @@ public with sharing class UploadController {
                 'submittedAt'  => String.valueOf(DateTime.now())
             };
 
-            // ── 5. Publish outbound Platform Event ──────────────────────────
-            AiNavigatorEventService.publish('UPLOAD', 'UploadRequest.v1', payload, correlationId);
+            // ── 5. Enqueue async HTTP callout to Azure ───────────────────────────
+                System.enqueueJob(new AzureUploadCompanyCallout(
+                    sub.Id,
+                    JSON.serialize(payload),
+                    correlationId
+                ));
 
             // ── 6. Log the outbound event (SUCCESS) ──────────────────────────
             writeLog('PLATFORM_EVENT', 'UploadController.uploadFile',

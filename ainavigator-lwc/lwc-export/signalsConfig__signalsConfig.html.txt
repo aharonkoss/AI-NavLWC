@@ -1,0 +1,149 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 03-27-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="sc-wrapper">
+
+        <!-- Header -->
+        <div class="sc-header">
+            <div>
+                <h1 class="sc-title">Signals Configuration</h1>
+                <p class="sc-subtitle">Configure banking signals and their priorities for prospect monitoring</p>
+            </div>
+            <div class="sc-header-actions">
+                <button class="sc-btn-reset" onclick={handleReset} disabled={isSaving}>
+                    Reset to Defaults
+                </button>
+                <button class="sc-btn-save" onclick={handleSave} disabled={isSaving}>
+                    <template if:true={isSaving}>Saving...</template>
+                    <template if:false={isSaving}>Save Configuration</template>
+                </button>
+            </div>
+        </div>
+
+        <!-- Save success banner -->
+        <template if:true={saveSuccess}>
+            <div class="sc-banner-success">✓ Configuration saved successfully.</div>
+        </template>
+
+        <!-- Error -->
+        <template if:true={error}>
+            <div class="sc-banner-error">⚠ {error}</div>
+        </template>
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="sc-loading">
+                <span class="sc-spinner"></span>
+                <span>Loading signals configuration...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+            <!-- Active signals summary card -->
+            <div class="sc-summary-card">
+                <div class="sc-summary-left">
+                    <p class="sc-summary-label">Active Signals</p>
+                    <p class="sc-summary-count">{enabledCount} of {totalCount}</p>
+                    <div class="sc-priority-legend">
+                        <span class="sc-legend-dot sc-dot-p5"></span>
+                        <span class="sc-legend-text">P5: Critical Capital Events</span>
+                        <span class="sc-legend-dot sc-dot-p4"></span>
+                        <span class="sc-legend-text">P4: Bank Strain</span>
+                        <span class="sc-legend-dot sc-dot-p3"></span>
+                        <span class="sc-legend-text">P3: Risk Review</span>
+                    </div>
+                </div>
+                <div class="sc-summary-right">
+                    <p class="sc-summary-label">Priority Levels</p>
+                    <div class="sc-priority-badges">
+                        <template for:each={priorityBadges} for:item="b">
+                            <span key={b.level} class={b.class}>{b.level}</span>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories -->
+            <template for:each={categories} for:item="cat">
+                <div key={cat.categoryId} class="sc-category">
+
+                    <!-- Category header -->
+                    <div
+                        class="sc-cat-header"
+                        data-category-id={cat.categoryId}
+                        onclick={handleToggleCategory}
+                    >
+                        <div class="sc-cat-header-left">
+                            <span class="sc-cat-label">{cat.label}</span>
+                            <span class="sc-cat-count">
+                                {cat.signals.length} signals
+                            </span>
+                        </div>
+                        <span class="sc-cat-chevron">
+                            <template if:true={cat.isCollapsed}>▼</template>
+                            <template if:false={cat.isCollapsed}>▲</template>
+                        </span>
+                    </div>
+
+                    <!-- Signal rows -->
+                    <template if:false={cat.isCollapsed}>
+                        <template for:each={cat.signals} for:item="sig">
+                            <div key={sig.id} class="sc-signal-row">
+
+                                <!-- Checkbox -->
+                                <div
+                                    class={sig.checkboxClass}
+                                    data-category-id={cat.categoryId}
+                                    data-signal-id={sig.id}
+                                    onclick={handleToggleSignal}
+                                >
+                                    <template if:true={sig.enabled}>✓</template>
+                                </div>
+
+                                <!-- Name + description -->
+                                <div class="sc-signal-info">
+                                    <p class="sc-signal-name">{sig.name}</p>
+                                    <p class="sc-signal-desc">{sig.description}</p>
+                                </div>
+
+                                <!-- Priority -->
+                                <div class="sc-signal-controls">
+                                    <select
+                                        class="sc-select sc-select-priority"
+                                        value={sig.priority}
+                                        data-category-id={cat.categoryId}
+                                        data-signal-id={sig.id}
+                                        onchange={handlePriorityChange}
+                                    >
+                                        <template for:each={priorityOptions} for:item="opt">
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        </template>
+                                    </select>
+
+                                    <!-- Timeframe -->
+                                    <select
+                                        class="sc-select sc-select-timeframe"
+                                        value={sig.timeframe}
+                                        data-category-id={cat.categoryId}
+                                        data-signal-id={sig.id}
+                                        onchange={handleTimeframeChange}
+                                    >
+                                        <template for:each={timeframeOptions} for:item="opt">
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        </template>
+                                    </select>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+
+                </div>
+            </template>
+        </template>
+    </div>
+</template>

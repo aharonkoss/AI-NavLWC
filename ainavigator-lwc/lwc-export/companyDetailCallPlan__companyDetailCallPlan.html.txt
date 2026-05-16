@@ -1,0 +1,178 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 04-03-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <c-pdf-generator></c-pdf-generator>
+    <div class="cdcp-wrapper">
+
+        <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="cdcp-loading">
+                <span class="cdcp-spinner"></span>
+                <span>Loading call plan...</span>
+            </div>
+        </template>
+
+                <!-- Loading -->
+        <template if:true={isLoading}>
+            <div class="cdcp-loading">
+                <span class="cdcp-spinner"></span>
+                <span>Loading call plan...</span>
+            </div>
+        </template>
+
+        <template if:false={isLoading}>
+
+            <!-- Header Bar -->
+            <div class="cdcp-header-bar">
+                <div>
+                    <h2 class="cdcp-header-title">St. Meyer Hubbard Discovery Call Plan</h2>
+                    <p class="cdcp-header-sub">Consultative discovery framework — understand before prescribing</p>
+                </div>
+                <div class="cdcp-header-right">
+                    <button class="cdcp-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                        <template if:true={isDownloading}>Generating...</template>
+                        <template if:false={isDownloading}>Download PDF</template>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Call Objective -->
+            <div class="cdcp-card cdcp-objective">
+                <h3 class="cdcp-card-label">Call Objective</h3>
+                <p class="cdcp-card-body">{callPlan.callObjective}</p>
+            </div>
+
+            <!-- Opening Statement -->
+            <div class="cdcp-card cdcp-opening">
+                <h3 class="cdcp-card-label">Opening Statement</h3>
+                <p class="cdcp-card-body cdcp-italic">{callPlan.openingStatement}</p>
+            </div>
+
+            <!-- Pre-Call Prep + Key Talking Points -->
+            <div class="cdcp-two-col">
+                <div class="cdcp-card">
+                    <h3 class="cdcp-card-label">Pre-Call Preparation</h3>
+                    <ul class="cdcp-bullet-list">
+                        <template for:each={callPlan.preCallPreparation} for:item="item">
+                            <li key={item} class="cdcp-bullet-item">
+                                <span class="cdcp-bullet-dot">·</span>{item}
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="cdcp-card cdcp-talking">
+                    <h3 class="cdcp-card-label">Key Talking Points</h3>
+                    <ul class="cdcp-bullet-list">
+                        <template for:each={callPlan.keyTalkingPoints} for:item="point">
+                            <li key={point} class="cdcp-bullet-item">
+                                <span class="cdcp-bullet-dot">·</span>{point}
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Stepper Nav -->
+            <div class="cdcp-stepper-nav">
+                <template for:each={steps} for:item="step">
+                    <button key={step.index}
+                        class={step.navClass}
+                        data-index={step.index}
+                        onclick={handleStepClick}>
+                        {step.shortLabel}
+                    </button>
+                </template>
+            </div>
+
+            <!-- Active Step Content -->
+            <div class="cdcp-step-card">
+
+                <!-- Step Header -->
+                <div class="cdcp-step-header">
+                    <h3 class="cdcp-step-title">{activeStep.step}</h3>
+                    <p class="cdcp-step-desc">{activeStep.description}</p>
+                </div>
+
+                <!-- Three columns: St. Meyer | Company Info | Questions -->
+                <div class="cdcp-step-grid">
+
+                    <!-- St. Meyer Knowledge -->
+                    <div class="cdcp-knowledge-card">
+                        <h4 class="cdcp-col-title">{activeStep.stMeyerKnowledge.title}</h4>
+                        <ul class="cdcp-bullet-list">
+                            <template for:each={activeStep.stMeyerKnowledge.content} for:item="item">
+                                <li key={item} class="cdcp-bullet-item cdcp-knowledge-item">
+                                    <span class="cdcp-bullet-dot cdcp-amber-dot">·</span>{item}
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Company Info -->
+                    <div class="cdcp-info-card">
+                        <h4 class="cdcp-col-title">{activeStep.companyInfo.title}</h4>
+                        <ul class="cdcp-bullet-list">
+                            <template for:each={activeStep.companyInfo.content} for:item="item">
+                                <li key={item} class="cdcp-info-item">
+                                    <span class="cdcp-info-dot">→</span>{item}
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
+                    <!-- Discovery Questions -->
+                    <div class="cdcp-questions-card">
+                        <h4 class="cdcp-col-title">Discovery Questions</h4>
+                        <ol class="cdcp-q-list">
+                            <template for:each={activeStep.questions} for:item="q">
+                                <li key={q.key} class="cdcp-q-item">
+                                    <span class="cdcp-q-num">{q.num}</span>
+                                    <span class="cdcp-q-text">{q.text}</span>
+                                </li>
+                            </template>
+                        </ol>
+                    </div>
+
+                </div>
+
+                <!-- Step Navigator -->
+                <div class="cdcp-step-footer">
+                    <button class="cdcp-nav-btn" disabled={isPrevDisabled} onclick={handlePrev}>← Previous</button>
+                    <div class="cdcp-step-dots">
+                        <template for:each={steps} for:item="dot">
+                            <span key={dot.index} class={dot.dotClass}></span>
+                        </template>
+                    </div>
+                    <button class="cdcp-nav-btn cdcp-nav-next" disabled={isNextDisabled} onclick={handleNext}>Next →</button>
+                </div>
+            </div>
+
+            <!-- Max / Min Call Goals -->
+            <div class="cdcp-card cdcp-goals">
+                <h3 class="cdcp-card-label">Maximum &amp; Minimum Call Goals</h3>
+                <div class="cdcp-goals-row">
+                    <div class="cdcp-goal-box cdcp-goal-max">
+                        <span class="cdcp-goal-label">Maximum</span>
+                        <span class="cdcp-goal-text">Obtain 3-year financials and schedule follow-up with CEO + CFO together</span>
+                    </div>
+                    <div class="cdcp-goal-box cdcp-goal-min">
+                        <span class="cdcp-goal-label">Minimum</span>
+                        <span class="cdcp-goal-text">Schedule a follow-up call with a specific date confirmed on the calendar</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps Proposal -->
+            <div class="cdcp-card cdcp-nextsteps">
+                <h3 class="cdcp-card-label">Proposed Next Steps</h3>
+                <p class="cdcp-card-body">{callPlan.nextStepsProposal}</p>
+            </div>
+
+        </template>
+    </div>
+</template>
