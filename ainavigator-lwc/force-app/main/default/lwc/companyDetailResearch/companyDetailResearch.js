@@ -10,18 +10,19 @@
  *
  * @author       AI Navigator Platform
  * @group        AI Navigator Integration
- * @last modified on : 05-15-2026
+ * @last modified on : 05-17-2026
  */
 import { LightningElement, api, track } from 'lwc';
 import getAiNavigatorReport from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
 import getUccFilings        from '@salesforce/apex/CompanyDetailController.getUccFilings';
 import getVerticalIqData    from '@salesforce/apex/CompanyDetailController.getVerticalIqData';
 
-// ─── Optional display-title overrides ────────────────────────────────────────
-const TITLE_OVERRIDES = {
-    'ucc/lien analysis':        'UCC/Lien Analysis',
-    'dot & fleet intelligence': 'DOT & Fleet Intelligence',
-};
+    // ─── Optional display-title overrides ────────────────────────────────────────
+    const TITLE_OVERRIDES = {
+        'ucc/lien analysis': 'UCC/Lien Analysis',
+        'dot & fleet intelligence': 'DOT & Fleet Intelligence',
+    };
+
 // ─── Sub-tab definitions ──────────────────────────────────────────────────────
 const RESEARCH_SUB_TABS = [
     { id: 'researchLibrary', label: 'Research Library' },
@@ -34,17 +35,17 @@ const RESEARCH_SUB_TABS = [
 
 // ─── VIQ section keys — must match viqSectionsCollapsed keys ─────────────────
 const VIQ_SECTIONS_DEFAULT_COLLAPSED = {
-    currentConditions:  false,
-    industryTrends:     false,
-    globalTrends:       true,   // ← new
-    industryOverview:   false,  // ← new (forecasts + structure + derived)
-    quarterlyInsights:  true,
-    bankingProducts:    true,
-    keyQuestions:       true,
-    industryTerms:      true,   // ← new
-    financialBenchmarks:true,   // ← new
-    financialMetrics:   true,   // ← new
-    operations:         true,   // ← new
+    currentConditions:   false,
+    industryTrends:      false,
+    globalTrends:        true,
+    industryOverview:    false,
+    quarterlyInsights:   true,
+    bankingProducts:     true,
+    keyQuestions:        true,
+    industryTerms:       true,
+    financialBenchmarks: true,
+    financialMetrics:    true,
+    operations:          true,
 };
 
 // ─── Pure helper functions ────────────────────────────────────────────────────
@@ -274,7 +275,7 @@ function buildViqViewModel(raw) {
 
     const overview = raw.industryOverview || {};
 
-    // TRENDS: [{ industry_trend: { title, body, position } }]
+    // TRENDS
     const trends = safeArray(overview.trends)
         .map((item, idx) => {
             const t = item.industry_trend || item;
@@ -288,7 +289,7 @@ function buildViqViewModel(raw) {
         })
         .filter(Boolean);
 
-    // CURRENT CONDITIONS: [{ industry_current_condition: { title, date, bullet1..bullet10 } }]
+    // CURRENT CONDITIONS
     const currentConditions = safeArray(overview.currentConditions)
         .map((item, idx) => {
             const c = item.industry_current_condition || item;
@@ -341,12 +342,13 @@ function buildViqViewModel(raw) {
     // AI INSIGHTS
     const insightsRaw       = raw.insights || null;
     const insightsContent   = insightsRaw?.content    || '';
-        const insightsGenerated = insightsRaw?.generatedAt ? formatDate(insightsRaw.generatedAt) : '';
-    // ── FORECASTS ────────────────────────────────────────────────────────
-    const forecasts = overview.forecasts || null;
+    const insightsGenerated = insightsRaw?.generatedAt ? formatDate(insightsRaw.generatedAt) : '';
+
+    // FORECASTS
+    const forecasts   = overview.forecasts || null;
     const hasForecast = !!(forecasts?.growthrateoverall || forecasts?.relativestring);
 
-    // ── GLOBAL TRENDS ────────────────────────────────────────────────────
+    // GLOBAL TRENDS
     const globalTrends = safeArray(overview.globalTrends)
         .map((item, idx) => {
             const t = item.industry_trend || item;
@@ -355,10 +357,10 @@ function buildViqViewModel(raw) {
         })
         .filter(Boolean);
 
-    // ── INDUSTRY STRUCTURE ───────────────────────────────────────────────
+    // INDUSTRY STRUCTURE
     const structure = overview.structure || null;
 
-    // ── DERIVED STATEMENTS ───────────────────────────────────────────────
+    // DERIVED STATEMENTS
     const derivedStatements = safeArray(overview.derivedStatements)
         .map((item, idx) => {
             if (!item) return null;
@@ -370,7 +372,7 @@ function buildViqViewModel(raw) {
         })
         .filter(Boolean);
 
-    // ── INDUSTRY TERMS / GLOSSARY ────────────────────────────────────────
+    // INDUSTRY TERMS / GLOSSARY
     const terms = safeArray(raw.terms || raw.data?.terms)
         .map((item, idx) => {
             if (!item || !item.name) return null;
@@ -378,7 +380,7 @@ function buildViqViewModel(raw) {
         })
         .filter(Boolean);
 
-    // ── FINANCIAL BENCHMARKS ─────────────────────────────────────────────
+    // FINANCIAL BENCHMARKS
     const benchmarks = safeArray(raw.financial?.benchmarks)
         .map((b, idx) => ({
             id:              'bench-' + idx,
@@ -395,22 +397,22 @@ function buildViqViewModel(raw) {
             returnOnEquity:  b.returnonequity  ?? b.return_on_equity   ?? '-',
         }));
 
-    // ── FINANCIAL METRICS ────────────────────────────────────────────────
+    // FINANCIAL METRICS
     const metricsRaw = raw.financial?.metrics?.industrymetric || raw.financial?.metrics || null;
     const financialMetrics = metricsRaw ? {
-        employeeCount:        cleanHtml(String(metricsRaw.employeecount || '')),
-        revenue:              cleanHtml(String(metricsRaw.revenue || '')),
-        size:                 cleanHtml(String(metricsRaw.size || '')),
-        entityType:           cleanHtml(String(metricsRaw.entitytype || '')),
-        failureRate:          cleanHtml(String(metricsRaw.fmfailurerate || '')),
-        industryOverview:     cleanHtml(String(metricsRaw.quickviewtext || '')),
-        profitability:        cleanHtml(String(metricsRaw.profitabilitytext || '')),
-        capitalFinancing:     cleanHtml(String(metricsRaw.capitalfinancingtext || '')),
-        cashLiquidity:        cleanHtml(String(metricsRaw.cashliquitytext || '')),
-        workingCapitalMgmt:   cleanHtml(String(metricsRaw.workcapmgmttext || '')),
+        employeeCount:      cleanHtml(String(metricsRaw.employeecount || '')),
+        revenue:            cleanHtml(String(metricsRaw.revenue || '')),
+        size:               cleanHtml(String(metricsRaw.size || '')),
+        entityType:         cleanHtml(String(metricsRaw.entitytype || '')),
+        failureRate:        cleanHtml(String(metricsRaw.fmfailurerate || '')),
+        industryOverview:   cleanHtml(String(metricsRaw.quickviewtext || '')),
+        profitability:      cleanHtml(String(metricsRaw.profitabilitytext || '')),
+        capitalFinancing:   cleanHtml(String(metricsRaw.capitalfinancingtext || '')),
+        cashLiquidity:      cleanHtml(String(metricsRaw.cashliquitytext || '')),
+        workingCapitalMgmt: cleanHtml(String(metricsRaw.workcapmgmttext || '')),
     } : null;
 
-    // ── OPERATIONS ───────────────────────────────────────────────────────
+    // OPERATIONS
     const ops = raw.operations || {};
     const profitDrivers = safeArray(ops.profitDrivers)
         .map((d, idx) => ({ id: 'pd-' + idx, title: d.title || '', body: cleanHtml(d.body || d.description || '') }))
@@ -437,6 +439,7 @@ function buildViqViewModel(raw) {
             body:  cleanHtml(c.body || c.description || c.content || ''),
         }))
         .filter(c => c.title || c.body);
+
     console.log('[CDR-VIQ] buildViqViewModel COMPLETE',
         '| trends:', trends.length,
         '| currentConditions:', currentConditions.length,
@@ -446,73 +449,66 @@ function buildViqViewModel(raw) {
     );
 
     return {
-        // Identity
         industryName,
         naicsCode,
         industryId,
         apiError,
         hasApiError: !!apiError,
 
-        // Arrays
         trends,
         currentConditions,
         quarterlyInsights,
         bankingProducts,
         keyQuestions,
 
-        // Counts for badges
         trendsCount:            trends.length,
         currentConditionsCount: currentConditions.length,
         quarterlyInsightsCount: quarterlyInsights.length,
         bankingProductsCount:   bankingProducts.length,
         keyQuestionsCount:      keyQuestions.length,
 
-        // Has-data flags (used by getters)
         hasTrends:            trends.length > 0,
         hasCurrentConditions: currentConditions.length > 0,
         hasQuarterlyInsights: quarterlyInsights.length > 0,
         hasBankingProducts:   bankingProducts.length > 0,
         hasKeyQuestions:      keyQuestions.length > 0,
 
-        // Show-section flags (used by template if-directives)
         showIndustryTrends:    trends.length > 0,
         showCurrentConditions: currentConditions.length > 0,
         showQuarterlyInsights: quarterlyInsights.length > 0,
         showBankingProducts:   bankingProducts.length > 0,
         showKeyQuestions:      keyQuestions.length > 0,
 
-        // AI Insights
         hasInsights:       !!insightsContent,
         insightsContent:   insightsContent,
         insightsGenerated: insightsGenerated,
-        // New fields
-    forecasts,
-    hasForecast,
-    globalTrends,
-    globalTrendsCount:     globalTrends.length,
-    hasGlobalTrends:       globalTrends.length > 0,
-    showGlobalTrends:      globalTrends.length > 0,
-    structure,
-    hasStructure:          !!structure,
-    derivedStatements,
-    hasDerivedStatements:  derivedStatements.length > 0,
-    terms,
-    hasTerms:              terms.length > 0,
-    termsCount:            terms.length,
-    benchmarks,
-    hasBenchmarks:         benchmarks.length > 0,
-    financialMetrics,
-    hasFinancialMetrics:   !!financialMetrics,
-    profitDrivers,
-    hasProfitDrivers:      profitDrivers.length > 0,
-    revenuePerEmployee,
-    hasRevenuePerEmployee: revenuePerEmployee.length > 0,
-    workingCapitalBullets,
-    hasWorkingCapitalBullets: workingCapitalBullets.length > 0,
-    cashMgmtChallenges,
-    hasCashMgmtChallenges: cashMgmtChallenges.length > 0,
-    hasOperations:         !!(profitDrivers.length || workingCapitalBullets.length || cashMgmtChallenges.length || revenuePerEmployee.length),
 
+        forecasts,
+        hasForecast,
+        globalTrends,
+        globalTrendsCount:     globalTrends.length,
+        hasGlobalTrends:       globalTrends.length > 0,
+        showGlobalTrends:      globalTrends.length > 0,
+        structure,
+        hasStructure:          !!structure,
+        derivedStatements,
+        hasDerivedStatements:  derivedStatements.length > 0,
+        terms,
+        hasTerms:              terms.length > 0,
+        termsCount:            terms.length,
+        benchmarks,
+        hasBenchmarks:         benchmarks.length > 0,
+        financialMetrics,
+        hasFinancialMetrics:   !!financialMetrics,
+        profitDrivers,
+        hasProfitDrivers:      profitDrivers.length > 0,
+        revenuePerEmployee,
+        hasRevenuePerEmployee: revenuePerEmployee.length > 0,
+        workingCapitalBullets,
+        hasWorkingCapitalBullets: workingCapitalBullets.length > 0,
+        cashMgmtChallenges,
+        hasCashMgmtChallenges: cashMgmtChallenges.length > 0,
+        hasOperations: !!(profitDrivers.length || workingCapitalBullets.length || cashMgmtChallenges.length || revenuePerEmployee.length),
     };
 }
 
@@ -698,18 +694,33 @@ export default class CompanyDetailResearch extends LightningElement {
         const lines      = normalised.split('\n');
         const sections   = [];
         const seenIds    = new Set();
-
+    // ── ADD THIS BLOCK ──────────────────────────────────────────────
+        const SKIP_HEADINGS = [
+            'institutional-grade banking intelligence report',
+            'structured metadata'
+        ];
         lines.forEach((line, index) => {
             const trimmed = line.trim();
             const match   = trimmed.match(/^(#{1,2})\s+(?:\d+\.\s+)?(.+)$/);
-            if (!match) return;
+
+            if (!match) return;                          // 1️⃣ guard: non-heading line → skip
+            if (match[1].length === 1) return;           // 2️⃣ guard: H1 (company name) → skip
+
             const rawTitle = stripInlineMd(match[2]);
-            const id       = headingToId(rawTitle);
+            if (SKIP_HEADINGS.includes(rawTitle.toLowerCase())) return;  // 3️⃣ guard: skip list
+            // Convert ALL CAPS headings to Title Case
+            const displayTitle = resolveTitle(
+                rawTitle.replace(/\b\w+/g, w =>
+                    w.length > 3 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()
+                )
+            );
+
+            const id = headingToId(rawTitle);
             if (seenIds.has(id)) return;
             seenIds.add(id);
             const isFirst = sections.length === 0;
             sections.push({
-                id, title: resolveTitle(rawTitle), startIndex: index,
+                id, title: displayTitle, startIndex: index,
                 content: '', renderedRows: [],
                 isExpanded: isFirst, chevron: isFirst ? 'chevron-down' : 'chevron-right',
                 ariaExpanded: isFirst ? 'true' : 'false',
@@ -795,55 +806,95 @@ export default class CompanyDetailResearch extends LightningElement {
                !!this.viqViewModel && !this.viqViewModel.hasApiError;
     }
 
-    // Header
     get viqIndustryName() { return this.viqViewModel?.industryName || 'Unknown Industry'; }
     get viqNaicsDisplay() { return this.viqViewModel?.naicsCode    || 'N/A'; }
     get viqIndustryId()   { return this.viqViewModel?.industryId   || 'N/A'; }
 
-    // AI Insights
     get viqHasInsights()          { return !!this.viqViewModel?.hasInsights; }
     get viqInsightsContent()      { return this.viqViewModel?.insightsContent   || ''; }
     get viqInsightsGenerated()    { return this.viqViewModel?.insightsGenerated || ''; }
     get viqHasInsightsGenerated() { return !!this.viqViewModel?.insightsGenerated; }
 
-    // Section expanded states
     get viqTrendsExpanded()     { return !this.viqSectionsCollapsed.industryTrends; }
     get viqConditionsExpanded() { return !this.viqSectionsCollapsed.currentConditions; }
     get viqQuarterlyExpanded()  { return !this.viqSectionsCollapsed.quarterlyInsights; }
     get viqBankingExpanded()    { return !this.viqSectionsCollapsed.bankingProducts; }
     get viqQuestionsExpanded()  { return !this.viqSectionsCollapsed.keyQuestions; }
 
-    // Chevrons
+    get viqGlobalTrendsExpanded()      { return !this.viqSectionsCollapsed.globalTrends; }
+    get viqIndustryOverviewExpanded()  { return !this.viqSectionsCollapsed.industryOverview; }
+    get viqIndustryTermsExpanded()     { return !this.viqSectionsCollapsed.industryTerms; }
+    get viqFinancialBenchmarksExpanded() { return !this.viqSectionsCollapsed.financialBenchmarks; }
+    get viqFinancialMetricsExpanded()  { return !this.viqSectionsCollapsed.financialMetrics; }
+    get viqOperationsExpanded()        { return !this.viqSectionsCollapsed.operations; }
+
     get viqTrendsChevron()     { return this.viqTrendsExpanded     ? '▾' : '▸'; }
     get viqConditionsChevron() { return this.viqConditionsExpanded ? '▾' : '▸'; }
     get viqQuarterlyChevron()  { return this.viqQuarterlyExpanded  ? '▾' : '▸'; }
     get viqBankingChevron()    { return this.viqBankingExpanded    ? '▾' : '▸'; }
     get viqQuestionsChevron()  { return this.viqQuestionsExpanded  ? '▾' : '▸'; }
 
-    // Section visibility
+    get viqGlobalTrendsChevron()       { return this.viqGlobalTrendsExpanded      ? '▾' : '▸'; }
+    get viqIndustryOverviewChevron()   { return this.viqIndustryOverviewExpanded  ? '▾' : '▸'; }
+    get viqIndustryTermsChevron()      { return this.viqIndustryTermsExpanded     ? '▾' : '▸'; }
+    get viqFinancialBenchmarksChevron(){ return this.viqFinancialBenchmarksExpanded ? '▾' : '▸'; }
+    get viqFinancialMetricsChevron()   { return this.viqFinancialMetricsExpanded  ? '▾' : '▸'; }
+    get viqOperationsChevron()         { return this.viqOperationsExpanded        ? '▾' : '▸'; }
+
     get viqShowIndustryTrends()    { return !!this.viqViewModel?.showIndustryTrends; }
     get viqShowCurrentConditions() { return !!this.viqViewModel?.showCurrentConditions; }
     get viqShowQuarterlyInsights() { return !!this.viqViewModel?.showQuarterlyInsights; }
     get viqShowBankingProducts()   { return !!this.viqViewModel?.showBankingProducts; }
     get viqShowKeyQuestions()      { return !!this.viqViewModel?.showKeyQuestions; }
+    get viqShowGlobalTrends()      { return !!this.viqViewModel?.showGlobalTrends; }
+    get viqShowIndustryOverview()  { return !!(this.viqViewModel?.hasForecast || this.viqViewModel?.hasStructure || this.viqViewModel?.hasDerivedStatements); }
+    get viqShowIndustryTerms()     { return !!this.viqViewModel?.hasTerms; }
+    get viqShowFinancialBenchmarks() { return !!this.viqViewModel?.hasBenchmarks; }
+    get viqShowFinancialMetrics()  { return !!this.viqViewModel?.hasFinancialMetrics; }
+    get viqShowOperations()        { return !!this.viqViewModel?.hasOperations; }
 
-    // Data arrays
     get viqTrends()            { return this.viqViewModel?.trends            || []; }
     get viqCurrentConditions() { return this.viqViewModel?.currentConditions || []; }
     get viqQuarterlyInsights() { return this.viqViewModel?.quarterlyInsights || []; }
     get viqBankingProducts()   { return this.viqViewModel?.bankingProducts   || []; }
     get viqKeyQuestions()      { return this.viqViewModel?.keyQuestions      || []; }
+    get viqGlobalTrends()      { return this.viqViewModel?.globalTrends      || []; }
+    get viqDerivedStatements() { return this.viqViewModel?.derivedStatements || []; }
+    get viqTerms()             { return this.viqViewModel?.terms             || []; }
+    get viqBenchmarks()        { return this.viqViewModel?.benchmarks        || []; }
+    get viqFinancialMetrics()  { return this.viqViewModel?.financialMetrics  || null; }
+    get viqForecasts()         { return this.viqViewModel?.forecasts         || null; }
+    get viqStructure()         { return this.viqViewModel?.structure         || null; }
+    get viqProfitDrivers()     { return this.viqViewModel?.profitDrivers     || []; }
+    get viqRevenuePerEmployee(){ return this.viqViewModel?.revenuePerEmployee|| []; }
+    get viqWorkingCapitalBullets() { return this.viqViewModel?.workingCapitalBullets || []; }
+    get viqCashMgmtChallenges(){ return this.viqViewModel?.cashMgmtChallenges|| []; }
 
-    // Counts
     get viqTrendsCount()            { return this.viqViewModel?.trendsCount            || 0; }
     get viqCurrentConditionsCount() { return this.viqViewModel?.currentConditionsCount || 0; }
     get viqQuarterlyInsightsCount() { return this.viqViewModel?.quarterlyInsightsCount || 0; }
     get viqBankingProductsCount()   { return this.viqViewModel?.bankingProductsCount   || 0; }
     get viqKeyQuestionsCount()      { return this.viqViewModel?.keyQuestionsCount      || 0; }
+    get viqGlobalTrendsCount()      { return this.viqViewModel?.globalTrendsCount      || 0; }
+    get viqTermsCount()             { return this.viqViewModel?.termsCount             || 0; }
 
     get viqReloadDisabled() {
         return !this.viqNaicsCode || !this.viqNaicsCode.trim() || this.viqLoading;
     }
+
+    get viqHasForecast()         { return !!this.viqViewModel?.hasForecast; }
+    get viqHasStructure()        { return !!this.viqViewModel?.hasStructure; }
+    get viqHasDerivedStatements(){ return !!this.viqViewModel?.hasDerivedStatements; }
+    get viqHasTerms()            { return !!this.viqViewModel?.hasTerms; }
+    get viqHasBenchmarks()       { return !!this.viqViewModel?.hasBenchmarks; }
+    get viqHasFinancialMetrics() { return !!this.viqViewModel?.hasFinancialMetrics; }
+    get viqHasOperations()       { return !!this.viqViewModel?.hasOperations; }
+    get viqHasProfitDrivers()    { return !!this.viqViewModel?.hasProfitDrivers; }
+    get viqHasRevenuePerEmployee(){ return !!this.viqViewModel?.hasRevenuePerEmployee; }
+    get viqHasWorkingCapitalBullets() { return !!this.viqViewModel?.hasWorkingCapitalBullets; }
+    get viqHasCashMgmtChallenges(){ return !!this.viqViewModel?.hasCashMgmtChallenges; }
+    get viqForecastGrowthRate()  { return this.viqViewModel?.forecasts?.growthrateoverall || ''; }
+    get viqForecastRelative()    { return this.viqViewModel?.forecasts?.relativestring    || ''; }
 
     // ─────────────────────────────────────────────────────────────────────
     // Getters — Report / other tabs
@@ -939,21 +990,33 @@ export default class CompanyDetailResearch extends LightningElement {
 
     handleViqExpandAll() {
         this.viqSectionsCollapsed = {
-            currentConditions: false,
-            industryTrends:    false,
-            quarterlyInsights: false,
-            bankingProducts:   false,
-            keyQuestions:      false,
+            currentConditions:   false,
+            industryTrends:      false,
+            globalTrends:        false,
+            industryOverview:    false,
+            quarterlyInsights:   false,
+            bankingProducts:     false,
+            keyQuestions:        false,
+            industryTerms:       false,
+            financialBenchmarks: false,
+            financialMetrics:    false,
+            operations:          false,
         };
     }
 
     handleViqCollapseAll() {
         this.viqSectionsCollapsed = {
-            currentConditions: true,
-            industryTrends:    true,
-            quarterlyInsights: true,
-            bankingProducts:   true,
-            keyQuestions:      true,
+            currentConditions:   true,
+            industryTrends:      true,
+            globalTrends:        true,
+            industryOverview:    true,
+            quarterlyInsights:   true,
+            bankingProducts:     true,
+            keyQuestions:        true,
+            industryTerms:       true,
+            financialBenchmarks: true,
+            financialMetrics:    true,
+            operations:          true,
         };
     }
 

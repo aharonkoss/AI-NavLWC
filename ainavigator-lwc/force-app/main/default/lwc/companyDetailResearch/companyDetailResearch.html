@@ -4,12 +4,13 @@
                 UCC tab renders live Middesk data with card UI (filings) or
                 exact-match empty state when no filings exist.
                 VIQ tab renders VerticalIQ industry intelligence with green header,
-                NAICS input, AI Insights panel, and 5 collapsible accordion sections.
+                NAICS input, AI Insights panel, and collapsible accordion sections.
   @author       AI Navigator Platform
-  @last modified on : 05-15-2026
+  @last modified on : 05-17-2026
 -->
 <template>
     <div class="cdr-wrapper">
+
 
 
         <!-- ── Sub-Tab Bar ── -->
@@ -25,6 +26,7 @@
         </div>
 
 
+
         <!-- ── Report Loading Spinner ── -->
         <template if:true={isLoading}>
             <div class="cdr-loading">
@@ -34,13 +36,15 @@
         </template>
 
 
+
         <!-- ── Report Error ── -->
         <template if:true={error}>
             <div class="cdr-error">
-                <span class="cdr-error-icon">⚠</span>
+                <span class="cdr-error-icon">&#9888;</span>
                 <span>{error}</span>
             </div>
         </template>
+
 
 
         <!-- ══════════════════════════════════════════════════════════
@@ -49,9 +53,12 @@
         <template if:true={isResearchLibraryTab}>
             <template if:false={isLoading}>
 
+
                 <template if:true={hasSections}>
 
+
                     <!-- Report header bar -->
+                <div class="cdr-report-card">
                     <div class="cdr-report-header">
                         <div class="cdr-report-header-left">
                             <span class="cdr-report-icon">&#128196;</span>
@@ -63,11 +70,13 @@
                             <button class="cdr-link-btn" onclick={handleCollapseAll}>Collapse All</button>
                         </div>
                     </div>
+                </div>
 
                     <!-- Accordion -->
                     <div class="cdr-accordion">
                         <template for:each={parsedSections} for:item="sec">
                             <div key={sec.id} class="cdr-accordion-item">
+
 
                                 <button class="cdr-accordion-header"
                                         data-id={sec.id}
@@ -80,11 +89,16 @@
                                     <template if:true={sec.isExpanded}>
                                         <span class="cdr-collapse-hint">Click to collapse</span>
                                     </template>
+                                    <template if:false={sec.isExpanded}>
+                                        <span class="cdr-collapse-hint">Click to expand</span>
+                                    </template>
                                 </button>
+
 
                                 <template if:true={sec.isExpanded}>
                                     <div class="cdr-accordion-body">
                                         <template for:each={sec.renderedRows} for:item="row">
+
 
                                             <template if:true={row.isTable}>
                                                 <div key={row.id} class="cdr-table-wrapper">
@@ -109,6 +123,7 @@
                                                 </div>
                                             </template>
 
+
                                             <template if:true={row.isBullet}>
                                                 <div key={row.id} class="cdr-bullet-row">
                                                     <span class="cdr-bullet-dot">&#8226;</span>
@@ -116,27 +131,34 @@
                                                 </div>
                                             </template>
 
+
                                             <template if:true={row.isHeading}>
                                                 <div key={row.id} class="cdr-subheading">{row.text}</div>
                                             </template>
+
 
                                             <template if:true={row.isText}>
                                                 <p key={row.id} class="cdr-para">{row.html}</p>
                                             </template>
 
+
                                             <template if:true={row.isSpacer}>
                                                 <div key={row.id} class="cdr-spacer"></div>
                                             </template>
+
 
                                         </template>
                                     </div>
                                 </template>
 
+
                             </div>
                         </template>
                     </div>
 
+
                 </template>
+
 
                 <!-- Empty state -->
                 <template if:false={hasSections}>
@@ -147,6 +169,7 @@
                         </div>
                     </template>
                 </template>
+
 
                 <!-- Sources panel -->
                 <template if:true={hasSources}>
@@ -166,8 +189,10 @@
                     </div>
                 </template>
 
+
             </template>
         </template>
+
 
 
         <!-- ══════════════════════════════════════════════════════════
@@ -198,11 +223,13 @@
         </template>
 
 
+
         <!-- ══════════════════════════════════════════════════════════
              TAB: UCC
         ══════════════════════════════════════════════════════════ -->
         <template if:true={isUccTab}>
             <div class="cdr-subtab-content">
+
 
                 <template if:true={uccIsLoading}>
                     <div class="cdr-loading">
@@ -211,15 +238,18 @@
                     </div>
                 </template>
 
+
                 <template if:true={uccHasError}>
                     <div class="cdr-error">
-                        <span class="cdr-error-icon">⚠</span>
+                        <span class="cdr-error-icon">&#9888;</span>
                         <span>{uccError}</span>
                     </div>
                 </template>
 
+
                 <template if:true={uccShowFilings}>
                     <div class="ucc-outer-card">
+
 
                         <div class="ucc-card-header">
                             <div class="ucc-card-header-left">
@@ -231,6 +261,7 @@
                                 <span class="ucc-source-label">Source: Business Registry</span>
                             </div>
                         </div>
+
 
                         <div class="ucc-summary-row">
                             <div class="ucc-stat-cell">
@@ -245,8 +276,10 @@
                             </template>
                         </div>
 
+
                         <template for:each={uccFilings} for:item="filing">
                             <div key={filing.key} class="ucc-filing-card">
+
 
                                 <div class="ucc-filing-top">
                                     <div class="ucc-filing-top-left">
@@ -274,6 +307,7 @@
                                     </div>
                                 </div>
 
+
                                 <template if:true={filing.hasSecuredParties}>
                                     <div class="ucc-party-block ucc-party-block--secured">
                                         <div class="ucc-party-label">SECURED PARTY</div>
@@ -287,6 +321,7 @@
                                         </template>
                                     </div>
                                 </template>
+
 
                                 <template if:true={filing.hasDebtors}>
                                     <div class="ucc-party-block ucc-party-block--debtor">
@@ -302,6 +337,7 @@
                                     </div>
                                 </template>
 
+
                                 <template if:true={filing.hasCollateral}>
                                     <div class="ucc-party-block ucc-party-block--collateral">
                                         <div class="ucc-party-label">COLLATERAL</div>
@@ -309,240 +345,561 @@
                                     </div>
                                 </template>
 
+
                             </div>
                         </template>
+
 
                     </div>
                 </template>
 
+
                 <template if:true={uccShowEmptyState}>
                     <div class="ucc-empty-card">
-                        <div class="ucc-empty-dash">—</div>
+                        <div class="ucc-empty-dash">&#8212;</div>
                         <p class="ucc-empty-text">No UCC lien filings found for this company</p>
                     </div>
                 </template>
 
+
             </div>
         </template>
+
 
 
         <!-- ══════════════════════════════════════════════════════════
              TAB: VIQ — VerticalIQ Industry Intelligence
         ══════════════════════════════════════════════════════════ -->
         <template if:true={isViqTab}>
-    <!-- ══════════════════════════════════════════════════════════
-     TAB: VIQ — VerticalIQ Industry Intelligence
-     ══════════════════════════════════════════════════════════ -->
-<template if:true={isViqTab}>
-        <div class="cdr-subtab-content viq-tab-content">
+            <div class="cdr-subtab-content viq-tab-content">
 
-            <!-- ── VIQ Loading ── -->
-            <template if:true={viqIsLoading}>
-                <div class="cdr-loading">
-                    <div class="cdr-spinner"></div>
-                    <span>Loading VerticalIQ industry intelligence...</span>
-                </div>
-            </template>
 
-            <!-- ── VIQ Apex/Network Error ── -->
-            <template if:true={viqHasError}>
-                <div class="cdr-error">
-                    <span class="cdr-error-icon">⚠</span>
-                    <span>{viqError}</span>
-                </div>
-                <div class="viq-naics-retry-row">
-                    <input type="text"
-                        class="viq-naics-input"
-                        placeholder="Enter NAICS code and reload"
-                        value={viqNaicsCode}
-                        oninput={handleViqNaicsChange}
-                        onkeydown={handleViqNaicsKeydown} />
-                    <button class="viq-reload-btn"
-                            disabled={viqReloadDisabled}
-                            onclick={handleViqReload}>Reload</button>
-                </div>
-            </template>
-
-            <!-- ── VIQ Not Yet Loaded ── -->
-            <template if:true={viqNotYetLoaded}>
-                <div class="cdr-loading">
-                    <div class="cdr-spinner"></div>
-                    <span>Loading VerticalIQ industry intelligence...</span>
-                </div>
-            </template>
-
-            <!-- ── VIQ Data View ── -->
-            <template if:true={viqShowData}>
-
-                <!-- ── Green Header Card ── -->
-                <div class="viq-header-card">
-                    <div class="viq-header-top">
-                        <div class="viq-header-title-group">
-                            <span class="viq-header-industry-name">{viqIndustryName}</span>
-                            <div class="viq-header-badges">
-                                <span class="viq-badge viq-badge--naics">NAICS: {viqNaicsDisplay}</span>
-                                <span class="viq-badge viq-badge--id">Industry ID: {viqIndustryId}</span>
-                            </div>
-                        </div>
-                        <button class="viq-refresh-btn"
-                                title="Refresh VerticalIQ data"
-                                onclick={handleViqRefresh}>&#8635;</button>
+                <!-- ── VIQ Loading ── -->
+                <template if:true={viqIsLoading}>
+                    <div class="cdr-loading">
+                        <div class="cdr-spinner"></div>
+                        <span>Loading VerticalIQ industry intelligence...</span>
                     </div>
-                    <div class="viq-naics-row">
-                        <label class="viq-naics-label">Change NAICS</label>
+                </template>
+
+
+                <!-- ── VIQ Apex/Network Error ── -->
+                <template if:true={viqHasError}>
+                    <div class="cdr-error">
+                        <span class="cdr-error-icon">&#9888;</span>
+                        <span>{viqError}</span>
+                    </div>
+                    <div class="viq-naics-retry-row">
                         <input type="text"
                             class="viq-naics-input"
-                            placeholder="e.g. 484121"
+                            placeholder="Enter NAICS code and reload"
                             value={viqNaicsCode}
-                            maxlength="10"
                             oninput={handleViqNaicsChange}
                             onkeydown={handleViqNaicsKeydown} />
                         <button class="viq-reload-btn"
                                 disabled={viqReloadDisabled}
                                 onclick={handleViqReload}>Reload</button>
                     </div>
-                </div>
+                </template>
 
-                <!-- ── AI Insights Panel ── -->
-                <template if:true={viqHasInsights}>
-                    <div class="viq-card viq-card--blue">
-                        <div class="viq-card-header viq-card-header--blue">
-                            <span class="viq-insights-icon">&#129302;</span>
-                            <h3 class="viq-card-title">AI-Generated Insights &amp; Talking Points</h3>
-                        </div>
-                        <div class="viq-card-body">
-                            <p class="viq-card-text">{viqInsightsContent}</p>
-                        </div>
+
+                <!-- ── VIQ Not Yet Loaded ── -->
+                <template if:true={viqNotYetLoaded}>
+                    <div class="cdr-loading">
+                        <div class="cdr-spinner"></div>
+                        <span>Loading VerticalIQ industry intelligence...</span>
                     </div>
                 </template>
 
-                <!-- ── API-level Error ── -->
-                <template if:true={viqHasApiError}>
-                    <div class="viq-api-error">
-                        <span class="cdr-error-icon">⚠</span>
-                        <span>{viqApiErrorMsg}</span>
-                    </div>
-                </template>
 
-                <!-- ── Industry Trends ── -->
-                <template if:true={viqShowIndustryTrends}>
-                    <div class="viq-card viq-card--indigo">
-                        <div class="viq-card-header viq-card-header--indigo">
-                            <h3 class="viq-card-title">Industry Trends
-                                <span class="viq-card-count">({viqTrendsCount})</span>
-                            </h3>
-                        </div>
-                        <div class="viq-card-body">
-                            <template for:each={viqTrends} for:item="trend">
-                                <div key={trend.id} class="viq-item viq-item--indigo">
-                                    <div class="viq-item-title">{trend.title}</div>
-                                    <p class="viq-item-body">{trend.body}</p>
+                <!-- ── VIQ Data View ── -->
+                <template if:true={viqShowData}>
+
+
+                    <!-- ── Green Header Card ── -->
+                    <div class="viq-header-card">
+                        <div class="viq-header-top">
+                            <div class="viq-header-title-group">
+                                <span class="viq-header-industry-name">{viqIndustryName}</span>
+                                <div class="viq-header-badges">
+                                    <span class="viq-badge viq-badge--naics">NAICS: {viqNaicsDisplay}</span>
+                                    <span class="viq-badge viq-badge--id">Industry ID: {viqIndustryId}</span>
                                 </div>
-                            </template>
+                            </div>
+                            <button class="viq-refresh-btn"
+                                    title="Refresh VerticalIQ data"
+                                    onclick={handleViqRefresh}>&#8635;</button>
+                        </div>
+                        <div class="viq-naics-row">
+                            <label class="viq-naics-label">Change NAICS</label>
+                            <input type="text"
+                                class="viq-naics-input"
+                                placeholder="e.g. 484121"
+                                value={viqNaicsCode}
+                                maxlength="10"
+                                oninput={handleViqNaicsChange}
+                                onkeydown={handleViqNaicsKeydown} />
+                            <button class="viq-reload-btn"
+                                    disabled={viqReloadDisabled}
+                                    onclick={handleViqReload}>Reload</button>
                         </div>
                     </div>
-                </template>
 
-                <!-- ── Current Conditions ── -->
-                <template if:true={viqShowCurrentConditions}>
-                    <div class="viq-card viq-card--indigo">
-                        <div class="viq-card-header viq-card-header--indigo">
-                            <h3 class="viq-card-title">Current Conditions
-                                <span class="viq-card-count">({viqCurrentConditionsCount})</span>
-                            </h3>
-                        </div>
-                        <div class="viq-card-body">
-                            <template for:each={viqCurrentConditions} for:item="cond">
-                                <div key={cond.id} class="viq-item viq-item--indigo">
-                                    <div class="viq-item-title">{cond.title}</div>
-                                    <template if:true={cond.date}>
-                                        <div class="viq-item-date">{cond.date}</div>
-                                    </template>
-                                    <template if:true={cond.hasBullets}>
-                                        <ul class="viq-bullet-list">
-                                            <template for:each={cond.bullets} for:item="bullet">
-                                                <li key={bullet}>{bullet}</li>
-                                            </template>
-                                        </ul>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
 
-                <!-- ── Quarterly Insights ── -->
-                <template if:true={viqShowQuarterlyInsights}>
-                    <div class="viq-card viq-card--indigo">
-                        <div class="viq-card-header viq-card-header--indigo">
-                            <h3 class="viq-card-title">Quarterly Insights
-                                <span class="viq-card-count">({viqQuarterlyInsightsCount})</span>
-                            </h3>
-                        </div>
-                        <div class="viq-card-body">
-                            <template for:each={viqQuarterlyInsights} for:item="qi">
-                                <div key={qi.id} class="viq-item viq-item--indigo">
-                                    <div class="viq-item-title">{qi.title}</div>
-                                    <p class="viq-item-body">{qi.body}</p>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- ── Banking Product Usage ── -->
-                <template if:true={viqShowBankingProducts}>
-                    <div class="viq-card viq-card--green">
-                        <div class="viq-card-header viq-card-header--green">
-                            <h3 class="viq-card-title">Banking Product Usage</h3>
-                        </div>
-                        <div class="viq-card-body">
-                            <div class="viq-banking-grid">
-                                <template for:each={viqBankingProducts} for:item="product">
-                                    <div key={product.id} class="viq-banking-row">
-                                        <span class="viq-banking-name">{product.name}</span>
-                                        <template if:true={product.usage}>
-                                            <span class="viq-banking-usage">{product.usage}</span>
-                                        </template>
-                                    </div>
-                                </template>
+                    <!-- ── AI Insights Panel ── -->
+                    <template if:true={viqHasInsights}>
+                        <div class="viq-card viq-card--blue">
+                            <div class="viq-card-header viq-card-header--blue">
+                                <span class="viq-insights-icon">&#129302;</span>
+                                <h3 class="viq-card-title">AI-Generated Insights &amp; Talking Points</h3>
+                            </div>
+                            <div class="viq-card-body">
+                                <p class="viq-card-text">{viqInsightsContent}</p>
                             </div>
                         </div>
-                    </div>
-                </template>
+                    </template>
 
-                <!-- ── Key Questions to Ask ── -->
-                <template if:true={viqShowKeyQuestions}>
-                    <div class="viq-card viq-card--amber">
-                        <div class="viq-card-header viq-card-header--amber">
-                            <h3 class="viq-card-title">Key Questions to Ask</h3>
+
+                    <!-- ── API-level Error ── -->
+                    <template if:true={viqHasApiError}>
+                        <div class="viq-api-error">
+                            <span class="cdr-error-icon">&#9888;</span>
+                            <span>{viqApiErrorMsg}</span>
                         </div>
-                        <div class="viq-card-body">
-                            <ul class="viq-questions-ul">
-                                <template for:each={viqKeyQuestions} for:item="q">
-                                    <li key={q.id} class="viq-question-li">
-                                        <span class="viq-question-dot">&#10022;</span>
-                                        <span>{q.text}</span>
-                                    </li>
-                                </template>
-                            </ul>
+                    </template>
+
+
+                    <!-- ── Current Conditions ── -->
+                    <template if:true={viqShowCurrentConditions}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="currentConditions"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Current Conditions
+                                    <span class="viq-card-count">({viqCurrentConditionsCount})</span>
+                                </h3>
+                                <span class="viq-chevron">{viqConditionsChevron}</span>
+                            </button>
+                            <template if:true={viqConditionsExpanded}>
+                                <div class="viq-card-body">
+                                    <template for:each={viqCurrentConditions} for:item="cond">
+                                        <div key={cond.id} class="viq-item viq-item--indigo">
+                                            <div class="viq-item-title">{cond.title}</div>
+                                            <template if:true={cond.date}>
+                                                <div class="viq-item-date">{cond.date}</div>
+                                            </template>
+                                            <template if:true={cond.hasBullets}>
+                                                <ul class="viq-bullet-list">
+                                                    <template for:each={cond.bullets} for:item="bullet">
+                                                        <li key={bullet}>{bullet}</li>
+                                                    </template>
+                                                </ul>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
                         </div>
-                    </div>
-                </template>
+                    </template>
 
-                <!-- ── Empty State (data loaded but all sections empty) ── -->
-                <template if:true={viqShowEmptyState}>
-                    <div class="viq-empty-card">
-                        <div class="viq-empty-icon">&#128202;</div>
-                        <p class="viq-empty-text">No industry data found. Enter a NAICS code above and click Reload.</p>
-                    </div>
-                </template>
 
-            </template><!-- end viqShowData -->
+                    <!-- ── Industry Trends ── -->
+                    <template if:true={viqShowIndustryTrends}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="industryTrends"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Industry Trends
+                                    <span class="viq-card-count">({viqTrendsCount})</span>
+                                </h3>
+                                <span class="viq-chevron">{viqTrendsChevron}</span>
+                            </button>
+                            <template if:true={viqTrendsExpanded}>
+                                <div class="viq-card-body">
+                                    <template for:each={viqTrends} for:item="trend">
+                                        <div key={trend.id} class="viq-item viq-item--indigo">
+                                            <div class="viq-item-title">{trend.title}</div>
+                                            <p class="viq-item-body">{trend.body}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
 
-        </div>
-    </template>        
+
+                    <!-- ── Global Trends ── -->
+                    <template if:true={viqShowGlobalTrends}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="globalTrends"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Global Trends
+                                    <span class="viq-card-count">({viqGlobalTrendsCount})</span>
+                                </h3>
+                                <span class="viq-chevron">{viqGlobalTrendsChevron}</span>
+                            </button>
+                            <template if:true={viqGlobalTrendsExpanded}>
+                                <div class="viq-card-body">
+                                    <template for:each={viqGlobalTrends} for:item="trend">
+                                        <div key={trend.id} class="viq-item viq-item--indigo">
+                                            <div class="viq-item-title">{trend.title}</div>
+                                            <p class="viq-item-body">{trend.body}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Industry Overview (Forecasts + Structure + Derived) ── -->
+                    <template if:true={viqShowIndustryOverview}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="industryOverview"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Industry Overview</h3>
+                                <span class="viq-chevron">{viqIndustryOverviewChevron}</span>
+                            </button>
+                            <template if:true={viqIndustryOverviewExpanded}>
+                                <div class="viq-card-body">
+                                    <template if:true={viqHasForecast}>
+                                        <div class="viq-overview-block">
+                                            <div class="viq-overview-label">Growth Rate</div>
+                                            <div class="viq-overview-value">{viqForecastGrowthRate}</div>
+                                            <div class="viq-overview-value">{viqForecastRelative}</div>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqHasStructure}>
+                                        <div class="viq-overview-block">
+                                            <div class="viq-overview-label">Industry Structure</div>
+                                            <p class="viq-item-body">{viqStructure}</p>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqHasDerivedStatements}>
+                                        <div class="viq-overview-block">
+                                            <template for:each={viqDerivedStatements} for:item="ds">
+                                                <div key={ds.id} class="viq-derived-row">
+                                                    <span class="viq-derived-title">{ds.title}</span>
+                                                    <span class="viq-derived-value">{ds.value}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Quarterly Insights ── -->
+                    <template if:true={viqShowQuarterlyInsights}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="quarterlyInsights"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Quarterly Insights
+                                    <span class="viq-card-count">({viqQuarterlyInsightsCount})</span>
+                                </h3>
+                                <span class="viq-chevron">{viqQuarterlyChevron}</span>
+                            </button>
+                            <template if:true={viqQuarterlyExpanded}>
+                                <div class="viq-card-body">
+                                    <template for:each={viqQuarterlyInsights} for:item="qi">
+                                        <div key={qi.id} class="viq-item viq-item--indigo">
+                                            <div class="viq-item-title">{qi.title}</div>
+                                            <p class="viq-item-body">{qi.body}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Banking Product Usage ── -->
+                    <template if:true={viqShowBankingProducts}>
+                        <div class="viq-card viq-card--green">
+                            <button class="viq-card-header viq-card-header--green viq-section-toggle"
+                                    data-section="bankingProducts"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Banking Product Usage</h3>
+                                <span class="viq-chevron">{viqBankingChevron}</span>
+                            </button>
+                            <template if:true={viqBankingExpanded}>
+                                <div class="viq-card-body">
+                                    <div class="viq-banking-grid">
+                                        <template for:each={viqBankingProducts} for:item="product">
+                                            <div key={product.id} class="viq-banking-row">
+                                                <span class="viq-banking-name">{product.name}</span>
+                                                <template if:true={product.usage}>
+                                                    <span class="viq-banking-usage">{product.usage}</span>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Key Questions to Ask ── -->
+                    <template if:true={viqShowKeyQuestions}>
+                        <div class="viq-card viq-card--amber">
+                            <button class="viq-card-header viq-card-header--amber viq-section-toggle"
+                                    data-section="keyQuestions"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Key Questions to Ask</h3>
+                                <span class="viq-chevron">{viqQuestionsChevron}</span>
+                            </button>
+                            <template if:true={viqQuestionsExpanded}>
+                                <div class="viq-card-body">
+                                    <ul class="viq-questions-ul">
+                                        <template for:each={viqKeyQuestions} for:item="q">
+                                            <li key={q.id} class="viq-question-li">
+                                                <span class="viq-question-dot">&#10022;</span>
+                                                <span>{q.text}</span>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Industry Terms / Glossary ── -->
+                    <template if:true={viqShowIndustryTerms}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="industryTerms"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Industry Terms
+                                    <span class="viq-card-count">({viqTermsCount})</span>
+                                </h3>
+                                <span class="viq-chevron">{viqIndustryTermsChevron}</span>
+                            </button>
+                            <template if:true={viqIndustryTermsExpanded}>
+                                <div class="viq-card-body">
+                                    <template for:each={viqTerms} for:item="term">
+                                        <div key={term.id} class="viq-term-row">
+                                            <div class="viq-term-name">{term.name}</div>
+                                            <p class="viq-term-def">{term.definition}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Financial Benchmarks ── -->
+                    <template if:true={viqShowFinancialBenchmarks}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="financialBenchmarks"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Financial Benchmarks</h3>
+                                <span class="viq-chevron">{viqFinancialBenchmarksChevron}</span>
+                            </button>
+                            <template if:true={viqFinancialBenchmarksExpanded}>
+                                <div class="viq-card-body">
+                                    <div class="cdr-table-wrapper">
+                                        <table class="cdr-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="cdr-th">Class</th>
+                                                    <th class="cdr-th">Current Ratio</th>
+                                                    <th class="cdr-th">Quick Ratio</th>
+                                                    <th class="cdr-th">Gross Margin</th>
+                                                    <th class="cdr-th">Net Margin</th>
+                                                    <th class="cdr-th">Days Recv.</th>
+                                                    <th class="cdr-th">Days Payable</th>
+                                                    <th class="cdr-th">Days Inv.</th>
+                                                    <th class="cdr-th">Debt/Equity</th>
+                                                    <th class="cdr-th">ROA</th>
+                                                    <th class="cdr-th">ROE</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template for:each={viqBenchmarks} for:item="b">
+                                                    <tr key={b.id}>
+                                                        <td class="cdr-td">{b.compClass}</td>
+                                                        <td class="cdr-td">{b.currentRatio}</td>
+                                                        <td class="cdr-td">{b.quickRatio}</td>
+                                                        <td class="cdr-td">{b.grossMargin}</td>
+                                                        <td class="cdr-td">{b.netMargin}</td>
+                                                        <td class="cdr-td">{b.daysReceivables}</td>
+                                                        <td class="cdr-td">{b.daysPayable}</td>
+                                                        <td class="cdr-td">{b.daysInventory}</td>
+                                                        <td class="cdr-td">{b.debtToEquity}</td>
+                                                        <td class="cdr-td">{b.returnOnAssets}</td>
+                                                        <td class="cdr-td">{b.returnOnEquity}</td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Financial Metrics ── -->
+                    <template if:true={viqShowFinancialMetrics}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="financialMetrics"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Financial Metrics</h3>
+                                <span class="viq-chevron">{viqFinancialMetricsChevron}</span>
+                            </button>
+                            <template if:true={viqFinancialMetricsExpanded}>
+                                <div class="viq-card-body">
+                                    <template if:true={viqFinancialMetrics.employeeCount}>
+                                        <div class="viq-metric-row">
+                                            <span class="viq-metric-label">Employee Count</span>
+                                            <span class="viq-metric-value">{viqFinancialMetrics.employeeCount}</span>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.revenue}>
+                                        <div class="viq-metric-row">
+                                            <span class="viq-metric-label">Revenue</span>
+                                            <span class="viq-metric-value">{viqFinancialMetrics.revenue}</span>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.size}>
+                                        <div class="viq-metric-row">
+                                            <span class="viq-metric-label">Size</span>
+                                            <span class="viq-metric-value">{viqFinancialMetrics.size}</span>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.entityType}>
+                                        <div class="viq-metric-row">
+                                            <span class="viq-metric-label">Entity Type</span>
+                                            <span class="viq-metric-value">{viqFinancialMetrics.entityType}</span>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.failureRate}>
+                                        <div class="viq-metric-row">
+                                            <span class="viq-metric-label">Failure Rate</span>
+                                            <span class="viq-metric-value">{viqFinancialMetrics.failureRate}</span>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.industryOverview}>
+                                        <div class="viq-metric-block">
+                                            <div class="viq-metric-label">Industry Overview</div>
+                                            <p class="viq-item-body">{viqFinancialMetrics.industryOverview}</p>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.profitability}>
+                                        <div class="viq-metric-block">
+                                            <div class="viq-metric-label">Profitability</div>
+                                            <p class="viq-item-body">{viqFinancialMetrics.profitability}</p>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.capitalFinancing}>
+                                        <div class="viq-metric-block">
+                                            <div class="viq-metric-label">Capital &amp; Financing</div>
+                                            <p class="viq-item-body">{viqFinancialMetrics.capitalFinancing}</p>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.cashLiquidity}>
+                                        <div class="viq-metric-block">
+                                            <div class="viq-metric-label">Cash &amp; Liquidity</div>
+                                            <p class="viq-item-body">{viqFinancialMetrics.cashLiquidity}</p>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqFinancialMetrics.workingCapitalMgmt}>
+                                        <div class="viq-metric-block">
+                                            <div class="viq-metric-label">Working Capital Mgmt</div>
+                                            <p class="viq-item-body">{viqFinancialMetrics.workingCapitalMgmt}</p>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Operations ── -->
+                    <template if:true={viqShowOperations}>
+                        <div class="viq-card viq-card--indigo">
+                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                                    data-section="operations"
+                                    onclick={handleViqSectionToggle}>
+                                <h3 class="viq-card-title">Operations</h3>
+                                <span class="viq-chevron">{viqOperationsChevron}</span>
+                            </button>
+                            <template if:true={viqOperationsExpanded}>
+                                <div class="viq-card-body">
+                                    <template if:true={viqHasProfitDrivers}>
+                                        <div class="viq-overview-block">
+                                            <div class="viq-overview-label">Profit Drivers</div>
+                                            <template for:each={viqProfitDrivers} for:item="pd">
+                                                <div key={pd.id} class="viq-item viq-item--indigo">
+                                                    <div class="viq-item-title">{pd.title}</div>
+                                                    <p class="viq-item-body">{pd.body}</p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqHasRevenuePerEmployee}>
+                                        <div class="viq-overview-block">
+                                            <div class="viq-overview-label">Revenue per Employee</div>
+                                            <template for:each={viqRevenuePerEmployee} for:item="rpe">
+                                                <div key={rpe.id} class="viq-derived-row">
+                                                    <span class="viq-derived-title">{rpe.label}</span>
+                                                    <span class="viq-derived-value">{rpe.value}</span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqHasWorkingCapitalBullets}>
+                                        <div class="viq-overview-block">
+                                            <div class="viq-overview-label">Working Capital</div>
+                                            <ul class="viq-bullet-list">
+                                                <template for:each={viqWorkingCapitalBullets} for:item="b">
+                                                    <li key={b.id}>{b.text}</li>
+                                                </template>
+                                            </ul>
+                                        </div>
+                                    </template>
+                                    <template if:true={viqHasCashMgmtChallenges}>
+                                        <div class="viq-overview-block">
+                                            <div class="viq-overview-label">Cash Management Challenges</div>
+                                            <template for:each={viqCashMgmtChallenges} for:item="cmc">
+                                                <div key={cmc.id} class="viq-item viq-item--indigo">
+                                                    <div class="viq-item-title">{cmc.title}</div>
+                                                    <p class="viq-item-body">{cmc.body}</p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+
+
+                    <!-- ── Empty State (data loaded but all sections empty) ── -->
+                    <template if:true={viqShowEmptyState}>
+                        <div class="viq-empty-card">
+                            <div class="viq-empty-icon">&#128202;</div>
+                            <p class="viq-empty-text">No industry data found. Enter a NAICS code above and click Reload.</p>
+                        </div>
+                    </template>
+
+
+                </template><!-- end viqShowData -->
+
+
+            </div>
         </template>
+
 
 
         <!-- ══════════════════════════════════════════════════════════
@@ -558,6 +915,7 @@
         </template>
 
 
+
         <!-- ══════════════════════════════════════════════════════════
              TAB: Equifax
         ══════════════════════════════════════════════════════════ -->
@@ -569,6 +927,7 @@
                 </div>
             </div>
         </template>
+
 
 
     </div>

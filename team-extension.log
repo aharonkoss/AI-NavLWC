@@ -310,3 +310,15 @@
 2026-05-14T00:28:05.791Z - debug:  [21848] TFVC Repository.CheckVersion
 2026-05-14T00:28:05.797Z - debug:  [21848] TFVC: tf add -noprompt -?
 2026-05-14T00:28:05.800Z - error:  [21848] spawn EINVAL
+2026-05-17T18:22:05.689Z - info:   [17188] *** FOLDER: c:\Users\aharo\Kosstech\OneDrive - Strategic Integration Technologies\AI Navigator LWC\ReactFiles\AI-NavLWC ***
+2026-05-17T18:22:05.690Z - info:   [17188] AzureReposVSCode/1.161.0 (VSCode 1.120.0; Windows_NT 10.0.26200; Node 22.22.1)
+2026-05-17T18:22:05.691Z - debug:  [17188] Looking for an External Context at c:\Users\aharo\Kosstech\OneDrive - Strategic Integration Technologies\AI Navigator LWC\ReactFiles\AI-NavLWC
+2026-05-17T18:22:05.691Z - debug:  [17188] No External Context at c:\Users\aharo\Kosstech\OneDrive - Strategic Integration Technologies\AI Navigator LWC\ReactFiles\AI-NavLWC
+2026-05-17T18:22:05.714Z - debug:  [17188] Looking for TFVC repository at c:\Users\aharo\Kosstech\OneDrive - Strategic Integration Technologies\AI Navigator LWC\ReactFiles\AI-NavLWC
+2026-05-17T18:22:05.714Z - debug:  [17188] TFVC Creating Tfvc object with localPath='undefined'
+2026-05-17T18:22:05.716Z - debug:  [17188] Using TFS proxy: 
+2026-05-17T18:22:05.716Z - debug:  [17188] TFVC Retrieved from settings; localPath='C:\TEE\TEE-CLC-14.114.0\tf.cmd'
+2026-05-17T18:22:05.730Z - debug:  [17188] TFVC Repository created with repositoryRootFolder='c:\Users\aharo\Kosstech\OneDrive - Strategic Integration Technologies\AI Navigator LWC\ReactFiles\AI-NavLWC'
+2026-05-17T18:22:05.732Z - debug:  [17188] TFVC Repository.CheckVersion
+2026-05-17T18:22:05.733Z - debug:  [17188] TFVC: tf add -noprompt -?
+2026-05-17T18:22:05.736Z - error:  [17188] spawn EINVAL

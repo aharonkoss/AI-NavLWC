@@ -3,13 +3,15 @@
  *               IMPORTANT: Uses hardcoded hex values throughout the VIQ section
  *               to prevent Salesforce SLDS from overriding CSS custom properties.
  * @author       AI Navigator Platform
- * @last modified on : 05-15-2026
+ * @last modified on : 05-17-2026
  */
+
 
 
 /* ═══════════════════════════════════════════════════════════════════
    DESIGN TOKENS
 ═══════════════════════════════════════════════════════════════════ */
+
 
 :host {
     --cdr-bg:           #f7f8fa;
@@ -45,15 +47,18 @@
 }
 
 
+
 /* ═══════════════════════════════════════════════════════════════════
    BASE RESET
 ═══════════════════════════════════════════════════════════════════ */
+
 
 *, *::before, *::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
+
 
 button {
     cursor: pointer;
@@ -63,13 +68,16 @@ button {
     color: inherit;
 }
 
+
 ul, ol { list-style: none; }
 input  { font: inherit; color: inherit; }
+
 
 
 /* ═══════════════════════════════════════════════════════════════════
    WRAPPER
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .cdr-wrapper {
     display: flex;
@@ -82,9 +90,11 @@ input  { font: inherit; color: inherit; }
 }
 
 
+
 /* ═══════════════════════════════════════════════════════════════════
    SUB-TAB BAR — flat underline style matching React portal
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .cdr-subtab-bar {
     display: flex;
@@ -94,6 +104,7 @@ input  { font: inherit; color: inherit; }
     border-bottom: 1px solid #e0e4ea;
     padding: 0 0.75rem;
 }
+
 
 .cdr-subtab-btn {
     padding: 0.6rem 1rem;
@@ -110,9 +121,11 @@ input  { font: inherit; color: inherit; }
     cursor: pointer;
 }
 
+
 .cdr-subtab-btn:hover {
     color: #1a1d23;
 }
+
 
 .cdr-subtab-btn--active {
     color: #0176d3;
@@ -121,9 +134,11 @@ input  { font: inherit; color: inherit; }
 }
 
 
+
 /* ═══════════════════════════════════════════════════════════════════
    SHARED: LOADING / ERROR / EMPTY
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .cdr-loading {
     display: flex;
@@ -133,6 +148,7 @@ input  { font: inherit; color: inherit; }
     color: #5a6272;
     font-size: 0.8125rem;
 }
+
 
 .cdr-spinner {
     width: 16px;
@@ -144,7 +160,9 @@ input  { font: inherit; color: inherit; }
     flex-shrink: 0;
 }
 
+
 @keyframes cdr-spin { to { transform: rotate(360deg); } }
+
 
 .cdr-error {
     display: flex;
@@ -159,7 +177,9 @@ input  { font: inherit; color: inherit; }
     color: #dc2626;
 }
 
+
 .cdr-error-icon { font-size: 0.875rem; flex-shrink: 0; margin-top: 1px; }
+
 
 .cdr-empty {
     display: flex;
@@ -172,14 +192,17 @@ input  { font: inherit; color: inherit; }
     text-align: center;
 }
 
+
 .cdr-empty-icon { font-size: 2rem; opacity: 0.45; }
 .cdr-empty p   { font-size: 0.8125rem; color: #5a6272; max-width: 320px; }
 .cdr-subtab-content { padding: 1rem; }
 
 
+
 /* ═══════════════════════════════════════════════════════════════════
    SHARED UTILITIES
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .cdr-link-btn {
     font-size: 0.75rem;
@@ -192,13 +215,16 @@ input  { font: inherit; color: inherit; }
 }
 .cdr-link-btn:hover { color: #0161ae; text-decoration: underline; }
 
+
 .cdr-divider { color: #e0e4ea; font-size: 0.75rem; user-select: none; }
 .cdr-spacer  { height: 0.75rem; }
+
 
 
 /* ═══════════════════════════════════════════════════════════════════
    RESEARCH LIBRARY — REPORT ACCORDION
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .cdr-report-header {
     display: flex;
@@ -207,20 +233,33 @@ input  { font: inherit; color: inherit; }
     padding: 0.75rem 1rem;
     background: #ffffff;
     border-bottom: 1px solid #e0e4ea;
+    border: 1px solid #e0e4ea;
+    border-radius: 8px 8px 0 0;  /* rounds top only since accordion sits below */
+    margin: 0.75rem 0 0;
 }
+
 
 .cdr-report-header-left { display: flex; align-items: center; gap: 0.5rem; }
 .cdr-report-icon  { font-size: 0.9375rem; }
 .cdr-report-title { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; }
 .cdr-report-header-right { display: flex; align-items: center; gap: 0.5rem; }
 
-.cdr-accordion { display: flex; flex-direction: column; }
+
+.cdr-accordion {
+    border: 1px solid #e0e4ea;
+    border-top: none;   /* header already has top border */
+    border-radius: 0 0 8px 8px;
+    margin: 0 0 0.75rem;
+    overflow: hidden;
+}
+
 
 .cdr-accordion-item {
     border-bottom: 1px solid #edf0f4;
     background: #ffffff;
 }
 .cdr-accordion-item:last-child { border-bottom: none; }
+
 
 .cdr-accordion-header {
     display: flex;
@@ -234,7 +273,9 @@ input  { font: inherit; color: inherit; }
 }
 .cdr-accordion-header:hover { background: #f0f2f5; }
 
+
 .cdr-accordion-header-left { display: flex; align-items: center; gap: 0.5rem; }
+
 
 .chevron-right::before,
 .chevron-down::before {
@@ -249,8 +290,10 @@ input  { font: inherit; color: inherit; }
 .chevron-right::before { transform: rotate(-45deg); }
 .chevron-down::before  { transform: rotate(45deg);  }
 
-.cdr-accordion-title  { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; }
+
+.cdr-accordion-title { font-weight: 500; }
 .cdr-collapse-hint    { font-size: 0.6875rem; color: #9aa0ae; font-style: italic; }
+
 
 .cdr-accordion-body {
     padding: 1rem;
@@ -258,12 +301,15 @@ input  { font: inherit; color: inherit; }
     border-top: 1px solid #edf0f4;
 }
 
+
 .cdr-subheading { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; margin: 1rem 0 0.5rem; }
 .cdr-para       { font-size: 0.8125rem; color: #1a1d23; line-height: 1.6; margin-bottom: 0.5rem; }
+
 
 .cdr-bullet-row  { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.25rem; }
 .cdr-bullet-dot  { color: #5a6272; flex-shrink: 0; margin-top: 1px; font-size: 0.875rem; }
 .cdr-bullet-text { font-size: 0.8125rem; color: #1a1d23; line-height: 1.55; }
+
 
 .cdr-table-wrapper {
     overflow-x: auto;
@@ -288,6 +334,7 @@ input  { font: inherit; color: inherit; }
     vertical-align: top;
 }
 
+
 .cdr-sources-panel {
     margin: 1rem;
     padding: 0.75rem 1rem;
@@ -296,11 +343,11 @@ input  { font: inherit; color: inherit; }
     border-radius: 8px;
 }
 .cdr-sources-header {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
-    color: #5a6272;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    color: #1a1d23;
+    text-transform: none;   /* remove uppercase */
+    letter-spacing: 0;       /* remove tracking */
     margin-bottom: 0.5rem;
 }
 .cdr-sources-list { display: flex; flex-direction: column; gap: 0.25rem; }
@@ -310,11 +357,14 @@ input  { font: inherit; color: inherit; }
 .cdr-source-link:hover { text-decoration: underline; color: #0161ae; }
 
 
+
 /* ═══════════════════════════════════════════════════════════════════
    LEADERSHIP TAB
 ═══════════════════════════════════════════════════════════════════ */
 
+
 .cdr-leadership-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
 
 .cdr-leader-card {
     display: flex;
@@ -325,6 +375,7 @@ input  { font: inherit; color: inherit; }
     border: 1px solid #e0e4ea;
     border-radius: 8px;
 }
+
 
 .cdr-leader-avatar {
     width: 36px;
@@ -340,13 +391,16 @@ input  { font: inherit; color: inherit; }
     flex-shrink: 0;
 }
 
+
 .cdr-leader-name  { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; }
 .cdr-leader-title { font-size: 0.75rem; color: #5a6272; margin-top: 1px; }
+
 
 
 /* ═══════════════════════════════════════════════════════════════════
    UCC TAB
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .ucc-outer-card {
     background: #ffffff;
@@ -354,6 +408,7 @@ input  { font: inherit; color: inherit; }
     border-radius: 12px;
     overflow: hidden;
 }
+
 
 .ucc-card-header {
     display: flex;
@@ -364,9 +419,11 @@ input  { font: inherit; color: inherit; }
     border-bottom: 1px solid #e0e4ea;
 }
 
+
 .ucc-card-header-left { display: flex; align-items: center; gap: 0.5rem; }
 .ucc-header-icon  { font-size: 0.875rem; }
 .ucc-header-title { font-size: 0.875rem; font-weight: 700; color: #1a1d23; }
+
 
 .ucc-count-badge {
     background: #0176d3;
@@ -378,7 +435,9 @@ input  { font: inherit; color: inherit; }
     white-space: nowrap;
 }
 
+
 .ucc-source-label { font-size: 0.6875rem; color: #9aa0ae; }
+
 
 .ucc-summary-row {
     display: flex;
@@ -388,10 +447,12 @@ input  { font: inherit; color: inherit; }
     border-bottom: 1px solid #edf0f4;
 }
 
+
 .ucc-stat-number { font-size: 1.5rem; font-weight: 700; color: #1a1d23; line-height: 1.1; }
 .ucc-stat-label  { font-size: 0.6875rem; color: #5a6272; margin-top: 2px; }
 .ucc-biz-name    { font-size: 0.875rem; font-weight: 600; color: #1a1d23; }
 .ucc-biz-verified{ font-size: 0.6875rem; color: #16a34a; margin-top: 1px; }
+
 
 .ucc-filing-card {
     padding: 1rem;
@@ -399,6 +460,7 @@ input  { font: inherit; color: inherit; }
     background: #ffffff;
 }
 .ucc-filing-card:last-child { border-bottom: none; }
+
 
 .ucc-filing-top {
     display: flex;
@@ -409,8 +471,10 @@ input  { font: inherit; color: inherit; }
     flex-wrap: wrap;
 }
 
+
 .ucc-filing-top-left { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .ucc-filing-label    { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; }
+
 
 .ucc-type-badge {
     background: #f0f2f5;
@@ -424,13 +488,16 @@ input  { font: inherit; color: inherit; }
     letter-spacing: 0.03em;
 }
 
+
 .ucc-badge { font-size: 0.6875rem; font-weight: 600; padding: 1px 7px; border-radius: 999px; }
 .ucc-badge--active  { background: #dcfce7; color: #15803d; }
 .ucc-badge--closed  { background: #fee2e2; color: #991b1b; }
 .ucc-badge--neutral { background: #f0f2f5; color: #5a6272; border: 1px solid #e0e4ea; }
 
+
 .ucc-jurisdiction,
 .ucc-filing-office  { font-size: 0.75rem; color: #5a6272; }
+
 
 .ucc-filing-top-right {
     display: flex;
@@ -440,7 +507,9 @@ input  { font: inherit; color: inherit; }
     flex-shrink: 0;
 }
 
+
 .ucc-date { font-size: 0.75rem; color: #5a6272; white-space: nowrap; }
+
 
 .ucc-party-block {
     margin-top: 0.5rem;
@@ -449,9 +518,10 @@ input  { font: inherit; color: inherit; }
     border-left: 3px solid #e0e4ea;
     background: #f0f2f5;
 }
-.ucc-party-block--secured   { border-left-color: #0176d3; }
-.ucc-party-block--debtor    { border-left-color: #d97706; }
-.ucc-party-block--collateral{ border-left-color: #9aa0ae; }
+.ucc-party-block--secured    { border-left-color: #0176d3; }
+.ucc-party-block--debtor     { border-left-color: #d97706; }
+.ucc-party-block--collateral { border-left-color: #9aa0ae; }
+
 
 .ucc-party-label {
     font-size: 0.625rem;
@@ -462,11 +532,13 @@ input  { font: inherit; color: inherit; }
     margin-bottom: 0.25rem;
 }
 
+
 .ucc-party-row   { margin-bottom: 0.25rem; }
 .ucc-party-row:last-child { margin-bottom: 0; }
 .ucc-party-name    { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; }
 .ucc-party-address { font-size: 0.75rem; color: #5a6272; margin-top: 1px; }
 .ucc-collateral-text{ font-size: 0.8125rem; color: #1a1d23; line-height: 1.5; }
+
 
 .ucc-empty-card {
     display: flex;
@@ -484,15 +556,32 @@ input  { font: inherit; color: inherit; }
 .ucc-empty-text { font-size: 0.8125rem; color: #5a6272; }
 
 
+
 /* ═══════════════════════════════════════════════════════════════════
    VIQ TAB — OUTER CONTAINER
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .viq-tab-content {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     padding: 0.75rem;
+}
+
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIQ — GREEN HEADER CARD
+═══════════════════════════════════════════════════════════════════ */
+
+
+.viq-header-card {
+    background-color: #f0fdf4 !important;
+    border: 1px solid #bbf7d0 !important;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    color: #14532d !important;
 }
 
 
@@ -504,17 +593,28 @@ input  { font: inherit; color: inherit; }
     margin-bottom: 0.75rem;
 }
 
+
 .viq-header-title-group {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
+
+.viq-header-industry-name {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #14532d !important;
+    line-height: 1.2;
+}
+
+
 .viq-header-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
 }
+
 
 .viq-badge {
     font-size: 0.6875rem !important;
@@ -527,14 +627,19 @@ input  { font: inherit; color: inherit; }
     line-height: 1.4;
 }
 
-.viq-naics-label {
-    font-size: 0.75rem !important;
-    color: #15803d !important;
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-weight: 500;
+
+.viq-badge--naics {
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+    border: 1px solid #bbf7d0 !important;
 }
 
+
+.viq-badge--id {
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+    border: 1px solid #bbf7d0 !important;
+}
 
 
 .viq-refresh-btn {
@@ -542,21 +647,23 @@ input  { font: inherit; color: inherit; }
     height: 32px !important;
     min-width: 32px;
     border-radius: 50% !important;
-    background-color: #dcfce7 !important;  /* WAS: rgba white 0.18 */
-    color: #166534 !important;             /* WAS: #ffffff */
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
     font-size: 1rem !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     flex-shrink: 0;
-    border: 1px solid #bbf7d0 !important;  /* WAS: rgba white border */
+    border: 1px solid #bbf7d0 !important;
     padding: 0 !important;
     line-height: 1;
     cursor: pointer;
 }
 .viq-refresh-btn:hover {
-    background-color: #bbf7d0 !important;  /* WAS: rgba white 0.3 */
+    background-color: #bbf7d0 !important;
 }
+
+
 .viq-naics-row {
     display: flex;
     align-items: center;
@@ -564,38 +671,41 @@ input  { font: inherit; color: inherit; }
     flex-wrap: wrap;
 }
 
+
 .viq-naics-label {
     font-size: 0.75rem !important;
-    color: #166534 !important;             /* WAS: rgba(255,255,255,0.88) */
+    color: #166534 !important;
     white-space: nowrap;
     flex-shrink: 0;
     font-weight: 500;
 }
 
-/* ── Input box: white background, standard border ── */
+
 .viq-naics-input {
     height: 30px !important;
     padding: 0 0.75rem !important;
     border-radius: 6px !important;
-    border: 1px solid #86efac !important;  /* WAS: rgba white border — now green-300 */
-    background-color: #ffffff !important;  /* WAS: rgba white */
-    color: #14532d !important;             /* WAS: #ffffff */
+    border: 1px solid #86efac !important;
+    background-color: #ffffff !important;
+    color: #14532d !important;
     font-size: 0.8125rem !important;
     min-width: 0;
     width: 140px;
     outline: none;
 }
 
-.viq-naics-input::placeholder { color: #86efac !important; } /* WAS: rgba white */
+
+.viq-naics-input::placeholder { color: #86efac !important; }
+
 
 .viq-naics-input:focus {
-    border-color: #16a34a !important;      /* WAS: rgba white 0.85 */
+    border-color: #16a34a !important;
     background-color: #ffffff !important;
     outline: none !important;
     box-shadow: 0 0 0 2px rgba(22,163,74,0.15) !important;
 }
 
-/* Override for inputs outside green card */
+
 .viq-naics-retry-row .viq-naics-input,
 .viq-empty-card .viq-naics-input {
     background-color: #ffffff !important;
@@ -611,39 +721,13 @@ input  { font: inherit; color: inherit; }
     box-shadow: 0 0 0 2px rgba(1,118,211,0.15) !important;
 }
 
-/* VIQ — GREEN HEADER CARD — match React portal light mint */
-.viq-header-card {
-    background-color: #f0fdf4 !important;   /* WAS: #166534 — now light green */
-    border: 1px solid #bbf7d0 !important;   /* ADD: green-200 border */
-    border-radius: 12px;
-    padding: 1rem 1.25rem;
-    color: #14532d !important;              /* WAS: #ffffff — now dark green text */
-}
 
-.viq-header-industry-name {
-    font-size: 1rem !important;
-    font-weight: 700 !important;
-    color: #14532d !important;             /* WAS: #ffffff */
-    line-height: 1.2;
-}
-
-.viq-badge--naics {
-    background-color: #dcfce7 !important;  /* WAS: rgba white — now green-100 */
-    color: #166534 !important;             /* WAS: #ffffff — now dark green */
-    border: 1px solid #bbf7d0 !important;  /* WAS: rgba white border */
-}
-
-.viq-badge--id {
-    background-color: #dcfce7 !important;  /* WAS: rgba white */
-    color: #166534 !important;             /* WAS: rgba white */
-    border: 1px solid #bbf7d0 !important;
-}
 .viq-reload-btn {
     height: 30px !important;
     padding: 0 1rem !important;
     border-radius: 6px !important;
-    background-color: #16a34a !important;  /* WAS: rgba white 0.92 — now solid green */
-    color: #ffffff !important;             /* WAS: #166534 — now white */
+    background-color: #16a34a !important;
+    color: #ffffff !important;
     font-size: 0.75rem !important;
     font-weight: 700 !important;
     white-space: nowrap;
@@ -651,8 +735,9 @@ input  { font: inherit; color: inherit; }
     border: none !important;
     cursor: pointer;
 }
-
 .viq-reload-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.viq-reload-btn:hover:not(:disabled) { background-color: #15803d !important; }
+
 
 .viq-naics-retry-row {
     display: flex;
@@ -664,36 +749,13 @@ input  { font: inherit; color: inherit; }
     background-color: #0176d3 !important;
     color: #ffffff !important;
 }
-.viq-reload-btn:hover:not(:disabled) { 
-    background-color: #15803d !important;  /* WAS: #ffffff */
-}
 
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — AI INSIGHTS PANEL
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-insights-panel {
-    background-color: #eff6ff !important;
-    border: 1.5px solid #93c5fd !important;
-    border-radius: 8px;
-    padding: 1rem;
-}
-.viq-insights-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.75rem;
-}
-.viq-insights-icon  { font-size: 1rem; }
-.viq-insights-title { font-size: 0.8125rem !important; font-weight: 700 !important; color: #1d4ed8 !important; }
-.viq-insights-date  { margin-left: auto; font-size: 0.6875rem !important; color: #60a5fa !important; }
-.viq-insights-body  { font-size: 0.8125rem !important; color: #1e40af !important; line-height: 1.65; white-space: pre-wrap; }
 
 
 /* ═══════════════════════════════════════════════════════════════════
    VIQ — API ERROR BANNER
 ═══════════════════════════════════════════════════════════════════ */
+
 
 .viq-api-error {
     display: flex;
@@ -708,356 +770,11 @@ input  { font: inherit; color: inherit; }
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — ACCORDION TOOLBAR
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-accordion-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 1rem;
-    background-color: #ffffff !important;
-    border: 1px solid #e0e4ea !important;
-    border-bottom: none !important;
-    border-radius: 6px 6px 0 0;
-}
-.viq-accordion-toolbar-label {
-    font-size: 0.75rem !important;
-    font-weight: 500 !important;
-    color: #5a6272 !important;
-}
-.viq-accordion-toolbar-actions { display: flex; align-items: center; gap: 0.5rem; }
-
 
 /* ═══════════════════════════════════════════════════════════════════
-   VIQ — ACCORDION CONTAINER + ITEMS
+   VIQ — CARD LAYOUT
 ═══════════════════════════════════════════════════════════════════ */
 
-.viq-accordion {
-    display: flex;
-    flex-direction: column;
-    background-color: #ffffff !important;
-    border: 1px solid #e0e4ea !important;
-    border-top: none !important;
-    border-radius: 0 0 8px 8px;
-    overflow: hidden;
-}
-
-.viq-accordion-item { border-bottom: 1px solid #edf0f4 !important; }
-.viq-accordion-item:last-child { border-bottom: none !important; }
-
-.viq-accordion-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    padding: 0.75rem 1rem !important;
-    background-color: transparent !important;
-    text-align: left;
-    gap: 0.5rem;
-    cursor: pointer;
-    transition: background-color 140ms ease;
-    border: none !important;
-    outline: none;
-}
-.viq-accordion-header:hover { background-color: #f0fdf4 !important; }
-
-.viq-accordion-header-left {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex: 1;
-    min-width: 0;
-}
-
-/* Green dot */
-.viq-section-dot {
-    width: 7px !important;
-    height: 7px !important;
-    min-width: 7px;
-    border-radius: 50% !important;
-    background-color: #16a34a !important;
-    flex-shrink: 0;
-    display: inline-block;
-}
-
-.viq-accordion-title {
-    font-size: 0.8125rem !important;
-    font-weight: 600 !important;
-    color: #1a1d23 !important;
-    white-space: nowrap;
-}
-
-/* Green count badge */
-.viq-count-chip {
-    font-size: 0.6875rem !important;
-    font-weight: 600 !important;
-    color: #15803d !important;
-    background-color: #dcfce7 !important;
-    border: 1px solid #bbf7d0 !important;
-    padding: 1px 7px !important;
-    border-radius: 999px !important;
-    white-space: nowrap;
-    flex-shrink: 0;
-    display: inline-block;
-    line-height: 1.5;
-}
-
-/* Chevron — the ▾/▸ character */
-.viq-chevron-icon {
-    font-size: 0.8rem !important;
-    color: #5a6272 !important;
-    flex-shrink: 0;
-    user-select: none;
-    line-height: 1;
-    width: 14px;
-    text-align: center;
-    display: inline-block;
-}
-
-/* Accordion body */
-.viq-accordion-body {
-    padding: 1rem !important;
-    background-color: #ffffff !important;
-    border-top: 1px solid #edf0f4 !important;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — SHARED CONTENT BLOCKS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-overview-block { margin-bottom: 1rem; }
-.viq-overview-block:last-child { margin-bottom: 0; }
-
-.viq-block-label {
-    font-size: 0.6875rem !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: #15803d !important;
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-.viq-block-text { font-size: 0.8125rem !important; color: #1a1d23 !important; line-height: 1.65; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — FORECASTS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-forecast-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
-
-.viq-forecast-chip {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 0.5rem 1rem;
-    background-color: #dcfce7 !important;
-    border: 1px solid #bbf7d0 !important;
-    border-radius: 8px;
-    min-width: 100px;
-}
-.viq-forecast-label {
-    font-size: 0.6875rem !important;
-    color: #14532d !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-.viq-forecast-value { font-size: 0.875rem !important; font-weight: 700 !important; color: #15803d !important; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — DERIVED STATEMENTS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-derived-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 0.5rem;
-}
-.viq-derived-item {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 0.5rem 0.75rem;
-    background-color: #f0f2f5 !important;
-    border: 1px solid #edf0f4 !important;
-    border-radius: 6px;
-}
-.viq-derived-title {
-    font-size: 0.6875rem !important;
-    color: #5a6272 !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-.viq-derived-value { font-size: 0.8125rem !important; font-weight: 600 !important; color: #1a1d23 !important; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — TREND ITEMS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-trends-list { display: flex; flex-direction: column; gap: 0.75rem; }
-
-.viq-trend-item {
-    padding: 0.75rem;
-    background-color: #f0f2f5 !important;
-    border: 1px solid #edf0f4 !important;
-    border-left: 3px solid #16a34a !important;
-    border-radius: 0 6px 6px 0;
-}
-.viq-trend-title { font-size: 0.8125rem !important; font-weight: 600 !important; color: #1a1d23 !important; margin-bottom: 0.25rem; }
-.viq-trend-body  { font-size: 0.8125rem !important; color: #5a6272 !important; line-height: 1.6; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — QUARTERLY INSIGHTS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-quarterly-list { display: flex; flex-direction: column; gap: 0.75rem; }
-
-.viq-quarterly-item {
-    padding: 0.75rem 1rem;
-    background-color: #f0f2f5 !important;
-    border: 1px solid #edf0f4 !important;
-    border-radius: 8px;
-}
-.viq-quarterly-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin-bottom: 0.5rem;
-    flex-wrap: wrap;
-}
-.viq-quarterly-title { font-size: 0.8125rem !important; font-weight: 700 !important; color: #1a1d23 !important; }
-.viq-quarterly-date  { font-size: 0.6875rem !important; color: #9aa0ae !important; white-space: nowrap; }
-
-.viq-quarterly-bullets {
-    list-style: disc;
-    padding-left: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-.viq-quarterly-bullets li { font-size: 0.8125rem !important; color: #1a1d23 !important; line-height: 1.55; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — CURRENT CONDITIONS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-conditions-list { display: flex; flex-direction: column; gap: 0.75rem; }
-
-.viq-condition-item {
-    padding: 0.75rem 1rem;
-    background-color: #f0f2f5 !important;
-    border: 1px solid #edf0f4 !important;
-    border-radius: 8px;
-}
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — BANKING PRODUCTS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-banking-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 0.5rem;
-}
-.viq-banking-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.75rem;
-    background-color: #f0f2f5 !important;
-    border: 1px solid #edf0f4 !important;
-    border-radius: 6px;
-}
-.viq-banking-product-title { font-size: 0.75rem !important; font-weight: 600 !important; color: #5a6272 !important; line-height: 1.3; }
-.viq-banking-value { font-size: 0.875rem !important; font-weight: 700 !important; color: #1a1d23 !important; }
-.viq-banking-unit  { font-size: 0.75rem !important; font-weight: 400 !important; color: #5a6272 !important; margin-left: 2px; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — KEY QUESTIONS
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-questions-list {
-    list-style: decimal;
-    padding-left: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.viq-question-item { font-size: 0.8125rem !important; color: #1a1d23 !important; line-height: 1.55; padding-left: 0.25rem; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — INDUSTRY TERMS & GLOSSARY
-   Two-column grid, green top border, bold green term name.
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-terms-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 0.75rem;
-}
-
-.viq-term-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.75rem 1rem;
-    background-color: #f0f2f5 !important;
-    border: 1px solid #edf0f4 !important;
-    border-top: 3px solid #16a34a !important;
-    border-radius: 0 0 6px 6px;
-}
-.viq-term-name       { font-size: 0.8125rem !important; font-weight: 700 !important; color: #15803d !important; line-height: 1.25; }
-.viq-term-definition { font-size: 0.8125rem !important; color: #1a1d23 !important; line-height: 1.6; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — EMPTY STATE
-═══════════════════════════════════════════════════════════════════ */
-
-.viq-empty-card {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    padding: 2rem 1rem;
-    background-color: #ffffff !important;
-    border: 1px solid #e0e4ea !important;
-    border-radius: 12px;
-    text-align: center;
-}
-.viq-empty-icon { font-size: 2rem; opacity: 0.4; }
-.viq-empty-text { font-size: 0.8125rem !important; color: #5a6272 !important; max-width: 320px; line-height: 1.55; }
-
-
-/* ═══════════════════════════════════════════════════════════════════
-   RMA / EQUIFAX PLACEHOLDER
-═══════════════════════════════════════════════════════════════════ */
-
-.cdr-section-card {
-    background-color: #ffffff;
-    border: 1px solid #e0e4ea;
-    border-radius: 8px;
-    padding: 1rem;
-}
-.cdr-section-card-title { font-size: 0.875rem; font-weight: 700; color: #1a1d23; margin-bottom: 0.75rem; }
-/* ═══════════════════════════════════════════════════════════════════
-   VIQ — CARD LAYOUT (replaces accordion)
-═══════════════════════════════════════════════════════════════════ */
 
 .viq-card {
     border-radius: 8px;
@@ -1065,14 +782,23 @@ input  { font: inherit; color: inherit; }
     margin-bottom: 0;
 }
 
+
+/* Make card headers act as toggle buttons */
 .viq-card-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
     border-bottom-width: 1px;
     border-bottom-style: solid;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: filter 140ms ease;
 }
+.viq-card-header:hover { filter: brightness(0.97); }
+
 
 .viq-card-title {
     font-size: 0.875rem !important;
@@ -1080,11 +806,23 @@ input  { font: inherit; color: inherit; }
     margin: 0;
 }
 
+
 .viq-card-count {
     font-size: 0.75rem;
     font-weight: 400;
     margin-left: 0.25rem;
 }
+
+
+/* Chevron displayed inside collapsible card headers */
+.viq-chevron {
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    color: inherit;
+    opacity: 0.6;
+    user-select: none;
+}
+
 
 .viq-card-body {
     padding: 1rem;
@@ -1093,13 +831,15 @@ input  { font: inherit; color: inherit; }
     gap: 0.5rem;
 }
 
+
 .viq-card-text {
     font-size: 0.8125rem !important;
     line-height: 1.65;
     white-space: pre-wrap;
 }
 
-/* ── Indigo cards (Trends, Conditions, Quarterly) ── */
+
+/* ── Indigo cards (Trends, Conditions, Quarterly, Overview, Terms, Benchmarks, Metrics, Operations) ── */
 .viq-card--indigo {
     border: 1px solid #c7d2fe !important;
 }
@@ -1110,9 +850,13 @@ input  { font: inherit; color: inherit; }
 .viq-card-header--indigo .viq-card-title {
     color: #3730a3 !important;
 }
+.viq-card-header--indigo .viq-chevron {
+    color: #3730a3 !important;
+}
 .viq-card--indigo .viq-card-body {
     background-color: #ffffff !important;
 }
+
 
 /* ── Green card (Banking Products) ── */
 .viq-card--green {
@@ -1125,9 +869,13 @@ input  { font: inherit; color: inherit; }
 .viq-card-header--green .viq-card-title {
     color: #166534 !important;
 }
+.viq-card-header--green .viq-chevron {
+    color: #166534 !important;
+}
 .viq-card--green .viq-card-body {
     background-color: #ffffff !important;
 }
+
 
 /* ── Amber card (Key Questions) ── */
 .viq-card--amber {
@@ -1140,11 +888,15 @@ input  { font: inherit; color: inherit; }
 .viq-card-header--amber .viq-card-title {
     color: #92400e !important;
 }
+.viq-card-header--amber .viq-chevron {
+    color: #92400e !important;
+}
 .viq-card--amber .viq-card-body {
     background-color: #ffffff !important;
 }
 
-/* ── Blue card (AI Insights) ── */
+
+/* ── Blue card (AI Insights — not collapsible) ── */
 .viq-card--blue {
     border: 1px solid #93c5fd !important;
 }
@@ -1154,13 +906,17 @@ input  { font: inherit; color: inherit; }
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    /* AI Insights header is not a toggle button */
+    cursor: default;
 }
+.viq-card-header--blue:hover { filter: none; }
 .viq-card-header--blue .viq-card-title {
     color: #1d4ed8 !important;
 }
 .viq-card--blue .viq-card-body {
     background-color: #ffffff !important;
 }
+
 
 /* ── Items inside cards ── */
 .viq-item {
@@ -1188,6 +944,7 @@ input  { font: inherit; color: inherit; }
     margin-bottom: 0.25rem;
 }
 
+
 /* ── Bullet list inside conditions ── */
 .viq-bullet-list {
     list-style: none;
@@ -1210,6 +967,7 @@ input  { font: inherit; color: inherit; }
     color: #6366f1;
 }
 
+
 /* ── Banking grid ── */
 .viq-banking-grid {
     display: flex;
@@ -1225,14 +983,9 @@ input  { font: inherit; color: inherit; }
     border-radius: 6px;
     font-size: 0.8125rem !important;
 }
-.viq-banking-name {
-    color: #374151 !important;
-    font-weight: 500;
-}
-.viq-banking-usage {
-    color: #166534 !important;
-    font-weight: 600;
-}
+.viq-banking-name  { color: #374151 !important; font-weight: 500; }
+.viq-banking-usage { color: #166534 !important; font-weight: 600; }
+
 
 /* ── Key Questions ── */
 .viq-questions-ul {
@@ -1257,3 +1010,112 @@ input  { font: inherit; color: inherit; }
     margin-top: 1px;
     font-size: 0.625rem;
 }
+
+
+/* ── Industry Terms ── */
+.viq-term-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem;
+    background-color: #f0f2f5 !important;
+    border: 1px solid #edf0f4 !important;
+    border-top: 3px solid #16a34a !important;
+    border-radius: 0 0 6px 6px;
+}
+.viq-term-name { font-size: 0.8125rem !important; font-weight: 700 !important; color: #15803d !important; line-height: 1.25; }
+.viq-term-def  { font-size: 0.8125rem !important; color: #1a1d23 !important; line-height: 1.6; margin: 0; }
+
+
+/* ── Industry Overview blocks ── */
+.viq-overview-block { margin-bottom: 1rem; }
+.viq-overview-block:last-child { margin-bottom: 0; }
+
+.viq-overview-label {
+    font-size: 0.6875rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #15803d !important;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.viq-overview-value {
+    font-size: 0.8125rem !important;
+    color: #1a1d23 !important;
+    line-height: 1.5;
+    margin-bottom: 0.2rem;
+}
+
+
+/* ── Derived statements (title + value row) ── */
+.viq-derived-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #edf0f4;
+}
+.viq-derived-row:last-child { border-bottom: none; }
+.viq-derived-title { font-size: 0.75rem !important; color: #5a6272 !important; font-weight: 500; }
+.viq-derived-value { font-size: 0.8125rem !important; font-weight: 600 !important; color: #1a1d23 !important; }
+
+
+/* ── Financial Metrics rows ── */
+.viq-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #edf0f4;
+}
+.viq-metric-row:last-child { border-bottom: none; }
+.viq-metric-block { margin-top: 0.75rem; }
+.viq-metric-label {
+    font-size: 0.75rem !important;
+    color: #5a6272 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+.viq-metric-value { font-size: 0.8125rem !important; font-weight: 600 !important; color: #1a1d23 !important; }
+
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   VIQ — EMPTY STATE
+═══════════════════════════════════════════════════════════════════ */
+
+
+.viq-empty-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    background-color: #ffffff !important;
+    border: 1px solid #e0e4ea !important;
+    border-radius: 12px;
+    text-align: center;
+}
+.viq-empty-icon { font-size: 2rem; opacity: 0.4; }
+.viq-empty-text { font-size: 0.8125rem !important; color: #5a6272 !important; max-width: 320px; line-height: 1.55; }
+
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   RMA / EQUIFAX PLACEHOLDER
+═══════════════════════════════════════════════════════════════════ */
+
+
+.cdr-section-card {
+    background-color: #ffffff;
+    border: 1px solid #e0e4ea;
+    border-radius: 8px;
+    padding: 1rem;
+}
+.cdr-section-card-title { font-size: 0.875rem; font-weight: 700; color: #1a1d23; margin-bottom: 0.75rem; }
