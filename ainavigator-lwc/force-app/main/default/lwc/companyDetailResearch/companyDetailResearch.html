@@ -1,934 +1,956 @@
 <!--
-  @description  Company Detail Research — accordion layout matching React portal.
-                Sections are dynamically generated from AI Navigator Report headings.
-                UCC tab renders live Middesk data with card UI (filings) or
-                exact-match empty state when no filings exist.
-                VIQ tab renders VerticalIQ industry intelligence with green header,
-                NAICS input, AI Insights panel, and collapsible accordion sections.
-  @author       AI Navigator Platform
-  @last modified on : 05-17-2026
+  description: Company Detail Research — accordion layout matching React portal.
+               Sections are dynamically generated from AI Navigator Report headings.
+               UCC tab re-written to match React portal UI exactly:
+                 - Rounded elevated outer card (border-purple-200, rounded-lg, overflow-hidden)
+                 - Purple accent header: filled checkmark icon, title, purple pill badge, purple source label
+                 - Two-tile summary row: count tile (purple) | business name tile (indigo, col-span-2)
+                 - Filing cards: purple hover border, filing type badge in purple-100/purple-700
+                 - Status badge: soft bg-green-100 text-green-700 (NOT solid green)
+                 - Jurisdiction rendered as PLAIN TEXT (never a pill/badge)
+                 - Secured Party block: bg-green-50 border-green-100 left border, green label + green names
+                 - Debtor block: bg-amber-50 border-amber-100 left border, amber label + bold names
+                 - Collateral block: bg-gray-50 border-gray-200, gray label
+               All other tabs (Research Library, Leadership, VIQ, RMA, Equifax) are UNCHANGED.
+  author: AI Navigator Platform
+  last modified: 05-18-2026
 -->
 <template>
-    <div class="cdr-wrapper">
-
-
-
-        <!-- ── Sub-Tab Bar ── -->
-        <div class="cdr-subtab-bar">
-            <template for:each={researchSubTabs} for:item="tab">
-                <button key={tab.id}
-                        class={tab.cssClass}
-                        data-id={tab.id}
-                        onclick={handleSubTabChange}>
-                    {tab.label}
-                </button>
-            </template>
-        </div>
-
-
-
-        <!-- ── Report Loading Spinner ── -->
-        <template if:true={isLoading}>
-            <div class="cdr-loading">
-                <div class="cdr-spinner"></div>
-                <span>Loading AI Navigator Report...</span>
-            </div>
-        </template>
-
-
-
-        <!-- ── Report Error ── -->
-        <template if:true={error}>
-            <div class="cdr-error">
-                <span class="cdr-error-icon">&#9888;</span>
-                <span>{error}</span>
-            </div>
-        </template>
-
-
-
-        <!-- ══════════════════════════════════════════════════════════
-             TAB: Research Library
-        ══════════════════════════════════════════════════════════ -->
-        <template if:true={isResearchLibraryTab}>
-            <template if:false={isLoading}>
-
-
-                <template if:true={hasSections}>
-
-
-                    <!-- Report header bar -->
-                <div class="cdr-report-card">
-                    <div class="cdr-report-header">
-                        <div class="cdr-report-header-left">
-                            <span class="cdr-report-icon">&#128196;</span>
-                            <span class="cdr-report-title">AI Navigator Report</span>
-                        </div>
-                        <div class="cdr-report-header-right">
-                            <button class="cdr-link-btn" onclick={handleExpandAll}>Expand All</button>
-                            <span class="cdr-divider">|</span>
-                            <button class="cdr-link-btn" onclick={handleCollapseAll}>Collapse All</button>
-                        </div>
-                    </div>
-                </div>
-
-                    <!-- Accordion -->
-                    <div class="cdr-accordion">
-                        <template for:each={parsedSections} for:item="sec">
-                            <div key={sec.id} class="cdr-accordion-item">
-
-
-                                <button class="cdr-accordion-header"
-                                        data-id={sec.id}
-                                        onclick={handleToggle}
-                                        aria-expanded={sec.ariaExpanded}>
-                                    <div class="cdr-accordion-header-left">
-                                        <span class={sec.chevron}></span>
-                                        <span class="cdr-accordion-title">{sec.title}</span>
-                                    </div>
-                                    <template if:true={sec.isExpanded}>
-                                        <span class="cdr-collapse-hint">Click to collapse</span>
-                                    </template>
-                                    <template if:false={sec.isExpanded}>
-                                        <span class="cdr-collapse-hint">Click to expand</span>
-                                    </template>
-                                </button>
-
-
-                                <template if:true={sec.isExpanded}>
-                                    <div class="cdr-accordion-body">
-                                        <template for:each={sec.renderedRows} for:item="row">
-
-
-                                            <template if:true={row.isTable}>
-                                                <div key={row.id} class="cdr-table-wrapper">
-                                                    <table class="cdr-table">
-                                                        <thead>
-                                                            <tr>
-                                                                <template for:each={row.headerCells} for:item="cell">
-                                                                    <th key={cell.text} class="cdr-th">{cell.text}</th>
-                                                                </template>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <template for:each={row.bodyRows} for:item="brow">
-                                                                <tr key={brow.id}>
-                                                                    <template for:each={brow.cells} for:item="cell">
-                                                                        <td key={cell.text} class="cdr-td">{cell.text}</td>
-                                                                    </template>
-                                                                </tr>
-                                                            </template>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </template>
-
-
-                                            <template if:true={row.isBullet}>
-                                                <div key={row.id} class="cdr-bullet-row">
-                                                    <span class="cdr-bullet-dot">&#8226;</span>
-                                                    <span class="cdr-bullet-text">{row.html}</span>
-                                                </div>
-                                            </template>
-
-
-                                            <template if:true={row.isHeading}>
-                                                <div key={row.id} class="cdr-subheading">{row.text}</div>
-                                            </template>
-
-
-                                            <template if:true={row.isText}>
-                                                <p key={row.id} class="cdr-para">{row.html}</p>
-                                            </template>
-
-
-                                            <template if:true={row.isSpacer}>
-                                                <div key={row.id} class="cdr-spacer"></div>
-                                            </template>
-
-
-                                        </template>
-                                    </div>
-                                </template>
-
-
-                            </div>
-                        </template>
-                    </div>
-
-
-                </template>
-
-
-                <!-- Empty state -->
-                <template if:false={hasSections}>
-                    <template if:false={error}>
-                        <div class="cdr-empty">
-                            <span class="cdr-empty-icon">&#128196;</span>
-                            <p>Research report not yet available for this company.</p>
-                        </div>
-                    </template>
-                </template>
-
-
-                <!-- Sources panel -->
-                <template if:true={hasSources}>
-                    <div class="cdr-sources-panel">
-                        <div class="cdr-sources-header">Sources</div>
-                        <ul class="cdr-sources-list">
-                            <template for:each={sources} for:item="src">
-                                <li key={src.idx} class="cdr-source-item">
-                                    <span class="cdr-source-num">[{src.idx}]</span>
-                                    <a class="cdr-source-link"
-                                       href={src.url}
-                                       target="_blank"
-                                       rel="noopener noreferrer">{src.label}</a>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-                </template>
-
-
-            </template>
-        </template>
-
-
-
-        <!-- ══════════════════════════════════════════════════════════
-             TAB: Leadership
-        ══════════════════════════════════════════════════════════ -->
-        <template if:true={isLeadershipTab}>
-            <div class="cdr-subtab-content">
-                <template if:true={hasLeadership}>
-                    <div class="cdr-leadership-list">
-                        <template for:each={leadershipList} for:item="leader">
-                            <div key={leader.id} class="cdr-leader-card">
-                                <div class="cdr-leader-avatar">{leader.initials}</div>
-                                <div class="cdr-leader-info">
-                                    <div class="cdr-leader-name">{leader.name}</div>
-                                    <div class="cdr-leader-title">{leader.title}</div>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-                <template if:false={hasLeadership}>
-                    <div class="cdr-empty">
-                        <span class="cdr-empty-icon">&#128100;</span>
-                        <p>Leadership data will appear here once research is complete.</p>
-                    </div>
-                </template>
-            </div>
-        </template>
-
-
-
-        <!-- ══════════════════════════════════════════════════════════
-             TAB: UCC
-        ══════════════════════════════════════════════════════════ -->
-        <template if:true={isUccTab}>
-            <div class="cdr-subtab-content">
-
-
-                <template if:true={uccIsLoading}>
-                    <div class="cdr-loading">
-                        <div class="cdr-spinner"></div>
-                        <span>Loading UCC filings...</span>
-                    </div>
-                </template>
-
-
-                <template if:true={uccHasError}>
-                    <div class="cdr-error">
-                        <span class="cdr-error-icon">&#9888;</span>
-                        <span>{uccError}</span>
-                    </div>
-                </template>
-
-
-                <template if:true={uccShowFilings}>
-                    <div class="ucc-outer-card">
-
-
-                        <div class="ucc-card-header">
-                            <div class="ucc-card-header-left">
-                                <span class="ucc-header-icon">&#9989;</span>
-                                <span class="ucc-header-title">UCC/Lien Filings</span>
-                                <span class="ucc-count-badge">{uccFilingsLabel}</span>
-                            </div>
-                            <div class="ucc-card-header-right">
-                                <span class="ucc-source-label">Source: Business Registry</span>
-                            </div>
-                        </div>
-
-
-                        <div class="ucc-summary-row">
-                            <div class="ucc-stat-cell">
-                                <div class="ucc-stat-number">{uccTotalFilings}</div>
-                                <div class="ucc-stat-label">Total Lien Filings</div>
-                            </div>
-                            <template if:true={uccHasBusinessName}>
-                                <div class="ucc-biz-cell">
-                                    <div class="ucc-biz-name">{uccBusinessName}</div>
-                                    <div class="ucc-biz-verified">Verified Business Name</div>
-                                </div>
-                            </template>
-                        </div>
-
-
-                        <template for:each={uccFilings} for:item="filing">
-                            <div key={filing.key} class="ucc-filing-card">
-
-
-                                <div class="ucc-filing-top">
-                                    <div class="ucc-filing-top-left">
-                                        <span class="ucc-filing-label">{filing.label}</span>
-                                        <span class="ucc-type-badge">{filing.filingType}</span>
-                                        <span class={filing.statusClass}>{filing.status}</span>
-                                        <template if:true={filing.jurisdiction}>
-                                            <span class="ucc-jurisdiction">
-                                                Jurisdiction: {filing.jurisdiction}
-                                            </span>
-                                        </template>
-                                        <template if:true={filing.filingOffice}>
-                                            <span class="ucc-filing-office">
-                                                Filing Office: {filing.filingOffice}
-                                            </span>
-                                        </template>
-                                    </div>
-                                    <div class="ucc-filing-top-right">
-                                        <template if:true={filing.filedDate}>
-                                            <span class="ucc-date">Filed: {filing.filedDate}</span>
-                                        </template>
-                                        <template if:true={filing.expiresDate}>
-                                            <span class="ucc-date">Expires: {filing.expiresDate}</span>
-                                        </template>
-                                    </div>
-                                </div>
-
-
-                                <template if:true={filing.hasSecuredParties}>
-                                    <div class="ucc-party-block ucc-party-block--secured">
-                                        <div class="ucc-party-label">SECURED PARTY</div>
-                                        <template for:each={filing.securedParties} for:item="party">
-                                            <div key={party.name} class="ucc-party-row">
-                                                <div class="ucc-party-name">{party.name}</div>
-                                                <template if:true={party.address}>
-                                                    <div class="ucc-party-address">{party.address}</div>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-
-
-                                <template if:true={filing.hasDebtors}>
-                                    <div class="ucc-party-block ucc-party-block--debtor">
-                                        <div class="ucc-party-label">DEBTOR</div>
-                                        <template for:each={filing.debtors} for:item="debtor">
-                                            <div key={debtor.name} class="ucc-party-row">
-                                                <div class="ucc-party-name">{debtor.name}</div>
-                                                <template if:true={debtor.address}>
-                                                    <div class="ucc-party-address">{debtor.address}</div>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-
-
-                                <template if:true={filing.hasCollateral}>
-                                    <div class="ucc-party-block ucc-party-block--collateral">
-                                        <div class="ucc-party-label">COLLATERAL</div>
-                                        <div class="ucc-collateral-text">{filing.collateral}</div>
-                                    </div>
-                                </template>
-
-
-                            </div>
-                        </template>
-
-
-                    </div>
-                </template>
-
-
-                <template if:true={uccShowEmptyState}>
-                    <div class="ucc-empty-card">
-                        <div class="ucc-empty-dash">&#8212;</div>
-                        <p class="ucc-empty-text">No UCC lien filings found for this company</p>
-                    </div>
-                </template>
-
-
-            </div>
-        </template>
-
-
-
-        <!-- ══════════════════════════════════════════════════════════
-             TAB: VIQ — VerticalIQ Industry Intelligence
-        ══════════════════════════════════════════════════════════ -->
-        <template if:true={isViqTab}>
-            <div class="cdr-subtab-content viq-tab-content">
-
-
-                <!-- ── VIQ Loading ── -->
-                <template if:true={viqIsLoading}>
-                    <div class="cdr-loading">
-                        <div class="cdr-spinner"></div>
-                        <span>Loading VerticalIQ industry intelligence...</span>
-                    </div>
-                </template>
-
-
-                <!-- ── VIQ Apex/Network Error ── -->
-                <template if:true={viqHasError}>
-                    <div class="cdr-error">
-                        <span class="cdr-error-icon">&#9888;</span>
-                        <span>{viqError}</span>
-                    </div>
-                    <div class="viq-naics-retry-row">
-                        <input type="text"
-                            class="viq-naics-input"
-                            placeholder="Enter NAICS code and reload"
-                            value={viqNaicsCode}
-                            oninput={handleViqNaicsChange}
-                            onkeydown={handleViqNaicsKeydown} />
-                        <button class="viq-reload-btn"
-                                disabled={viqReloadDisabled}
-                                onclick={handleViqReload}>Reload</button>
-                    </div>
-                </template>
-
-
-                <!-- ── VIQ Not Yet Loaded ── -->
-                <template if:true={viqNotYetLoaded}>
-                    <div class="cdr-loading">
-                        <div class="cdr-spinner"></div>
-                        <span>Loading VerticalIQ industry intelligence...</span>
-                    </div>
-                </template>
-
-
-                <!-- ── VIQ Data View ── -->
-                <template if:true={viqShowData}>
-
-
-                    <!-- ── Green Header Card ── -->
-                    <div class="viq-header-card">
-                        <div class="viq-header-top">
-                            <div class="viq-header-title-group">
-                                <span class="viq-header-industry-name">{viqIndustryName}</span>
-                                <div class="viq-header-badges">
-                                    <span class="viq-badge viq-badge--naics">NAICS: {viqNaicsDisplay}</span>
-                                    <span class="viq-badge viq-badge--id">Industry ID: {viqIndustryId}</span>
-                                </div>
-                            </div>
-                            <button class="viq-refresh-btn"
-                                    title="Refresh VerticalIQ data"
-                                    onclick={handleViqRefresh}>&#8635;</button>
-                        </div>
-                        <div class="viq-naics-row">
-                            <label class="viq-naics-label">Change NAICS</label>
-                            <input type="text"
-                                class="viq-naics-input"
-                                placeholder="e.g. 484121"
-                                value={viqNaicsCode}
-                                maxlength="10"
-                                oninput={handleViqNaicsChange}
-                                onkeydown={handleViqNaicsKeydown} />
-                            <button class="viq-reload-btn"
-                                    disabled={viqReloadDisabled}
-                                    onclick={handleViqReload}>Reload</button>
-                        </div>
-                    </div>
-
-
-                    <!-- ── AI Insights Panel ── -->
-                    <template if:true={viqHasInsights}>
-                        <div class="viq-card viq-card--blue">
-                            <div class="viq-card-header viq-card-header--blue">
-                                <span class="viq-insights-icon">&#129302;</span>
-                                <h3 class="viq-card-title">AI-Generated Insights &amp; Talking Points</h3>
-                            </div>
-                            <div class="viq-card-body">
-                                <p class="viq-card-text">{viqInsightsContent}</p>
-                            </div>
-                        </div>
-                    </template>
-
-
-                    <!-- ── API-level Error ── -->
-                    <template if:true={viqHasApiError}>
-                        <div class="viq-api-error">
-                            <span class="cdr-error-icon">&#9888;</span>
-                            <span>{viqApiErrorMsg}</span>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Current Conditions ── -->
-                    <template if:true={viqShowCurrentConditions}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="currentConditions"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Current Conditions
-                                    <span class="viq-card-count">({viqCurrentConditionsCount})</span>
-                                </h3>
-                                <span class="viq-chevron">{viqConditionsChevron}</span>
-                            </button>
-                            <template if:true={viqConditionsExpanded}>
-                                <div class="viq-card-body">
-                                    <template for:each={viqCurrentConditions} for:item="cond">
-                                        <div key={cond.id} class="viq-item viq-item--indigo">
-                                            <div class="viq-item-title">{cond.title}</div>
-                                            <template if:true={cond.date}>
-                                                <div class="viq-item-date">{cond.date}</div>
-                                            </template>
-                                            <template if:true={cond.hasBullets}>
-                                                <ul class="viq-bullet-list">
-                                                    <template for:each={cond.bullets} for:item="bullet">
-                                                        <li key={bullet}>{bullet}</li>
-                                                    </template>
-                                                </ul>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Industry Trends ── -->
-                    <template if:true={viqShowIndustryTrends}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="industryTrends"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Industry Trends
-                                    <span class="viq-card-count">({viqTrendsCount})</span>
-                                </h3>
-                                <span class="viq-chevron">{viqTrendsChevron}</span>
-                            </button>
-                            <template if:true={viqTrendsExpanded}>
-                                <div class="viq-card-body">
-                                    <template for:each={viqTrends} for:item="trend">
-                                        <div key={trend.id} class="viq-item viq-item--indigo">
-                                            <div class="viq-item-title">{trend.title}</div>
-                                            <p class="viq-item-body">{trend.body}</p>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Global Trends ── -->
-                    <template if:true={viqShowGlobalTrends}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="globalTrends"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Global Trends
-                                    <span class="viq-card-count">({viqGlobalTrendsCount})</span>
-                                </h3>
-                                <span class="viq-chevron">{viqGlobalTrendsChevron}</span>
-                            </button>
-                            <template if:true={viqGlobalTrendsExpanded}>
-                                <div class="viq-card-body">
-                                    <template for:each={viqGlobalTrends} for:item="trend">
-                                        <div key={trend.id} class="viq-item viq-item--indigo">
-                                            <div class="viq-item-title">{trend.title}</div>
-                                            <p class="viq-item-body">{trend.body}</p>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Industry Overview (Forecasts + Structure + Derived) ── -->
-                    <template if:true={viqShowIndustryOverview}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="industryOverview"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Industry Overview</h3>
-                                <span class="viq-chevron">{viqIndustryOverviewChevron}</span>
-                            </button>
-                            <template if:true={viqIndustryOverviewExpanded}>
-                                <div class="viq-card-body">
-                                    <template if:true={viqHasForecast}>
-                                        <div class="viq-overview-block">
-                                            <div class="viq-overview-label">Growth Rate</div>
-                                            <div class="viq-overview-value">{viqForecastGrowthRate}</div>
-                                            <div class="viq-overview-value">{viqForecastRelative}</div>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqHasStructure}>
-                                        <div class="viq-overview-block">
-                                            <div class="viq-overview-label">Industry Structure</div>
-                                            <p class="viq-item-body">{viqStructure}</p>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqHasDerivedStatements}>
-                                        <div class="viq-overview-block">
-                                            <template for:each={viqDerivedStatements} for:item="ds">
-                                                <div key={ds.id} class="viq-derived-row">
-                                                    <span class="viq-derived-title">{ds.title}</span>
-                                                    <span class="viq-derived-value">{ds.value}</span>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Quarterly Insights ── -->
-                    <template if:true={viqShowQuarterlyInsights}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="quarterlyInsights"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Quarterly Insights
-                                    <span class="viq-card-count">({viqQuarterlyInsightsCount})</span>
-                                </h3>
-                                <span class="viq-chevron">{viqQuarterlyChevron}</span>
-                            </button>
-                            <template if:true={viqQuarterlyExpanded}>
-                                <div class="viq-card-body">
-                                    <template for:each={viqQuarterlyInsights} for:item="qi">
-                                        <div key={qi.id} class="viq-item viq-item--indigo">
-                                            <div class="viq-item-title">{qi.title}</div>
-                                            <p class="viq-item-body">{qi.body}</p>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Banking Product Usage ── -->
-                    <template if:true={viqShowBankingProducts}>
-                        <div class="viq-card viq-card--green">
-                            <button class="viq-card-header viq-card-header--green viq-section-toggle"
-                                    data-section="bankingProducts"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Banking Product Usage</h3>
-                                <span class="viq-chevron">{viqBankingChevron}</span>
-                            </button>
-                            <template if:true={viqBankingExpanded}>
-                                <div class="viq-card-body">
-                                    <div class="viq-banking-grid">
-                                        <template for:each={viqBankingProducts} for:item="product">
-                                            <div key={product.id} class="viq-banking-row">
-                                                <span class="viq-banking-name">{product.name}</span>
-                                                <template if:true={product.usage}>
-                                                    <span class="viq-banking-usage">{product.usage}</span>
-                                                </template>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Key Questions to Ask ── -->
-                    <template if:true={viqShowKeyQuestions}>
-                        <div class="viq-card viq-card--amber">
-                            <button class="viq-card-header viq-card-header--amber viq-section-toggle"
-                                    data-section="keyQuestions"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Key Questions to Ask</h3>
-                                <span class="viq-chevron">{viqQuestionsChevron}</span>
-                            </button>
-                            <template if:true={viqQuestionsExpanded}>
-                                <div class="viq-card-body">
-                                    <ul class="viq-questions-ul">
-                                        <template for:each={viqKeyQuestions} for:item="q">
-                                            <li key={q.id} class="viq-question-li">
-                                                <span class="viq-question-dot">&#10022;</span>
-                                                <span>{q.text}</span>
-                                            </li>
-                                        </template>
-                                    </ul>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Industry Terms / Glossary ── -->
-                    <template if:true={viqShowIndustryTerms}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="industryTerms"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Industry Terms
-                                    <span class="viq-card-count">({viqTermsCount})</span>
-                                </h3>
-                                <span class="viq-chevron">{viqIndustryTermsChevron}</span>
-                            </button>
-                            <template if:true={viqIndustryTermsExpanded}>
-                                <div class="viq-card-body">
-                                    <template for:each={viqTerms} for:item="term">
-                                        <div key={term.id} class="viq-term-row">
-                                            <div class="viq-term-name">{term.name}</div>
-                                            <p class="viq-term-def">{term.definition}</p>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Financial Benchmarks ── -->
-                    <template if:true={viqShowFinancialBenchmarks}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="financialBenchmarks"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Financial Benchmarks</h3>
-                                <span class="viq-chevron">{viqFinancialBenchmarksChevron}</span>
-                            </button>
-                            <template if:true={viqFinancialBenchmarksExpanded}>
-                                <div class="viq-card-body">
-                                    <div class="cdr-table-wrapper">
-                                        <table class="cdr-table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="cdr-th">Class</th>
-                                                    <th class="cdr-th">Current Ratio</th>
-                                                    <th class="cdr-th">Quick Ratio</th>
-                                                    <th class="cdr-th">Gross Margin</th>
-                                                    <th class="cdr-th">Net Margin</th>
-                                                    <th class="cdr-th">Days Recv.</th>
-                                                    <th class="cdr-th">Days Payable</th>
-                                                    <th class="cdr-th">Days Inv.</th>
-                                                    <th class="cdr-th">Debt/Equity</th>
-                                                    <th class="cdr-th">ROA</th>
-                                                    <th class="cdr-th">ROE</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <template for:each={viqBenchmarks} for:item="b">
-                                                    <tr key={b.id}>
-                                                        <td class="cdr-td">{b.compClass}</td>
-                                                        <td class="cdr-td">{b.currentRatio}</td>
-                                                        <td class="cdr-td">{b.quickRatio}</td>
-                                                        <td class="cdr-td">{b.grossMargin}</td>
-                                                        <td class="cdr-td">{b.netMargin}</td>
-                                                        <td class="cdr-td">{b.daysReceivables}</td>
-                                                        <td class="cdr-td">{b.daysPayable}</td>
-                                                        <td class="cdr-td">{b.daysInventory}</td>
-                                                        <td class="cdr-td">{b.debtToEquity}</td>
-                                                        <td class="cdr-td">{b.returnOnAssets}</td>
-                                                        <td class="cdr-td">{b.returnOnEquity}</td>
-                                                    </tr>
-                                                </template>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Financial Metrics ── -->
-                    <template if:true={viqShowFinancialMetrics}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="financialMetrics"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Financial Metrics</h3>
-                                <span class="viq-chevron">{viqFinancialMetricsChevron}</span>
-                            </button>
-                            <template if:true={viqFinancialMetricsExpanded}>
-                                <div class="viq-card-body">
-                                    <template if:true={viqFinancialMetrics.employeeCount}>
-                                        <div class="viq-metric-row">
-                                            <span class="viq-metric-label">Employee Count</span>
-                                            <span class="viq-metric-value">{viqFinancialMetrics.employeeCount}</span>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.revenue}>
-                                        <div class="viq-metric-row">
-                                            <span class="viq-metric-label">Revenue</span>
-                                            <span class="viq-metric-value">{viqFinancialMetrics.revenue}</span>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.size}>
-                                        <div class="viq-metric-row">
-                                            <span class="viq-metric-label">Size</span>
-                                            <span class="viq-metric-value">{viqFinancialMetrics.size}</span>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.entityType}>
-                                        <div class="viq-metric-row">
-                                            <span class="viq-metric-label">Entity Type</span>
-                                            <span class="viq-metric-value">{viqFinancialMetrics.entityType}</span>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.failureRate}>
-                                        <div class="viq-metric-row">
-                                            <span class="viq-metric-label">Failure Rate</span>
-                                            <span class="viq-metric-value">{viqFinancialMetrics.failureRate}</span>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.industryOverview}>
-                                        <div class="viq-metric-block">
-                                            <div class="viq-metric-label">Industry Overview</div>
-                                            <p class="viq-item-body">{viqFinancialMetrics.industryOverview}</p>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.profitability}>
-                                        <div class="viq-metric-block">
-                                            <div class="viq-metric-label">Profitability</div>
-                                            <p class="viq-item-body">{viqFinancialMetrics.profitability}</p>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.capitalFinancing}>
-                                        <div class="viq-metric-block">
-                                            <div class="viq-metric-label">Capital &amp; Financing</div>
-                                            <p class="viq-item-body">{viqFinancialMetrics.capitalFinancing}</p>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.cashLiquidity}>
-                                        <div class="viq-metric-block">
-                                            <div class="viq-metric-label">Cash &amp; Liquidity</div>
-                                            <p class="viq-item-body">{viqFinancialMetrics.cashLiquidity}</p>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqFinancialMetrics.workingCapitalMgmt}>
-                                        <div class="viq-metric-block">
-                                            <div class="viq-metric-label">Working Capital Mgmt</div>
-                                            <p class="viq-item-body">{viqFinancialMetrics.workingCapitalMgmt}</p>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Operations ── -->
-                    <template if:true={viqShowOperations}>
-                        <div class="viq-card viq-card--indigo">
-                            <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
-                                    data-section="operations"
-                                    onclick={handleViqSectionToggle}>
-                                <h3 class="viq-card-title">Operations</h3>
-                                <span class="viq-chevron">{viqOperationsChevron}</span>
-                            </button>
-                            <template if:true={viqOperationsExpanded}>
-                                <div class="viq-card-body">
-                                    <template if:true={viqHasProfitDrivers}>
-                                        <div class="viq-overview-block">
-                                            <div class="viq-overview-label">Profit Drivers</div>
-                                            <template for:each={viqProfitDrivers} for:item="pd">
-                                                <div key={pd.id} class="viq-item viq-item--indigo">
-                                                    <div class="viq-item-title">{pd.title}</div>
-                                                    <p class="viq-item-body">{pd.body}</p>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqHasRevenuePerEmployee}>
-                                        <div class="viq-overview-block">
-                                            <div class="viq-overview-label">Revenue per Employee</div>
-                                            <template for:each={viqRevenuePerEmployee} for:item="rpe">
-                                                <div key={rpe.id} class="viq-derived-row">
-                                                    <span class="viq-derived-title">{rpe.label}</span>
-                                                    <span class="viq-derived-value">{rpe.value}</span>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqHasWorkingCapitalBullets}>
-                                        <div class="viq-overview-block">
-                                            <div class="viq-overview-label">Working Capital</div>
-                                            <ul class="viq-bullet-list">
-                                                <template for:each={viqWorkingCapitalBullets} for:item="b">
-                                                    <li key={b.id}>{b.text}</li>
-                                                </template>
-                                            </ul>
-                                        </div>
-                                    </template>
-                                    <template if:true={viqHasCashMgmtChallenges}>
-                                        <div class="viq-overview-block">
-                                            <div class="viq-overview-label">Cash Management Challenges</div>
-                                            <template for:each={viqCashMgmtChallenges} for:item="cmc">
-                                                <div key={cmc.id} class="viq-item viq-item--indigo">
-                                                    <div class="viq-item-title">{cmc.title}</div>
-                                                    <p class="viq-item-body">{cmc.body}</p>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
-
-
-                    <!-- ── Empty State (data loaded but all sections empty) ── -->
-                    <template if:true={viqShowEmptyState}>
-                        <div class="viq-empty-card">
-                            <div class="viq-empty-icon">&#128202;</div>
-                            <p class="viq-empty-text">No industry data found. Enter a NAICS code above and click Reload.</p>
-                        </div>
-                    </template>
-
-
-                </template><!-- end viqShowData -->
-
-
-            </div>
-        </template>
-
-
-
-        <!-- ══════════════════════════════════════════════════════════
-             TAB: RMA
-        ══════════════════════════════════════════════════════════ -->
-        <template if:true={isRmaTab}>
-            <div class="cdr-subtab-content">
-                <div class="cdr-empty">
-                    <span class="cdr-empty-icon">&#128202;</span>
-                    <p>RMA financial data coming soon.</p>
-                </div>
-            </div>
-        </template>
-
-
-
-        <!-- ══════════════════════════════════════════════════════════
-             TAB: Equifax
-        ══════════════════════════════════════════════════════════ -->
-        <template if:true={isEquifaxTab}>
-            <div class="cdr-subtab-content">
-                <div class="cdr-empty">
-                    <span class="cdr-empty-icon">&#128203;</span>
-                    <p>Equifax credit data coming soon.</p>
-                </div>
-            </div>
-        </template>
-
-
-
+  <div class="cdr-wrapper">
+
+    <!-- Sub-Tab Bar -->
+    <div class="cdr-subtab-bar">
+      <template for:each={researchSubTabs} for:item="tab">
+        <button key={tab.id} class={tab.cssClass} data-id={tab.id} onclick={handleSubTabChange}>
+          {tab.label}
+        </button>
+      </template>
     </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Report Loading Spinner                                              -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isLoading}>
+      <div class="cdr-loading">
+        <div class="cdr-spinner"></div>
+        <span>Loading AI Navigator Report...</span>
+      </div>
+    </template>
+
+    <!-- Report Error -->
+    <template if:true={error}>
+      <div class="cdr-error">
+        <span class="cdr-error-icon">&#9888;</span>
+        <span>{error}</span>
+      </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Research Library                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isResearchLibraryTab}>
+      <template if:false={isLoading}>
+        <template if:true={hasSections}>
+          <!-- Report header bar -->
+          <div class="cdr-report-card">
+            <div class="cdr-report-header">
+              <div class="cdr-report-header-left">
+                <span class="cdr-report-icon">&#128196;</span>
+                <span class="cdr-report-title">AI Navigator Report</span>
+              </div>
+              <div class="cdr-report-header-right">
+                <button class="cdr-link-btn" onclick={handleExpandAll}>Expand All</button>
+                <span class="cdr-divider"></span>
+                <button class="cdr-link-btn" onclick={handleCollapseAll}>Collapse All</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Accordion -->
+          <div class="cdr-accordion">
+            <template for:each={parsedSections} for:item="sec">
+              <div key={sec.id} class="cdr-accordion-item">
+                <button class="cdr-accordion-header" data-id={sec.id} onclick={handleToggle} aria-expanded={sec.ariaExpanded}>
+                  <div class="cdr-accordion-header-left">
+                    <span class={sec.chevron}></span>
+                    <span class="cdr-accordion-title">{sec.title}</span>
+                  </div>
+                  <template if:true={sec.isExpanded}>
+                    <span class="cdr-collapse-hint">Click to collapse</span>
+                  </template>
+                  <template if:false={sec.isExpanded}>
+                    <span class="cdr-collapse-hint">Click to expand</span>
+                  </template>
+                </button>
+                <template if:true={sec.isExpanded}>
+                  <div class="cdr-accordion-body">
+                    <template for:each={sec.renderedRows} for:item="row">
+                      <template if:true={row.isTable}>
+                        <div key={row.id} class="cdr-table-wrapper">
+                          <table class="cdr-table">
+                            <thead>
+                              <tr>
+                                <template for:each={row.headerCells} for:item="cell">
+                                  <th key={cell.text} class="cdr-th">{cell.text}</th>
+                                </template>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <template for:each={row.bodyRows} for:item="brow">
+                                <tr key={brow.id}>
+                                  <template for:each={brow.cells} for:item="cell">
+                                    <td key={cell.text} class="cdr-td">{cell.text}</td>
+                                  </template>
+                                </tr>
+                              </template>
+                            </tbody>
+                          </table>
+                        </div>
+                      </template>
+                      <template if:true={row.isBullet}>
+                        <div key={row.id} class="cdr-bullet-row">
+                          <span class="cdr-bullet-dot">&#8226;</span>
+                          <span class="cdr-bullet-text">{row.html}</span>
+                        </div>
+                      </template>
+                      <template if:true={row.isHeading}>
+                        <div key={row.id} class="cdr-subheading">{row.text}</div>
+                      </template>
+                      <template if:true={row.isText}>
+                        <p key={row.id} class="cdr-para">{row.html}</p>
+                      </template>
+                      <template if:true={row.isSpacer}>
+                        <div key={row.id} class="cdr-spacer"></div>
+                      </template>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- Empty state -->
+        <template if:false={hasSections}>
+          <template if:false={error}>
+            <div class="cdr-empty">
+              <span class="cdr-empty-icon">&#128196;</span>
+              <p>Research report not yet available for this company.</p>
+            </div>
+          </template>
+        </template>
+
+        <!-- Sources panel -->
+        <template if:true={hasSources}>
+          <div class="cdr-sources-panel">
+            <div class="cdr-sources-header">Sources</div>
+            <ul class="cdr-sources-list">
+              <template for:each={sources} for:item="src">
+                <li key={src.idx} class="cdr-source-item">
+                  <span class="cdr-source-num">{src.idx}</span>
+                  <a class="cdr-source-link" href={src.url} target="_blank" rel="noopener noreferrer">{src.label}</a>
+                </li>
+              </template>
+            </ul>
+          </div>
+        </template>
+      </template>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Leadership                                                     -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isLeadershipTab}>
+      <div class="cdr-subtab-content">
+        <template if:true={hasLeadership}>
+          <div class="cdr-leadership-list">
+            <template for:each={leadershipList} for:item="leader">
+              <div key={leader.id} class="cdr-leader-card">
+                <div class="cdr-leader-avatar">{leader.initials}</div>
+                <div class="cdr-leader-info">
+                  <div class="cdr-leader-name">{leader.name}</div>
+                  <div class="cdr-leader-title">{leader.title}</div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+        <template if:false={hasLeadership}>
+          <div class="cdr-empty">
+            <span class="cdr-empty-icon">&#128100;</span>
+            <p>Leadership data will appear here once research is complete.</p>
+          </div>
+        </template>
+      </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: UCC — PIXEL-PERFECT MATCH TO REACT PORTAL                     -->
+    <!--                                                                     -->
+    <!-- React source mapping:                                               -->
+    <!--   Outer:    border border-purple-200 rounded-lg overflow-hidden     -->
+    <!--   Header:   bg-purple-50 px-4 py-3 border-b border-purple-200      -->
+    <!--   Badge:    bg-purple-100 text-purple-700 text-xs rounded-full      -->
+    <!--   Source:   ml-auto text-xs text-purple-500                         -->
+    <!--   Stat tile (count): bg-purple-50 border-purple-100 text-purple-700 -->
+    <!--   Biz tile: bg-indigo-50 border-indigo-100 text-indigo-700 col-span-2 -->
+    <!--   Filing card: border-gray-200 hover:border-purple-300              -->
+    <!--   Type badge: bg-purple-100 text-purple-700                         -->
+    <!--   Active badge: bg-green-100 text-green-700  (soft, NOT solid)      -->
+    <!--   Jurisdiction: plain text "Jurisdiction: TX" — NO pill             -->
+    <!--   Secured Party: bg-green-50 border-green-100 left-border-green     -->
+    <!--     label: text-xs font-semibold text-green-700 uppercase           -->
+    <!--     names: text-sm font-medium text-green-800                       -->
+    <!--     addr:  text-xs text-green-600                                   -->
+    <!--   Debtor: bg-amber-50 border-amber-100 left-border-amber            -->
+    <!--     label: text-xs font-semibold text-amber-700 uppercase           -->
+    <!--     names: text-sm font-medium text-amber-800                       -->
+    <!--     addr:  text-xs text-amber-600                                   -->
+    <!--   Collateral: bg-gray-50 border-gray-200                            -->
+    <!--     label: text-xs font-semibold text-gray-700 uppercase            -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isUccTab}>
+      <div class="cdr-subtab-content">
+
+        <!-- ── Loading ─────────────────────────────────────────────────── -->
+        <template if:true={uccIsLoading}>
+          <div class="cdr-loading">
+            <div class="cdr-spinner"></div>
+            <span>Loading UCC lien data...</span>
+          </div>
+        </template>
+
+        <!-- ── Error ───────────────────────────────────────────────────── -->
+        <template if:true={uccHasError}>
+          <div class="cdr-error">
+            <span class="cdr-error-icon">&#9888;</span>
+            <span>{uccError}</span>
+          </div>
+        </template>
+
+        <!-- ── Filings View ─────────────────────────────────────────────  -->
+        <!-- Rendered when uccShowFilings = true (has data, not loading)    -->
+        <template if:true={uccShowFilings}>
+
+          <!-- Outer card: border border-purple-200 rounded-lg overflow-hidden w-full -->
+          <div class="ucc-outer-card">
+
+            <!-- ── Card Header: bg-purple-50 px-4 py-3 border-b border-purple-200 ── -->
+            <div class="ucc-card-header">
+              <div class="ucc-card-header-left">
+                <!-- Purple filled checkmark circle icon (SVG inline) -->
+                <span class="ucc-header-icon-wrap" aria-hidden="true">
+                  <svg class="ucc-header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </span>
+                <!-- Title: font-semibold text-purple-900 -->
+                <span class="ucc-header-title">UCC/Lien Filings</span>
+                <!-- Filing count badge: bg-purple-100 text-purple-700 text-xs rounded-full -->
+                <span class="ucc-count-badge">{uccFilingsLabel}</span>
+              </div>
+              <div class="ucc-card-header-right">
+                <!-- Source label: text-xs text-purple-500 — matches portal exactly -->
+                <span class="ucc-source-label">Source: Business Registry</span>
+              </div>
+            </div>
+            <!-- end ucc-card-header -->
+
+            <!-- ── Inner white body: p-4 bg-white w-full ─────────────── -->
+            <div class="ucc-card-body">
+
+              <!-- Summary Stats Row                                        -->
+              <!-- React: grid grid-cols-1 md:grid-cols-3 gap-4 mb-4       -->
+              <!-- Count tile: bg-purple-50 rounded-lg p-3 text-center border border-purple-100 -->
+              <!-- Biz tile:   bg-indigo-50 rounded-lg p-3 text-center border border-indigo-100 col-span-2 -->
+              <div class="ucc-summary-row">
+                <!-- Count tile -->
+                <div class="ucc-stat-cell">
+                  <div class="ucc-stat-number">{uccTotalFilings}</div>
+                  <div class="ucc-stat-label">Total Lien Filings</div>
+                </div>
+                <!-- Business Name tile — only render when present -->
+                <template if:true={uccHasBusinessName}>
+                  <div class="ucc-biz-cell">
+                    <div class="ucc-biz-name">{uccBusinessName}</div>
+                    <div class="ucc-biz-verified">Verified Business Name</div>
+                  </div>
+                </template>
+              </div>
+              <!-- end summary row -->
+
+              <!-- ── Individual Filing Cards ───────────────────────────── -->
+              <!-- React: space-y-3 wrapper, each card:                     -->
+              <!--   border border-gray-200 rounded-lg p-4                  -->
+              <!--   hover:border-purple-300 transition-colors              -->
+              <div class="ucc-filings-list">
+                <template for:each={uccFilings} for:item="filing">
+                  <div key={filing.key} class="ucc-filing-card">
+
+                    <!-- Filing top bar -->
+                    <!-- React: flex items-start justify-between mb-3       -->
+                    <div class="ucc-filing-top">
+
+                      <!-- Left side: label + type pill + status pill + jurisdiction plain text -->
+                      <div class="ucc-filing-top-left">
+                        <!-- "Filing #1" — font-medium text-gray-900 -->
+                        <span class="ucc-filing-label">{filing.label}</span>
+
+                        <!-- Filing type pill: bg-purple-100 text-purple-700 rounded -->
+                        <!-- React: px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded -->
+                        <template if:true={filing.filingType}>
+                          <span class="ucc-type-badge">{filing.filingType}</span>
+                        </template>
+
+                        <!-- Status pill: soft green for Active, red for Terminated, gray for others -->
+                        <!-- React: bg-green-100 text-green-700 / bg-red-100 text-red-700 / bg-gray-100 text-gray-700 -->
+                        <span class={filing.statusClass}>{filing.status}</span>
+                      </div>
+
+                      <!-- Right side: filed + expires dates -->
+                      <!-- React: text-right text-sm, Filed in text-gray-600 font-medium, Expires in text-gray-500 -->
+                      <div class="ucc-filing-top-right">
+                        <template if:true={filing.filedDate}>
+                          <div class="ucc-date-filed">Filed: {filing.filedDate}</div>
+                        </template>
+                        <template if:true={filing.expiresDate}>
+                          <div class="ucc-date-expires">Expires: {filing.expiresDate}</div>
+                        </template>
+                      </div>
+
+                    </div>
+                    <!-- end ucc-filing-top -->
+
+                    <!-- Jurisdiction as PLAIN TEXT below the badge row -->
+                    <!-- React: text-sm text-gray-500 mt-1 "Jurisdiction filing.jurisdiction" -->
+                    <!-- CRITICAL: This is NOT a pill/badge — it is plain text -->
+                    <template if:true={filing.jurisdiction}>
+                      <div class="ucc-jurisdiction-text">Jurisdiction: {filing.jurisdiction}</div>
+                    </template>
+
+                    <!-- ── Secured Party Block ────────────────────────── -->
+                    <!-- React: mb-3 p-3 bg-green-50 rounded border border-green-100 -->
+                    <!-- label:  text-xs font-semibold text-green-700 uppercase mb-2 -->
+                    <!-- names:  text-sm text-green-800 div font-medium              -->
+                    <!-- addr:   text-xs text-green-600                              -->
+                    <template if:true={filing.hasSecuredParties}>
+                      <div class="ucc-party-block ucc-party-block--secured">
+                        <div class="ucc-party-label ucc-party-label--secured">SECURED PARTY</div>
+                        <template for:each={filing.securedParties} for:item="party">
+                          <div key={party.name} class="ucc-party-row">
+                            <div class="ucc-party-name ucc-party-name--secured">{party.name}</div>
+                            <template if:true={party.address}>
+                              <div class="ucc-party-address ucc-party-address--secured">{party.address}</div>
+                            </template>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+
+                    <!-- ── Debtor Block ───────────────────────────────── -->
+                    <!-- React: mb-3 p-3 bg-amber-50 rounded border border-amber-100 -->
+                    <!-- label:  text-xs font-semibold text-amber-700 uppercase mb-2  -->
+                    <!-- names:  text-sm text-amber-800 font-medium                   -->
+                    <!-- addr:   text-xs text-amber-600                               -->
+                    <template if:true={filing.hasDebtors}>
+                      <div class="ucc-party-block ucc-party-block--debtor">
+                        <div class="ucc-party-label ucc-party-label--debtor">DEBTOR</div>
+                        <template for:each={filing.debtors} for:item="debtor">
+                          <div key={debtor.name} class="ucc-party-row">
+                            <div class="ucc-party-name ucc-party-name--debtor">{debtor.name}</div>
+                            <template if:true={debtor.address}>
+                              <div class="ucc-party-address ucc-party-address--debtor">{debtor.address}</div>
+                            </template>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+
+                    <!-- ── Collateral Block ───────────────────────────── -->
+                    <!-- React: p-3 bg-gray-50 rounded border border-gray-200 (only when present) -->
+                    <!-- label:  text-xs font-semibold text-gray-700 uppercase mb-1               -->
+                    <!-- text:   text-sm text-gray-800 line-clamp-3                               -->
+                    <template if:true={filing.hasCollateral}>
+                      <div class="ucc-party-block ucc-party-block--collateral">
+                        <div class="ucc-party-label ucc-party-label--collateral">COLLATERAL</div>
+                        <div class="ucc-collateral-text">{filing.collateral}</div>
+                      </div>
+                    </template>
+
+                  </div>
+                  <!-- end ucc-filing-card -->
+                </template>
+              </div>
+              <!-- end ucc-filings-list -->
+
+            </div>
+            <!-- end ucc-card-body -->
+
+          </div>
+          <!-- end ucc-outer-card -->
+
+        </template>
+        <!-- end uccShowFilings -->
+
+        <!-- ── Empty State ──────────────────────────────────────────────  -->
+        <!-- Shown when data loaded but zero filings, or address required   -->
+        <template if:true={uccShowEmptyState}>
+          <div class="ucc-outer-card">
+            <!-- Same header structure as the filings view -->
+            <div class="ucc-card-header">
+              <div class="ucc-card-header-left">
+                <span class="ucc-header-icon-wrap" aria-hidden="true">
+                  <svg class="ucc-header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                  </svg>
+                </span>
+                <span class="ucc-header-title">UCC/Lien Filings</span>
+                <span class="ucc-count-badge">0 filings</span>
+              </div>
+              <div class="ucc-card-header-right">
+                <span class="ucc-source-label">Source: Business Registry</span>
+              </div>
+            </div>
+            <!-- Empty body -->
+            <div class="ucc-card-body">
+              <div class="ucc-empty-state">
+                <template if:true={uccRequiresAddress}>
+                  <!-- Address required variant — matches portal amber warning state -->
+                  <div class="ucc-empty-icon ucc-empty-icon--warn">&#9888;</div>
+                  <p class="ucc-empty-title">Address Required for UCC Data</p>
+                  <p class="ucc-empty-sub">UCC filings require company city and state.</p>
+                </template>
+                <template if:false={uccRequiresAddress}>
+                  <!-- Normal zero-results variant -->
+                  <div class="ucc-empty-icon">&#8212;</div>
+                  <p class="ucc-empty-text">No UCC lien filings found for this company.</p>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+        <!-- end uccShowEmptyState -->
+
+      </div>
+      <!-- end cdr-subtab-content -->
+    </template>
+    <!-- end isUccTab -->
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: VIQ — VerticalIQ Industry Intelligence (UNCHANGED)            -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isViqTab}>
+      <div class="cdr-subtab-content viq-tab-content">
+
+        <!-- VIQ Loading -->
+        <template if:true={viqIsLoading}>
+          <div class="cdr-loading">
+            <div class="cdr-spinner"></div>
+            <span>Loading VerticalIQ industry intelligence...</span>
+          </div>
+        </template>
+
+        <!-- VIQ Apex/Network Error -->
+        <template if:true={viqHasError}>
+          <div class="cdr-error">
+            <span class="cdr-error-icon">&#9888;</span>
+            <span>{viqError}</span>
+          </div>
+          <div class="viq-naics-retry-row">
+            <input type="text" class="viq-naics-input" placeholder="Enter NAICS code and reload"
+              value={viqNaicsCode} oninput={handleViqNaicsChange} onkeydown={handleViqNaicsKeydown} />
+            <button class="viq-reload-btn" disabled={viqReloadDisabled} onclick={handleViqReload}>Reload</button>
+          </div>
+        </template>
+
+        <!-- VIQ Not Yet Loaded -->
+        <template if:true={viqNotYetLoaded}>
+          <div class="cdr-loading">
+            <div class="cdr-spinner"></div>
+            <span>Loading VerticalIQ industry intelligence...</span>
+          </div>
+        </template>
+
+        <!-- VIQ Data View -->
+        <template if:true={viqShowData}>
+
+          <!-- Green Header Card -->
+          <div class="viq-header-card">
+            <div class="viq-header-top">
+              <div class="viq-header-title-group">
+                <span class="viq-header-industry-name">{viqIndustryName}</span>
+                <div class="viq-header-badges">
+                  <span class="viq-badge viq-badge--naics">NAICS {viqNaicsDisplay}</span>
+                  <span class="viq-badge viq-badge--id">Industry ID {viqIndustryId}</span>
+                </div>
+              </div>
+              <button class="viq-refresh-btn" title="Refresh VerticalIQ data" onclick={handleViqRefresh}>&#8635;</button>
+            </div>
+            <div class="viq-naics-row">
+              <label class="viq-naics-label">Change NAICS</label>
+              <input type="text" class="viq-naics-input" placeholder="e.g. 484121"
+                value={viqNaicsCode} maxlength="10"
+                oninput={handleViqNaicsChange} onkeydown={handleViqNaicsKeydown} />
+              <button class="viq-reload-btn" disabled={viqReloadDisabled} onclick={handleViqReload}>Reload</button>
+            </div>
+          </div>
+
+          <!-- AI Insights Panel -->
+          <template if:true={viqHasInsights}>
+            <div class="viq-card viq-card--blue">
+              <div class="viq-card-header viq-card-header--blue">
+                <span class="viq-insights-icon">&#129302;</span>
+                <h3 class="viq-card-title">AI-Generated Insights &amp; Talking Points</h3>
+              </div>
+              <div class="viq-card-body">
+                <p class="viq-card-text">{viqInsightsContent}</p>
+              </div>
+            </div>
+          </template>
+
+          <!-- API-level Error -->
+          <template if:true={viqHasApiError}>
+            <div class="viq-api-error">
+              <span class="cdr-error-icon">&#9888;</span>
+              <span>{viqApiErrorMsg}</span>
+            </div>
+          </template>
+
+          <!-- Current Conditions -->
+          <template if:true={viqShowCurrentConditions}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="currentConditions" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Current Conditions
+                  <span class="viq-card-count">{viqCurrentConditionsCount}</span>
+                </h3>
+                <span class="viq-chevron">{viqConditionsChevron}</span>
+              </button>
+              <template if:true={viqConditionsExpanded}>
+                <div class="viq-card-body">
+                  <template for:each={viqCurrentConditions} for:item="cond">
+                    <div key={cond.id} class="viq-item viq-item--indigo">
+                      <div class="viq-item-title">{cond.title}</div>
+                      <template if:true={cond.date}>
+                        <div class="viq-item-date">{cond.date}</div>
+                      </template>
+                      <template if:true={cond.hasBullets}>
+                        <ul class="viq-bullet-list">
+                          <template for:each={cond.bullets} for:item="bullet">
+                            <li key={bullet}>{bullet}</li>
+                          </template>
+                        </ul>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Industry Trends -->
+          <template if:true={viqShowIndustryTrends}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="industryTrends" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Industry Trends
+                  <span class="viq-card-count">{viqTrendsCount}</span>
+                </h3>
+                <span class="viq-chevron">{viqTrendsChevron}</span>
+              </button>
+              <template if:true={viqTrendsExpanded}>
+                <div class="viq-card-body">
+                  <template for:each={viqTrends} for:item="trend">
+                    <div key={trend.id} class="viq-item viq-item--indigo">
+                      <div class="viq-item-title">{trend.title}</div>
+                      <p class="viq-item-body">{trend.body}</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Global Trends -->
+          <template if:true={viqShowGlobalTrends}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="globalTrends" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Global Trends
+                  <span class="viq-card-count">{viqGlobalTrendsCount}</span>
+                </h3>
+                <span class="viq-chevron">{viqGlobalTrendsChevron}</span>
+              </button>
+              <template if:true={viqGlobalTrendsExpanded}>
+                <div class="viq-card-body">
+                  <template for:each={viqGlobalTrends} for:item="trend">
+                    <div key={trend.id} class="viq-item viq-item--indigo">
+                      <div class="viq-item-title">{trend.title}</div>
+                      <p class="viq-item-body">{trend.body}</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Industry Overview: Forecasts / Structure / Derived Statements -->
+          <template if:true={viqShowIndustryOverview}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="industryOverview" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Industry Overview</h3>
+                <span class="viq-chevron">{viqIndustryOverviewChevron}</span>
+              </button>
+              <template if:true={viqIndustryOverviewExpanded}>
+                <div class="viq-card-body">
+                  <template if:true={viqHasForecast}>
+                    <div class="viq-overview-block">
+                      <div class="viq-overview-label">Growth Rate</div>
+                      <div class="viq-overview-value">{viqForecastGrowthRate}</div>
+                      <div class="viq-overview-value">{viqForecastRelative}</div>
+                    </div>
+                  </template>
+                  <template if:true={viqHasStructure}>
+                    <div class="viq-overview-block">
+                      <div class="viq-overview-label">Industry Structure</div>
+                      <p class="viq-item-body">{viqStructure}</p>
+                    </div>
+                  </template>
+                  <template if:true={viqHasDerivedStatements}>
+                    <div class="viq-overview-block">
+                      <template for:each={viqDerivedStatements} for:item="ds">
+                        <div key={ds.id} class="viq-derived-row">
+                          <span class="viq-derived-title">{ds.title}</span>
+                          <span class="viq-derived-value">{ds.value}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Quarterly Insights -->
+          <template if:true={viqShowQuarterlyInsights}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="quarterlyInsights" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Quarterly Insights
+                  <span class="viq-card-count">{viqQuarterlyInsightsCount}</span>
+                </h3>
+                <span class="viq-chevron">{viqQuarterlyChevron}</span>
+              </button>
+              <template if:true={viqQuarterlyExpanded}>
+                <div class="viq-card-body">
+                  <template for:each={viqQuarterlyInsights} for:item="qi">
+                    <div key={qi.id} class="viq-item viq-item--indigo">
+                      <div class="viq-item-title">{qi.title}</div>
+                      <p class="viq-item-body">{qi.body}</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Banking Product Usage -->
+          <template if:true={viqShowBankingProducts}>
+            <div class="viq-card viq-card--green">
+              <button class="viq-card-header viq-card-header--green viq-section-toggle"
+                data-section="bankingProducts" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Banking Product Usage</h3>
+                <span class="viq-chevron">{viqBankingChevron}</span>
+              </button>
+              <template if:true={viqBankingExpanded}>
+                <div class="viq-card-body">
+                  <div class="viq-banking-grid">
+                    <template for:each={viqBankingProducts} for:item="product">
+                      <div key={product.id} class="viq-banking-row">
+                        <span class="viq-banking-name">{product.name}</span>
+                        <template if:true={product.usage}>
+                          <span class="viq-banking-usage">{product.usage}</span>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Key Questions to Ask -->
+          <template if:true={viqShowKeyQuestions}>
+            <div class="viq-card viq-card--amber">
+              <button class="viq-card-header viq-card-header--amber viq-section-toggle"
+                data-section="keyQuestions" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Key Questions to Ask</h3>
+                <span class="viq-chevron">{viqQuestionsChevron}</span>
+              </button>
+              <template if:true={viqQuestionsExpanded}>
+                <div class="viq-card-body">
+                  <ul class="viq-questions-ul">
+                    <template for:each={viqKeyQuestions} for:item="q">
+                      <li key={q.id} class="viq-question-li">
+                        <span class="viq-question-dot">&#10022;</span>
+                        <span>{q.text}</span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Industry Terms Glossary -->
+          <template if:true={viqShowIndustryTerms}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="industryTerms" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Industry Terms
+                  <span class="viq-card-count">{viqTermsCount}</span>
+                </h3>
+                <span class="viq-chevron">{viqIndustryTermsChevron}</span>
+              </button>
+              <template if:true={viqIndustryTermsExpanded}>
+                <div class="viq-card-body">
+                  <template for:each={viqTerms} for:item="term">
+                    <div key={term.id} class="viq-term-row">
+                      <div class="viq-term-name">{term.name}</div>
+                      <p class="viq-term-def">{term.definition}</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Financial Benchmarks -->
+          <template if:true={viqShowFinancialBenchmarks}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="financialBenchmarks" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Financial Benchmarks</h3>
+                <span class="viq-chevron">{viqFinancialBenchmarksChevron}</span>
+              </button>
+              <template if:true={viqFinancialBenchmarksExpanded}>
+                <div class="viq-card-body">
+                  <div class="cdr-table-wrapper">
+                    <table class="cdr-table">
+                      <thead>
+                        <tr>
+                          <th class="cdr-th">Class</th>
+                          <th class="cdr-th">Current Ratio</th>
+                          <th class="cdr-th">Quick Ratio</th>
+                          <th class="cdr-th">Gross Margin</th>
+                          <th class="cdr-th">Net Margin</th>
+                          <th class="cdr-th">Days Recv.</th>
+                          <th class="cdr-th">Days Payable</th>
+                          <th class="cdr-th">Days Inv.</th>
+                          <th class="cdr-th">Debt/Equity</th>
+                          <th class="cdr-th">ROA</th>
+                          <th class="cdr-th">ROE</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template for:each={viqBenchmarks} for:item="b">
+                          <tr key={b.id}>
+                            <td class="cdr-td">{b.compClass}</td>
+                            <td class="cdr-td">{b.currentRatio}</td>
+                            <td class="cdr-td">{b.quickRatio}</td>
+                            <td class="cdr-td">{b.grossMargin}</td>
+                            <td class="cdr-td">{b.netMargin}</td>
+                            <td class="cdr-td">{b.daysReceivables}</td>
+                            <td class="cdr-td">{b.daysPayable}</td>
+                            <td class="cdr-td">{b.daysInventory}</td>
+                            <td class="cdr-td">{b.debtToEquity}</td>
+                            <td class="cdr-td">{b.returnOnAssets}</td>
+                            <td class="cdr-td">{b.returnOnEquity}</td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Financial Metrics -->
+          <template if:true={viqShowFinancialMetrics}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="financialMetrics" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Financial Metrics</h3>
+                <span class="viq-chevron">{viqFinancialMetricsChevron}</span>
+              </button>
+              <template if:true={viqFinancialMetricsExpanded}>
+                <div class="viq-card-body">
+                  <template if:true={viqFinancialMetrics.employeeCount}>
+                    <div class="viq-metric-row">
+                      <span class="viq-metric-label">Employee Count</span>
+                      <span class="viq-metric-value">{viqFinancialMetrics.employeeCount}</span>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.revenue}>
+                    <div class="viq-metric-row">
+                      <span class="viq-metric-label">Revenue</span>
+                      <span class="viq-metric-value">{viqFinancialMetrics.revenue}</span>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.size}>
+                    <div class="viq-metric-row">
+                      <span class="viq-metric-label">Size</span>
+                      <span class="viq-metric-value">{viqFinancialMetrics.size}</span>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.entityType}>
+                    <div class="viq-metric-row">
+                      <span class="viq-metric-label">Entity Type</span>
+                      <span class="viq-metric-value">{viqFinancialMetrics.entityType}</span>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.failureRate}>
+                    <div class="viq-metric-row">
+                      <span class="viq-metric-label">Failure Rate</span>
+                      <span class="viq-metric-value">{viqFinancialMetrics.failureRate}</span>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.industryOverview}>
+                    <div class="viq-metric-block">
+                      <div class="viq-metric-label">Industry Overview</div>
+                      <p class="viq-item-body">{viqFinancialMetrics.industryOverview}</p>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.profitability}>
+                    <div class="viq-metric-block">
+                      <div class="viq-metric-label">Profitability</div>
+                      <p class="viq-item-body">{viqFinancialMetrics.profitability}</p>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.capitalFinancing}>
+                    <div class="viq-metric-block">
+                      <div class="viq-metric-label">Capital &amp; Financing</div>
+                      <p class="viq-item-body">{viqFinancialMetrics.capitalFinancing}</p>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.cashLiquidity}>
+                    <div class="viq-metric-block">
+                      <div class="viq-metric-label">Cash &amp; Liquidity</div>
+                      <p class="viq-item-body">{viqFinancialMetrics.cashLiquidity}</p>
+                    </div>
+                  </template>
+                  <template if:true={viqFinancialMetrics.workingCapitalMgmt}>
+                    <div class="viq-metric-block">
+                      <div class="viq-metric-label">Working Capital Mgmt</div>
+                      <p class="viq-item-body">{viqFinancialMetrics.workingCapitalMgmt}</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Operations -->
+          <template if:true={viqShowOperations}>
+            <div class="viq-card viq-card--indigo">
+              <button class="viq-card-header viq-card-header--indigo viq-section-toggle"
+                data-section="operations" onclick={handleViqSectionToggle}>
+                <h3 class="viq-card-title">Operations</h3>
+                <span class="viq-chevron">{viqOperationsChevron}</span>
+              </button>
+              <template if:true={viqOperationsExpanded}>
+                <div class="viq-card-body">
+                  <template if:true={viqHasProfitDrivers}>
+                    <div class="viq-overview-block">
+                      <div class="viq-overview-label">Profit Drivers</div>
+                      <template for:each={viqProfitDrivers} for:item="pd">
+                        <div key={pd.id} class="viq-item viq-item--indigo">
+                          <div class="viq-item-title">{pd.title}</div>
+                          <p class="viq-item-body">{pd.body}</p>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                  <template if:true={viqHasRevenuePerEmployee}>
+                    <div class="viq-overview-block">
+                      <div class="viq-overview-label">Revenue per Employee</div>
+                      <template for:each={viqRevenuePerEmployee} for:item="rpe">
+                        <div key={rpe.id} class="viq-derived-row">
+                          <span class="viq-derived-title">{rpe.label}</span>
+                          <span class="viq-derived-value">{rpe.value}</span>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                  <template if:true={viqHasWorkingCapitalBullets}>
+                    <div class="viq-overview-block">
+                      <div class="viq-overview-label">Working Capital</div>
+                      <ul class="viq-bullet-list">
+                        <template for:each={viqWorkingCapitalBullets} for:item="b">
+                          <li key={b.id}>{b.text}</li>
+                        </template>
+                      </ul>
+                    </div>
+                  </template>
+                  <template if:true={viqHasCashMgmtChallenges}>
+                    <div class="viq-overview-block">
+                      <div class="viq-overview-label">Cash Management Challenges</div>
+                      <template for:each={viqCashMgmtChallenges} for:item="cmc">
+                        <div key={cmc.id} class="viq-item viq-item--indigo">
+                          <div class="viq-item-title">{cmc.title}</div>
+                          <p class="viq-item-body">{cmc.body}</p>
+                        </div>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- Empty State: data loaded but all sections empty -->
+          <template if:true={viqShowEmptyState}>
+            <div class="viq-empty-card">
+              <div class="viq-empty-icon">&#128202;</div>
+              <p class="viq-empty-text">No industry data found. Enter a NAICS code above and click Reload.</p>
+            </div>
+          </template>
+
+        </template>
+        <!-- end viqShowData -->
+
+      </div>
+    </template>
+    <!-- end isViqTab -->
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: RMA (UNCHANGED)                                               -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isRmaTab}>
+      <div class="cdr-subtab-content">
+        <div class="cdr-empty">
+          <span class="cdr-empty-icon">&#128202;</span>
+          <p>RMA financial data coming soon.</p>
+        </div>
+      </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TAB: Equifax (UNCHANGED)                                           -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <template if:true={isEquifaxTab}>
+      <div class="cdr-subtab-content">
+        <div class="cdr-empty">
+          <span class="cdr-empty-icon">&#128203;</span>
+          <p>Equifax credit data coming soon.</p>
+        </div>
+      </div>
+    </template>
+
+  </div>
+  <!-- end cdr-wrapper -->
 </template>

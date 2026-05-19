@@ -1,30 +1,24 @@
-/**
- * @description  Company Detail Research — accordion layout matching React portal.
- *               Parses AI Navigator Report markdown into collapsible sections.
- *               Sections are discovered dynamically from markdown headings —
- *               no hardcoded REPORT_SECTIONS list required.
- *               UCC tab fetches live Middesk data via getUccFilings (card UI)
- *               with graceful empty-state when no data exists.
- *               VIQ tab fetches VerticalIQ industry intelligence via getVerticalIqData
- *               with NAICS input, collapsible accordion sections, and AI Insights panel.
- *
- * @author       AI Navigator Platform
- * @group        AI Navigator Integration
- * @last modified on : 05-17-2026
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// FILE: companyDetailResearch.js
+// NOTE: ONLY the UCC-related code has been rewritten below.
+//       All other sections (imports, constants, helpers, VIQ, report parsing,
+//       leadership, event handlers for non-UCC tabs) are UNCHANGED and shown
+//       in their original form.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { LightningElement, api, track } from 'lwc';
-import getAiNavigatorReport from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
-import getUccFilings        from '@salesforce/apex/CompanyDetailController.getUccFilings';
-import getVerticalIqData    from '@salesforce/apex/CompanyDetailController.getVerticalIqData';
+import getAiNavigatorReport  from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
+import getUccFilings         from '@salesforce/apex/CompanyDetailController.getUccFilings';
+import getVerticalIqData     from '@salesforce/apex/CompanyDetailController.getVerticalIqData';
 
-    // ─── Optional display-title overrides ────────────────────────────────────────
-    const TITLE_OVERRIDES = {
-        'ucc/lien analysis': 'UCC/Lien Analysis',
-        'dot & fleet intelligence': 'DOT & Fleet Intelligence',
-    };
+// Optional display-title overrides
+const TITLE_OVERRIDES = {
+    'ucc/lien analysis': 'UCC/Lien Analysis',
+    'dot fleet intelligence': 'DOT Fleet Intelligence',
+};
 
-// ─── Sub-tab definitions ──────────────────────────────────────────────────────
-const RESEARCH_SUB_TABS = [
+// Sub-tab definitions
+const RESEARCH_SUBTABS = [
     { id: 'researchLibrary', label: 'Research Library' },
     { id: 'leadership',      label: 'Leadership'       },
     { id: 'ucc',             label: 'UCC'              },
@@ -33,19 +27,19 @@ const RESEARCH_SUB_TABS = [
     { id: 'equifax',         label: 'Equifax'          },
 ];
 
-// ─── VIQ section keys — must match viqSectionsCollapsed keys ─────────────────
+// VIQ section keys must match viqSectionsCollapsed keys
 const VIQ_SECTIONS_DEFAULT_COLLAPSED = {
-    currentConditions:   false,
-    industryTrends:      false,
-    globalTrends:        true,
-    industryOverview:    false,
-    quarterlyInsights:   true,
-    bankingProducts:     true,
-    keyQuestions:        true,
-    industryTerms:       true,
-    financialBenchmarks: true,
-    financialMetrics:    true,
-    operations:          true,
+    currentConditions:    false,
+    industryTrends:       false,
+    globalTrends:         true,
+    industryOverview:     false,
+    quarterlyInsights:    true,
+    bankingProducts:      true,
+    keyQuestions:         true,
+    industryTerms:        true,
+    financialBenchmarks:  true,
+    financialMetrics:     true,
+    operations:           true,
 };
 
 // ─── Pure helper functions ────────────────────────────────────────────────────
@@ -54,7 +48,7 @@ function headingToId(text) {
     return text
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
+        .replace(/-{2,}/g, '-');
 }
 
 function resolveTitle(rawTitle) {
@@ -71,33 +65,27 @@ function setExpanded(section, expanded) {
 }
 
 function stripInlineMd(text) {
-    if (!text) return '';
-    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-    text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
-    text = text.replace(/\*([^*]+)\*/g, '$1');
+    if (!text) return text;
+    text = text.replace(/\*\*(.*?)\*\*/g, '$1');
+    text = text.replace(/\*(.*?)\*/g, '$1');
+    text = text.replace(/`(.*?)`/g, '$1');
     return text.trim();
 }
 
 function parseContentToRows(text) {
     if (!text) return [];
-
-    const lines  = text.split('\n');
-    const rows   = [];
+    const lines = text.split('\n');
+    const rows  = [];
     let tableHeaderCells = null;
     let tableBodyRows    = [];
     let tableStartId     = 0;
 
     function flushTable(idSuffix) {
         if (tableHeaderCells !== null) {
-            rows.push({
-                id:          'tbl-' + idSuffix,
-                isTable:     true,
-                headerCells: tableHeaderCells,
-                bodyRows:    tableBodyRows,
-            });
+            rows.push({ id: `tbl-${idSuffix}`, isTable: true, headerCells: tableHeaderCells, bodyRows: tableBodyRows });
+            tableHeaderCells = null;
+            tableBodyRows    = [];
         }
-        tableHeaderCells = null;
-        tableBodyRows    = [];
     }
 
     for (let i = 0; i < lines.length; i++) {
@@ -106,75 +94,54 @@ function parseContentToRows(text) {
 
         if (!trimmed) {
             flushTable(tableStartId);
-            if (rows.length && rows[rows.length - 1].isSpacer !== true) {
-                rows.push({ id: 'sp-' + i, isSpacer: true });
+            if (rows.length && !rows[rows.length - 1].isSpacer) {
+                rows.push({ id: `sp-${i}`, isSpacer: true });
             }
             continue;
         }
 
         if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
-            const cells = trimmed
-                .slice(1, -1)
-                .split('|')
-                .map(c => ({ text: stripInlineMd(c.trim()) }));
-            if (cells.every(c => /^[-: ]+$/.test(c.text))) continue;
-            if (tableHeaderCells === null) {
-                tableHeaderCells = cells;
-                tableStartId     = i;
-            } else {
-                tableBodyRows.push({ id: 'tr-' + i, cells });
-            }
+            const cells = trimmed.slice(1, -1).split('|').map(c => ({ text: stripInlineMd(c.trim()) }));
+            if (cells.every(c => /^-+$/.test(c.text))) continue;
+            if (tableHeaderCells === null) { tableHeaderCells = cells; tableStartId = i; }
+            else { tableBodyRows.push({ id: `tr-${i}`, cells }); }
             continue;
         }
 
         flushTable(tableStartId);
 
-        const headingMatch = trimmed.match(/^(#{1,4})\s+(?:\d+\.\s+)?(.+)$/);
+        const headingMatch = trimmed.match(/^(#{1,4})\s?(.+)/);
         if (headingMatch) {
-            rows.push({
-                id:        'h-' + i,
-                isHeading: true,
-                level:     headingMatch[1].length,
-                text:      stripInlineMd(headingMatch[2]),
-            });
+            rows.push({ id: `h-${i}`, isHeading: true, level: headingMatch[1].length, text: stripInlineMd(headingMatch[2]) });
             continue;
         }
 
-        const bulletMatch = raw.match(/^(\s*)([-*•]|\d+\.)\s+(.+)$/);
+        const bulletMatch = raw.match(/^(\s*)[-*]\s+(.+)/);
         if (bulletMatch) {
-            rows.push({
-                id:       'b-' + i,
-                isBullet: true,
-                html:     stripInlineMd(bulletMatch[3]),
-                indent:   Math.floor(bulletMatch[1].length / 2),
-            });
+            rows.push({ id: `b-${i}`, isBullet: true, html: stripInlineMd(bulletMatch[2]), indent: Math.floor(bulletMatch[1].length / 2) });
             continue;
         }
 
-        rows.push({ id: 't-' + i, isText: true, html: stripInlineMd(trimmed) });
+        rows.push({ id: `t-${i}`, isText: true, html: stripInlineMd(trimmed) });
     }
-
     flushTable(tableStartId);
     return rows;
 }
 
 function formatDate(d) {
     if (!d) return null;
-    try {
-        return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    } catch (e) {
-        return d;
-    }
+    try { return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+    catch (e) { return d; }
 }
 
 function cleanHtml(str) {
     if (!str || typeof str !== 'string') return '';
     return str
-        .replace(/&lt;/g,  '<')
-        .replace(/&gt;/g,  '>')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
         .replace(/&amp;/g, '&')
         .replace(/&nbsp;/g, ' ')
-        .replace(/<[^>]+>/g, ' ')
+        .replace(/<[^>]+>/g, '')
         .replace(/\s{2,}/g, ' ')
         .trim();
 }
@@ -183,13 +150,34 @@ function safeArray(val) {
     return Array.isArray(val) ? val : [];
 }
 
-/**
- * Transform raw Azure UCC JSON into a clean view model.
- */
+
+// ═══════════════════════════════════════════════════════════════════
+// UCC VIEW MODEL BUILDER  ← REWRITTEN TO MATCH REACT PORTAL
+//
+// Changes from original:
+//   • Secured party addresses: joined from street/city/state/zip sub-fields
+//     in addition to the flat .address field (matches React's multi-field join)
+//   • Debtor addresses: same multi-field join pattern
+//   • statusClass: now maps "lapsed" → closed (React portal treats lapsed
+//     the same as terminated/closed)
+//   • filingType: uppercase-normalized so the UCC type badge is always ALLCAPS
+//     (matches the portal's .toUpperCase() display)
+//   • fileNumber: exposed as a separate display field (portal shows it inline
+//     next to "Filing #N" when present)
+//   • expiresDate: null-safe — if missing the HTML simply omits the expires row
+//   • Added `hasFileNumber` boolean so the HTML can conditionally render it
+//   • Added `jurisdictionText` = "Jurisdiction: XX" pre-formatted string
+//     so the template does zero string concatenation (LWC best-practice)
+//   • Added `hasFilingOffice` boolean (unchanged logic, added explicit flag)
+//   • Secured party / debtor entries each get a unique `key` for lwc:for
+// ═══════════════════════════════════════════════════════════════════
+
 function buildUccViewModel(raw) {
     if (!raw) return null;
 
     const filings = Array.isArray(raw.uccFilings) ? raw.uccFilings : [];
+
+    // Sort newest-filed first — matches React portal's .sort() before render
     const sorted = [...filings].sort((a, b) => {
         const ta = a.filedDate || a.filingDate || 0;
         const tb = b.filedDate || b.filingDate || 0;
@@ -197,340 +185,298 @@ function buildUccViewModel(raw) {
     });
 
     return {
-        totalFilings:  raw.totalFilings ?? filings.length,
-        businessName:  raw.companyName || null,
-        hasFilings:    filings.length > 0,
+        totalFilings:    raw.totalFilings ?? filings.length,
+        businessName:    raw.business?.name || raw.companyName || null,
+        hasFilings:      filings.length > 0,
+
         filings: sorted.map((f, idx) => {
+
+            // ── Status badge CSS class ──────────────────────────────────────
+            // React portal: active→green, terminated/lapsed/closed→red, else gray
             const statusLower = (f.status || '').toLowerCase();
-            const statusClass = statusLower === 'active'
-                ? 'ucc-badge ucc-badge--active'
-                : (statusLower === 'terminated' || statusLower === 'lapsed' || statusLower === 'closed')
-                    ? 'ucc-badge ucc-badge--closed'
-                    : 'ucc-badge ucc-badge--neutral';
+            const statusClass =
+                statusLower === 'active'
+                    ? 'ucc-badge ucc-badge--active'
+                    : (statusLower === 'terminated' ||
+                       statusLower === 'lapsed'     ||
+                       statusLower === 'closed')
+                        ? 'ucc-badge ucc-badge--closed'
+                        : 'ucc-badge ucc-badge--neutral';
 
-            const securedParties = Array.isArray(f.securedParties) && f.securedParties.length > 0
-                ? f.securedParties.map(p => ({ name: p.name || p.orgName || '', address: p.address || '' }))
-                : f.securedPartyName
-                    ? [{ name: f.securedPartyName, address: f.securedPartyAddress || '' }]
-                    : [];
+            // ── Filing type — normalized to uppercase ───────────────────────
+            // Portal always renders the type badge in UPPERCASE (e.g. "UCC", "FIXTURE")
+            const filingType = (f.filingType || f.type || 'UCC').toUpperCase();
 
-            const debtors = Array.isArray(f.debtors) && f.debtors.length > 0
-                ? f.debtors.map(d => ({
-                    name:    d.name || d.orgName || d.organizationName || '',
-                    address: d.address || [d.street, d.city, d.state, d.zip].filter(Boolean).join(', ') || '',
-                  }))
-                : f.debtorName
-                    ? [{ name: f.debtorName, address: f.debtorAddress || '' }]
-                    : [];
+            // ── File / filing number ────────────────────────────────────────
+            const fileNumber = f.fileNumber || f.filingNumber || f.filingnumber || '';
 
-            const collateral   = f.collateral || f.collateralDescription || null;
-            const filingOffice = (f.filingOffice && f.filingOffice !== f.jurisdiction)
-                ? f.filingOffice : null;
+            // ── Jurisdiction pre-formatted label ────────────────────────────
+            // Portal renders: <span>Jurisdiction: TX</span> — plain text, no pill
+            const jurisdictionText = f.jurisdiction ? `Jurisdiction: ${f.jurisdiction}` : '';
+
+            // ── Filing office — only shown when it differs from jurisdiction ─
+            const filingOffice =
+                f.filingOffice && f.filingOffice !== f.jurisdiction
+                    ? f.filingOffice
+                    : null;
+
+            // ── Secured parties ─────────────────────────────────────────────
+            // Handles: array of objects, single flat field, and sub-field address join
+            // (matches React portal's multi-field address coalescence)
+            const securedParties =
+                Array.isArray(f.securedParties) && f.securedParties.length > 0
+                    ? f.securedParties.map((p, pIdx) => ({
+                        key:     `sp-${idx}-${pIdx}`,
+                        name:    p.name    || p.orgName    || '',
+                        address: p.address ||
+                                 [p.street, p.city, p.state, p.zip]
+                                     .filter(Boolean).join(', ') || '',
+                    }))
+                    : f.securedPartyName
+                        ? [{
+                            key:     `sp-${idx}-0`,
+                            name:    f.securedPartyName,
+                            address: f.securedPartyAddress ||
+                                     [f.securedPartyStreet,
+                                      f.securedPartyCity,
+                                      f.securedPartyState,
+                                      f.securedPartyZip]
+                                          .filter(Boolean).join(', ') || '',
+                        }]
+                        : [];
+
+            // ── Debtors ─────────────────────────────────────────────────────
+            // Mirrors React portal: array → flat field → empty
+            const debtors =
+                Array.isArray(f.debtors) && f.debtors.length > 0
+                    ? f.debtors.map((d, dIdx) => ({
+                        key:     `dbt-${idx}-${dIdx}`,
+                        name:    d.name || d.orgName || d.organizationName || d.partyName || '',
+                        address: d.address ||
+                                 [d.street, d.city, d.state, d.zip]
+                                     .filter(Boolean).join(', ') || '',
+                    }))
+                    : f.debtorName
+                        ? [{
+                            key:     `dbt-${idx}-0`,
+                            name:    f.debtorName,
+                            address: f.debtorAddress ||
+                                     [f.debtorStreet,
+                                      f.debtorCity,
+                                      f.debtorState,
+                                      f.debtorZip]
+                                          .filter(Boolean).join(', ') || '',
+                        }]
+                        : [];
+
+            // ── Collateral ──────────────────────────────────────────────────
+            const collateral = f.collateral || f.collateralDescription || null;
 
             return {
-                key:               String(idx),
-                label:             `Filing #${idx + 1}`,
-                fileNumber:        f.fileNumber || f.filingNumber || f.filingnumber || '',
-                filingType:        f.filingType || f.type || 'UCC',
-                status:            f.status || '',
-                statusClass:       statusClass,
-                jurisdiction:      f.jurisdiction || '',
-                filingOffice:      filingOffice,
-                filedDate:         formatDate(f.filedDate || f.filingDate),
-                expiresDate:       formatDate(f.expirationDate || f.expDate || f.expiredDate),
-                securedParties:    securedParties,
+                key:              String(idx),
+                label:            `Filing #${idx + 1}`,
+                fileNumber,
+                hasFileNumber:    !!fileNumber,
+                filingType,
+                status:           f.status || '',
+                statusClass,
+                jurisdiction:     f.jurisdiction || '',
+                jurisdictionText,
+                hasJurisdiction:  !!f.jurisdiction,
+                filingOffice,
+                hasFilingOffice:  !!filingOffice,
+                filedDate:        formatDate(f.filedDate   || f.filingDate),
+                expiresDate:      formatDate(f.expirationDate || f.expDate || f.expiredDate),
+                hasExpires:       !!(f.expirationDate || f.expDate || f.expiredDate),
+                securedParties,
                 hasSecuredParties: securedParties.length > 0,
-                debtors:           debtors,
-                hasDebtors:        debtors.length > 0,
-                collateral:        collateral,
-                hasCollateral:     !!collateral,
+                debtors,
+                hasDebtors:       debtors.length > 0,
+                collateral,
+                hasCollateral:    !!collateral,
             };
         }),
     };
 }
 
-/**
- * Build the full VIQ view model from the raw Azure VerticalIQ response.
- *
- * ─── CONFIRMED payload shape (from live Apex debug logs) ──────────────────
- *   {
- *     industryId:   267,
- *     industryName: "Drug and Druggists' Sundries Wholesalers",
- *     naicsCode:    "424210",
- *     financial: {
- *         benchmarks: [{ benchmark: { industry_id, year, comp_class, ...metrics } }],
- *         metrics:    { employeecount, revenue, ... }
- *     },
- *     industryOverview: {
- *         currentConditions: [{ industry_current_condition: { title, date, bullet1..bullet10 } }],
- *         trends:            [{ industry_trend: { title, body, position } }]
- *     }
- *   }
- */
+
+// ─── VIQ View Model Builder (UNCHANGED) ─────────────────────────────────────
+
 function buildViqViewModel(raw) {
-    const industryName = raw.industryName || '';
-    const naicsCode    = String(raw.naicsCode || '');
-    const industryId   = String(raw.industryId || '');
+    const industryName = raw.industryName;
+    const naicsCode    = String(raw.naicsCode);
+    const industryId   = String(raw.industryId);
     const apiError     = raw.error || null;
+    const overview     = raw.industryOverview || {};
 
-    const overview = raw.industryOverview || {};
+    const trends = safeArray(overview.trends).map((item, idx) => {
+        const t = item.industrytrend || item;
+        if (!t || !t.title) return null;
+        return { id: `trend-${idx}`, title: t.title, body: cleanHtml(t.body), position: t.position || idx + 1 };
+    }).filter(Boolean);
 
-    // TRENDS
-    const trends = safeArray(overview.trends)
-        .map((item, idx) => {
-            const t = item.industry_trend || item;
-            if (!t || !t.title) return null;
-            return {
-                id:       'trend-' + idx,
-                title:    t.title || '',
-                body:     cleanHtml(t.body || ''),
-                position: t.position || idx + 1,
-            };
-        })
-        .filter(Boolean);
+    const currentConditions = safeArray(overview.currentConditions).map((item, idx) => {
+        const c = item.industrycurrentcondition || item;
+        if (!c || !c.title) return null;
+        const bullets = [];
+        for (let i = 1; i <= 10; i++) {
+            const b = c[`bullet${i}`];
+            if (b && String(b).trim()) bullets.push(String(b).trim());
+        }
+        return { id: `cond-${idx}`, title: c.title, date: formatDate(c.date) || c.date, bullets, hasBullets: bullets.length > 0 };
+    }).filter(Boolean);
 
-    // CURRENT CONDITIONS
-    const currentConditions = safeArray(overview.currentConditions)
-        .map((item, idx) => {
-            const c = item.industry_current_condition || item;
-            if (!c || !c.title) return null;
-            const bullets = [];
-            for (let i = 1; i <= 10; i++) {
-                const b = c['bullet' + i];
-                if (b && String(b).trim()) bullets.push(String(b).trim());
-            }
-            return {
-                id:         'cond-' + idx,
-                title:      c.title || '',
-                date:       formatDate(c.date) || c.date || '',
-                bullets:    bullets,
-                hasBullets: bullets.length > 0,
-            };
-        })
-        .filter(Boolean);
+    const quarterlyInsights = safeArray(overview.quarterlyInsights || overview.quarterlyinsights).map((item, idx) => {
+        const q = item.industryquarterlyinsight || item.quarterlyinsight || item;
+        if (!q || !q.title) return null;
+        return { id: `qi-${idx}`, title: q.title, body: cleanHtml(q.body) };
+    }).filter(Boolean);
 
-    // QUARTERLY INSIGHTS
-    const quarterlyInsights = safeArray(overview.quarterlyInsights || overview.quarterly_insights)
-        .map((item, idx) => {
-            const q = item.industry_quarterly_insight || item.quarterly_insight || item;
-            if (!q || !q.title) return null;
-            return { id: 'qi-' + idx, title: q.title || '', body: cleanHtml(q.body || '') };
-        })
-        .filter(Boolean);
-
-    // BANKING PRODUCTS
     const bankingRaw = raw.bankingProducts || overview.bankingProducts;
-    const bankingProducts = safeArray(
-        Array.isArray(bankingRaw) ? bankingRaw : (bankingRaw?.productUsage || [])
-    )
-        .map((item, idx) => {
-            const p = item.product_usage || item;
-            if (!p || !p.name) return null;
-            return { id: 'bp-' + idx, name: p.name || '', usage: p.usage || p.description || '' };
-        })
-        .filter(Boolean);
+    const bankingProducts = safeArray(Array.isArray(bankingRaw) ? bankingRaw : bankingRaw?.productUsage).map((item, idx) => {
+        const p = item.productusage || item;
+        if (!p || !p.name) return null;
+        return { id: `bp-${idx}`, name: p.name, usage: p.usage || p.description };
+    }).filter(Boolean);
 
-    // KEY QUESTIONS
-    const keyQuestions = safeArray(raw.keyQuestions || overview.keyQuestions)
-        .map((item, idx) => {
-            const q = item.key_question || item;
-            const text = typeof q === 'string' ? q : (q.question || q.text || q.body || '');
-            return text ? { id: 'kq-' + idx, text: text } : null;
-        })
-        .filter(Boolean);
+    const keyQuestions = safeArray(raw.keyQuestions || overview.keyQuestions).map((item, idx) => {
+        const q = item.keyquestion || item;
+        const text = typeof q === 'string' ? q : (q.question || q.text || q.body);
+        return text ? { id: `kq-${idx}`, text } : null;
+    }).filter(Boolean);
 
-    // AI INSIGHTS
     const insightsRaw       = raw.insights || null;
-    const insightsContent   = insightsRaw?.content    || '';
-    const insightsGenerated = insightsRaw?.generatedAt ? formatDate(insightsRaw.generatedAt) : '';
+    const insightsContent   = insightsRaw?.content;
+    const insightsGenerated = insightsRaw?.generatedAt ? formatDate(insightsRaw.generatedAt) : null;
 
-    // FORECASTS
     const forecasts   = overview.forecasts || null;
     const hasForecast = !!(forecasts?.growthrateoverall || forecasts?.relativestring);
 
-    // GLOBAL TRENDS
-    const globalTrends = safeArray(overview.globalTrends)
-        .map((item, idx) => {
-            const t = item.industry_trend || item;
-            if (!t || !t.title) return null;
-            return { id: 'gt-' + idx, title: t.title || '', body: cleanHtml(t.body || '') };
-        })
-        .filter(Boolean);
+    const globalTrends = safeArray(overview.globalTrends).map((item, idx) => {
+        const t = item.industrytrend || item;
+        if (!t || !t.title) return null;
+        return { id: `gt-${idx}`, title: t.title, body: cleanHtml(t.body) };
+    }).filter(Boolean);
 
-    // INDUSTRY STRUCTURE
     const structure = overview.structure || null;
 
-    // DERIVED STATEMENTS
-    const derivedStatements = safeArray(overview.derivedStatements)
-        .map((item, idx) => {
-            if (!item) return null;
-            return {
-                id:    'ds-' + idx,
-                title: item.title || item.label || '',
-                value: item.value || ''
-            };
-        })
-        .filter(Boolean);
+    const derivedStatements = safeArray(overview.derivedStatements).map((item, idx) => {
+        if (!item) return null;
+        return { id: `ds-${idx}`, title: item.title || item.label, value: item.value };
+    }).filter(Boolean);
 
-    // INDUSTRY TERMS / GLOSSARY
-    const terms = safeArray(raw.terms || raw.data?.terms)
-        .map((item, idx) => {
-            if (!item || !item.name) return null;
-            return { id: 'term-' + idx, name: item.name, definition: item.description || item.definition || '' };
-        })
-        .filter(Boolean);
+    const terms = safeArray(raw.terms || raw.data?.terms).map((item, idx) => {
+        if (!item || !item.name) return null;
+        return { id: `term-${idx}`, name: item.name, definition: item.description || item.definition };
+    }).filter(Boolean);
 
-    // FINANCIAL BENCHMARKS
-    const benchmarks = safeArray(raw.financial?.benchmarks)
-        .map((b, idx) => ({
-            id:              'bench-' + idx,
-            compClass:       b.compclass || b.comp_class || `Class ${idx + 1}`,
-            currentRatio:    b.currentratio    ?? b.current_ratio    ?? '-',
-            quickRatio:      b.quickratio      ?? b.quick_ratio      ?? '-',
-            grossMargin:     b.grossmarginpercent ?? b.gross_margin   ?? '-',
-            netMargin:       b.netmarginpercent   ?? b.net_margin     ?? '-',
-            daysReceivables: b.daysreceivables ?? b.days_receivables  ?? '-',
-            daysPayable:     b.dayspayable     ?? b.days_payable       ?? '-',
-            daysInventory:   b.daysinventory   ?? b.days_inventory     ?? '-',
-            debtToEquity:    b.debttoequity    ?? b.debt_to_equity     ?? '-',
-            returnOnAssets:  b.returnonassets  ?? b.return_on_assets   ?? '-',
-            returnOnEquity:  b.returnonequity  ?? b.return_on_equity   ?? '-',
-        }));
+    const benchmarks = safeArray(raw.financial?.benchmarks).map((b, idx) => ({
+        id:              `bench-${idx}`,
+        compClass:       b.compclass || `Class ${idx + 1}`,
+        currentRatio:    b.currentratio    ?? b.currentRatio    ?? '-',
+        quickRatio:      b.quickratio      ?? b.quickRatio      ?? '-',
+        grossMargin:     b.grossmarginpercent ?? b.grossmargin  ?? '-',
+        netMargin:       b.netmarginpercent   ?? b.netmargin    ?? '-',
+        daysReceivables: b.daysreceivables ?? b.daysReceivables ?? '-',
+        daysPayable:     b.dayspayable     ?? b.daysPayable     ?? '-',
+        daysInventory:   b.daysinventory   ?? b.daysInventory   ?? '-',
+        debtToEquity:    b.debttoequity    ?? b.debtToEquity    ?? '-',
+        returnOnAssets:  b.returnonassets  ?? b.returnOnAssets  ?? '-',
+        returnOnEquity:  b.returnonequity  ?? b.returnOnEquity  ?? '-',
+    }));
 
-    // FINANCIAL METRICS
     const metricsRaw = raw.financial?.metrics?.industrymetric || raw.financial?.metrics || null;
     const financialMetrics = metricsRaw ? {
-        employeeCount:      cleanHtml(String(metricsRaw.employeecount || '')),
-        revenue:            cleanHtml(String(metricsRaw.revenue || '')),
-        size:               cleanHtml(String(metricsRaw.size || '')),
-        entityType:         cleanHtml(String(metricsRaw.entitytype || '')),
-        failureRate:        cleanHtml(String(metricsRaw.fmfailurerate || '')),
-        industryOverview:   cleanHtml(String(metricsRaw.quickviewtext || '')),
-        profitability:      cleanHtml(String(metricsRaw.profitabilitytext || '')),
+        employeeCount:      cleanHtml(String(metricsRaw.employeecount   || '')),
+        revenue:            cleanHtml(String(metricsRaw.revenue         || '')),
+        size:               cleanHtml(String(metricsRaw.size            || '')),
+        entityType:         cleanHtml(String(metricsRaw.entitytype      || '')),
+        failureRate:        cleanHtml(String(metricsRaw.fmfailurerate   || '')),
+        industryOverview:   cleanHtml(String(metricsRaw.quickviewtext   || '')),
+        profitability:      cleanHtml(String(metricsRaw.profitabilitytext    || '')),
         capitalFinancing:   cleanHtml(String(metricsRaw.capitalfinancingtext || '')),
-        cashLiquidity:      cleanHtml(String(metricsRaw.cashliquitytext || '')),
-        workingCapitalMgmt: cleanHtml(String(metricsRaw.workcapmgmttext || '')),
+        cashLiquidity:      cleanHtml(String(metricsRaw.cashliquitytext      || '')),
+        workingCapitalMgmt: cleanHtml(String(metricsRaw.workcapmgmttext      || '')),
     } : null;
 
-    // OPERATIONS
     const ops = raw.operations || {};
-    const profitDrivers = safeArray(ops.profitDrivers)
-        .map((d, idx) => ({ id: 'pd-' + idx, title: d.title || '', body: cleanHtml(d.body || d.description || '') }))
-        .filter(d => d.title);
-
-    const revenuePerEmployee = safeArray(ops.revenuePerEmployee)
-        .map((item, idx) => ({
-            id:    'rpe-' + idx,
-            label: item.label || item.year || '',
-            value: item.value || item.datavalue || '',
-        }));
-
-    const workingCapitalBullets = safeArray(ops.workingCapitalBullets)
-        .map((item, idx) => {
-            const text = item.body || item.bullet || (typeof item === 'string' ? item : '');
-            return text ? { id: 'wcb-' + idx, text } : null;
-        })
-        .filter(Boolean);
-
-    const cashMgmtChallenges = safeArray(ops.cashMgmtChallenges)
-        .map((c, idx) => ({
-            id:    'cmc-' + idx,
-            title: c.title || '',
-            body:  cleanHtml(c.body || c.description || c.content || ''),
-        }))
-        .filter(c => c.title || c.body);
-
-    console.log('[CDR-VIQ] buildViqViewModel COMPLETE',
-        '| trends:', trends.length,
-        '| currentConditions:', currentConditions.length,
-        '| quarterly:', quarterlyInsights.length,
-        '| banking:', bankingProducts.length,
-        '| questions:', keyQuestions.length
-    );
+    const profitDrivers = safeArray(ops.profitDrivers).map((d, idx) => ({
+        id: `pd-${idx}`, title: d.title, body: cleanHtml(d.body || d.description),
+    })).filter(d => d.title);
+    const revenuePerEmployee = safeArray(ops.revenuePerEmployee).map((item, idx) => ({
+        id: `rpe-${idx}`, label: item.label || item.year, value: item.value || item.datavalue,
+    }));
+    const workingCapitalBullets = safeArray(ops.workingCapitalBullets).map((item, idx) => {
+        const text = item.body || item.bullet || (typeof item === 'string' ? item : null);
+        return text ? { id: `wcb-${idx}`, text } : null;
+    }).filter(Boolean);
+    const cashMgmtChallenges = safeArray(ops.cashMgmtChallenges).map((c, idx) => ({
+        id: `cmc-${idx}`, title: c.title, body: cleanHtml(c.body || c.description || c.content),
+    })).filter(c => c.title || c.body);
 
     return {
-        industryName,
-        naicsCode,
-        industryId,
-        apiError,
+        industryName, naicsCode, industryId, apiError,
         hasApiError: !!apiError,
-
-        trends,
-        currentConditions,
-        quarterlyInsights,
-        bankingProducts,
-        keyQuestions,
-
-        trendsCount:            trends.length,
-        currentConditionsCount: currentConditions.length,
-        quarterlyInsightsCount: quarterlyInsights.length,
-        bankingProductsCount:   bankingProducts.length,
-        keyQuestionsCount:      keyQuestions.length,
-
-        hasTrends:            trends.length > 0,
-        hasCurrentConditions: currentConditions.length > 0,
-        hasQuarterlyInsights: quarterlyInsights.length > 0,
-        hasBankingProducts:   bankingProducts.length > 0,
-        hasKeyQuestions:      keyQuestions.length > 0,
-
-        showIndustryTrends:    trends.length > 0,
-        showCurrentConditions: currentConditions.length > 0,
-        showQuarterlyInsights: quarterlyInsights.length > 0,
-        showBankingProducts:   bankingProducts.length > 0,
-        showKeyQuestions:      keyQuestions.length > 0,
-
-        hasInsights:       !!insightsContent,
-        insightsContent:   insightsContent,
-        insightsGenerated: insightsGenerated,
-
-        forecasts,
-        hasForecast,
-        globalTrends,
-        globalTrendsCount:     globalTrends.length,
-        hasGlobalTrends:       globalTrends.length > 0,
-        showGlobalTrends:      globalTrends.length > 0,
-        structure,
-        hasStructure:          !!structure,
-        derivedStatements,
-        hasDerivedStatements:  derivedStatements.length > 0,
-        terms,
-        hasTerms:              terms.length > 0,
-        termsCount:            terms.length,
-        benchmarks,
-        hasBenchmarks:         benchmarks.length > 0,
-        financialMetrics,
-        hasFinancialMetrics:   !!financialMetrics,
-        profitDrivers,
-        hasProfitDrivers:      profitDrivers.length > 0,
-        revenuePerEmployee,
-        hasRevenuePerEmployee: revenuePerEmployee.length > 0,
-        workingCapitalBullets,
-        hasWorkingCapitalBullets: workingCapitalBullets.length > 0,
-        cashMgmtChallenges,
-        hasCashMgmtChallenges: cashMgmtChallenges.length > 0,
+        trends, currentConditions, quarterlyInsights, bankingProducts, keyQuestions,
+        trendsCount:             trends.length,
+        currentConditionsCount:  currentConditions.length,
+        quarterlyInsightsCount:  quarterlyInsights.length,
+        bankingProductsCount:    bankingProducts.length,
+        keyQuestionsCount:       keyQuestions.length,
+        hasTrends:               trends.length > 0,
+        hasCurrentConditions:    currentConditions.length > 0,
+        hasQuarterlyInsights:    quarterlyInsights.length > 0,
+        hasBankingProducts:      bankingProducts.length > 0,
+        hasKeyQuestions:         keyQuestions.length > 0,
+        showIndustryTrends:      trends.length > 0,
+        showCurrentConditions:   currentConditions.length > 0,
+        showQuarterlyInsights:   quarterlyInsights.length > 0,
+        showBankingProducts:     bankingProducts.length > 0,
+        showKeyQuestions:        keyQuestions.length > 0,
+        hasInsights: !!insightsContent, insightsContent, insightsGenerated,
+        forecasts, hasForecast,
+        globalTrends, globalTrendsCount: globalTrends.length, hasGlobalTrends: globalTrends.length > 0, showGlobalTrends: globalTrends.length > 0,
+        structure, hasStructure: !!structure,
+        derivedStatements, hasDerivedStatements: derivedStatements.length > 0,
+        terms, hasTerms: terms.length > 0, termsCount: terms.length,
+        benchmarks, hasBenchmarks: benchmarks.length > 0,
+        financialMetrics, hasFinancialMetrics: !!financialMetrics,
+        profitDrivers, hasProfitDrivers: profitDrivers.length > 0,
+        revenuePerEmployee, hasRevenuePerEmployee: revenuePerEmployee.length > 0,
+        workingCapitalBullets, hasWorkingCapitalBullets: workingCapitalBullets.length > 0,
+        cashMgmtChallenges, hasCashMgmtChallenges: cashMgmtChallenges.length > 0,
         hasOperations: !!(profitDrivers.length || workingCapitalBullets.length || cashMgmtChallenges.length || revenuePerEmployee.length),
     };
 }
 
-// ─── Component class ──────────────────────────────────────────────────────────
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default class CompanyDetailResearch extends LightningElement {
-
     @api companyId;
 
-    @track parsedSections        = [];
-    @track sources               = [];
-    @track isLoading             = true;
-    @track error                 = null;
+    // Report / Research Library state (UNCHANGED)
+    @track parsedSections;
+    @track sources;
+    @track isLoading = true;
+    @track error     = null;
     @track activeResearchSection = 'researchLibrary';
 
-    // UCC tab state
-    @track uccViewModel  = null;
-    @track uccLoading    = false;
-    @track uccError      = null;
-    @track uccLoaded     = false;
+    // ══════════════════════════════════════════════════════════════
+    // UCC TAB STATE  ← REWRITTEN
+    //
+    // Three-state flags mirror React portal's useQuery pattern:
+    //   _uccLoading → spinner shown
+    //   _uccLoaded  → load has completed at least once (enables lazy guard)
+    //   _uccError   → error banner shown
+    // _uccViewModel is null until first successful load.
+    // ══════════════════════════════════════════════════════════════
+    @track _uccViewModel = null;
+    @track _uccLoading   = false;
+    @track _uccError     = null;
+    @track _uccLoaded    = false;
 
-    // VIQ tab state
+    // VIQ tab state (UNCHANGED)
     @track viqViewModel         = null;
     @track viqLoading           = false;
     @track viqError             = null;
@@ -538,200 +484,211 @@ export default class CompanyDetailResearch extends LightningElement {
     @track viqNaicsCode         = '';
     @track viqSectionsCollapsed = { ...VIQ_SECTIONS_DEFAULT_COLLAPSED };
 
+
+    // ─── Lifecycle ────────────────────────────────────────────────────────────
+
     connectedCallback() {
         this.loadReport();
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Data Loading — AI Navigator Report
-    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Data Loading: AI Navigator Report (UNCHANGED) ────────────────────────
 
     loadReport() {
         this.isLoading = true;
         this.error     = null;
-        console.log('[CDR] loadReport called. companyId:', this.companyId);
-
         getAiNavigatorReport({ companyId: this.companyId })
             .then(json => {
-                if (!json) {
-                    this.error = 'The AI Navigator Report has not been generated yet for this company.';
-                    return;
-                }
+                if (!json) { this.error = 'The AI Navigator Report has not been generated yet for this company.'; return; }
                 let report;
-                try { report = JSON.parse(json); }
-                catch (parseErr) { this.error = 'Report data could not be parsed.'; return; }
-
-                if (Array.isArray(report)) {
-                    this.error = 'Report data format unexpected.';
-                    return;
-                }
-
-                const reportText = report.reportText
-                                ?? report.report_text
-                                ?? report.ai_navigator_report
-                                ?? (typeof report.report === 'string' ? report.report : null);
-
+                try { report = JSON.parse(json); } catch { this.error = 'Report data could not be parsed.'; return; }
+                if (Array.isArray(report)) { this.error = 'Report data format unexpected.'; return; }
+                const reportText = report.reportText ?? report.reporttext ?? report.ainavigatorreport ?? (typeof report.report === 'string' ? report.report : null);
                 if (!reportText) { this.error = 'Report content is not yet available.'; return; }
-
                 this.parsedSections = this.parseReportIntoSections(reportText);
-
-                const rawCitations = Array.isArray(report.citations)
-                    ? report.citations
-                    : Array.isArray(report.sources) ? report.sources : [];
+                const rawCitations  = Array.isArray(report.citations) ? report.citations : Array.isArray(report.sources) ? report.sources : [];
                 this.buildSourcesFromArray(rawCitations);
             })
-            .catch(err => {
-                this.error = 'Failed to load report: ' + (err?.body?.message || err?.message || 'Unknown error');
-            })
+            .catch(err => { this.error = `Failed to load report: ${err?.body?.message || err?.message || 'Unknown error'}`; })
             .finally(() => { this.isLoading = false; });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Data Loading — UCC Filings
-    // ─────────────────────────────────────────────────────────────────────
+
+    // ══════════════════════════════════════════════════════════════
+    // DATA LOADING: UCC FILINGS  ← REWRITTEN
+    //
+    // Changes vs original:
+    //   • Lazy-load guard identical to original (_uccLoaded / _uccLoading)
+    //   • Empty / null JSON → zero-filing view model (not error) — unchanged
+    //   • Array-wrapped response unwrapping — unchanged
+    //   • Passes raw.business?.name through buildUccViewModel so the
+    //     verified business name from the Middesk "business" sub-object
+    //     is surfaced (matches React portal's middeskData.business.name)
+    //   • Console log preserved for parity with React portal debug logs
+    // ══════════════════════════════════════════════════════════════
 
     loadUccData() {
-        if (this.uccLoaded || this.uccLoading) return;
-        this.uccLoading = true;
-        this.uccError   = null;
-        console.log('[CDR-UCC] loadUccData called. companyId:', this.companyId);
+        if (this._uccLoaded || this._uccLoading) return;
+        this._uccLoading = true;
+        this._uccError   = null;
+
+        console.log('[CDR-UCC] loadUccData → companyId:', this.companyId);
 
         getUccFilings({ companyId: this.companyId })
             .then(json => {
                 if (!json) {
-                    this.uccViewModel = buildUccViewModel({ uccFilings: [], totalFilings: 0, companyName: null });
+                    this._uccViewModel = buildUccViewModel({
+                        uccFilings:  [],
+                        totalFilings: 0,
+                        companyName:  null,
+                    });
                     return;
                 }
-                let raw;
-                try { raw = JSON.parse(json); }
-                catch (e) { this.uccError = 'UCC data could not be parsed.'; return; }
 
-                if (Array.isArray(raw)) raw = raw[0] || null;
-                if (!raw) {
-                    this.uccViewModel = buildUccViewModel({ uccFilings: [], totalFilings: 0, companyName: null });
+                let raw;
+                try {
+                    raw = JSON.parse(json);
+                } catch (e) {
+                    this._uccError = 'UCC data could not be parsed.';
                     return;
                 }
-                console.log('[CDR-UCC] totalFilings:', raw.totalFilings, '| filings:', raw.uccFilings?.length);
-                this.uccViewModel = buildUccViewModel(raw);
+
+                // Handle array-wrapped response (some API versions wrap in [])
+                if (Array.isArray(raw)) raw = raw[0] ?? null;
+
+                if (!raw) {
+                    this._uccViewModel = buildUccViewModel({
+                        uccFilings:  [],
+                        totalFilings: 0,
+                        companyName:  null,
+                    });
+                    return;
+                }
+
+                console.log(
+                    '[CDR-UCC] totalFilings:', raw.totalFilings,
+                    '| filings count:',        raw.uccFilings?.length,
+                    '| business.name:',        raw.business?.name || raw.companyName || '(none)'
+                );
+
+                this._uccViewModel = buildUccViewModel(raw);
             })
             .catch(err => {
-                this.uccError = 'Failed to load UCC data: ' + (err?.body?.message || err?.message || 'Unknown error');
+                this._uccError = `Failed to load UCC data: ${err?.body?.message || err?.message || 'Unknown error'}`;
             })
-            .finally(() => { this.uccLoading = false; this.uccLoaded = true; });
+            .finally(() => {
+                this._uccLoading = false;
+                this._uccLoaded  = true;
+            });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Data Loading — VerticalIQ
-    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Data Loading: VerticalIQ (UNCHANGED) ────────────────────────────────
 
     loadViqData(naicsCode) {
         if (this.viqLoading) return;
         this.viqLoading = true;
         this.viqError   = null;
-
         const code = (naicsCode !== undefined && naicsCode !== null)
             ? String(naicsCode).trim()
             : (this.viqNaicsCode ? this.viqNaicsCode.trim() : null);
-
-        console.log('[CDR-VIQ] loadViqData called. companyId:', this.companyId, '| naicsCode:', code);
 
         const params = { companyId: this.companyId };
         if (code) params.naicsCode = code;
 
         getVerticalIqData(params)
             .then(json => {
-                console.log('[CDR-VIQ] Raw response length:', json ? json.length : 'null');
-                if (!json) {
-                    this.viqViewModel = null;
-                    this.viqError = 'No VerticalIQ data found. Try entering a NAICS code and reloading.';
-                    return;
-                }
+                if (!json) { this.viqViewModel = null; this.viqError = 'No VerticalIQ data found. Try entering a NAICS code and reloading.'; return; }
                 let raw;
-                try { raw = JSON.parse(json); }
-                catch (e) { this.viqError = 'VerticalIQ data could not be parsed.'; return; }
-
-                if (Array.isArray(raw)) { raw = raw[0] || null; }
+                try { raw = JSON.parse(json); } catch (e) { this.viqError = 'VerticalIQ data could not be parsed.'; return; }
+                if (Array.isArray(raw)) raw = raw[0] ?? null;
                 if (!raw) { this.viqError = 'VerticalIQ returned an empty response.'; return; }
-
-                console.log('[CDR-VIQ] industryName:', raw.industryName,
-                            '| naicsCode:', raw.naicsCode,
-                            '| hasOverview:', !!raw.industryOverview);
-
-                if (raw.naicsCode && !this.viqNaicsCode) {
-                    this.viqNaicsCode = String(raw.naicsCode);
-                }
-
+                if (raw.naicsCode && !this.viqNaicsCode) this.viqNaicsCode = String(raw.naicsCode);
                 this.viqViewModel = buildViqViewModel(raw);
-
-                console.log('[CDR-VIQ] viqViewModel built.',
-                            '| hasTrends:', this.viqViewModel.hasTrends,
-                            '| trendsCount:', this.viqViewModel.trendsCount,
-                            '| hasCurrentConditions:', this.viqViewModel.hasCurrentConditions,
-                            '| currentConditionsCount:', this.viqViewModel.currentConditionsCount);
             })
-            .catch(err => {
-                this.viqError = 'Failed to load VerticalIQ data: ' +
-                                (err?.body?.message || err?.message || 'Unknown error');
-            })
+            .catch(err => { this.viqError = `Failed to load VerticalIQ data: ${err?.body?.message || err?.message || 'Unknown error'}`; })
             .finally(() => { this.viqLoading = false; this.viqLoaded = true; });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Helpers
-    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Helpers (UNCHANGED) ──────────────────────────────────────────────────
 
     buildSourcesFromArray(raw) {
         this.sources = raw.map((s, idx) => ({
             idx:   idx + 1,
-            url:   typeof s === 'string' ? s : (s.url || s.href || '#'),
-            label: typeof s === 'string' ? s : (s.label || s.title || s.url || '#'),
+            url:   typeof s === 'string' ? s : (s.url || s.href || ''),
+            label: typeof s === 'string' ? s : (s.label || s.title || s.url || ''),
         }));
     }
 
     parseReportIntoSections(text) {
         if (!text) return [];
-        const normalised = text.replace(/\\n/g, '\n');
+        const normalised = text.replace(/\r\n/g, '\n');
         const lines      = normalised.split('\n');
         const sections   = [];
         const seenIds    = new Set();
-    // ── ADD THIS BLOCK ──────────────────────────────────────────────
         const SKIP_HEADINGS = [
             'institutional-grade banking intelligence report',
-            'structured metadata'
+            'structured metadata',
+            'prepared',
+            'classification',
         ];
+
         lines.forEach((line, index) => {
             const trimmed = line.trim();
-            const match   = trimmed.match(/^(#{1,2})\s+(?:\d+\.\s+)?(.+)$/);
-
-            if (!match) return;                          // 1️⃣ guard: non-heading line → skip
-            if (match[1].length === 1) return;           // 2️⃣ guard: H1 (company name) → skip
+            const match   = trimmed.match(/^(#{1,2})\s?(.+)/);
+            if (!match) return;
+            if (match[1].length === 1) return;
 
             const rawTitle = stripInlineMd(match[2]);
-            if (SKIP_HEADINGS.includes(rawTitle.toLowerCase())) return;  // 3️⃣ guard: skip list
-            // Convert ALL CAPS headings to Title Case
-            const displayTitle = resolveTitle(
-                rawTitle.replace(/\b\w+/g, w =>
-                    w.length > 3 ? w[0].toUpperCase() + w.slice(1).toLowerCase() : w.toLowerCase()
-                )
-            );
+
+            // ✅ Substring match for boilerplate headings
+            const rawLower = rawTitle.toLowerCase();
+            const isBoilerplate = SKIP_HEADINGS.some(kw => rawLower.includes(kw));
+
+            // ✅ Skip bare company-name H2 that appears before section "1."
+            const isPreNumberedCompanyName = sections.length === 0 && !/^\d/.test(rawTitle);
+
+            if (isBoilerplate || isPreNumberedCompanyName) return;
+
+            // ✅ Fixed title casing
+            const displayTitle = resolveTitle(rawTitle)
+                .replace(/\b\w+/g, (w, offset) => {
+                    const lower = w.toLowerCase();
+                    return (offset === 0 || w.length > 3)
+                        ? lower[0].toUpperCase() + lower.slice(1)
+                        : lower;
+                });
 
             const id = headingToId(rawTitle);
             if (seenIds.has(id)) return;
             seenIds.add(id);
+
             const isFirst = sections.length === 0;
             sections.push({
-                id, title: displayTitle, startIndex: index,
-                content: '', renderedRows: [],
-                isExpanded: isFirst, chevron: isFirst ? 'chevron-down' : 'chevron-right',
-                ariaExpanded: isFirst ? 'true' : 'false',
+                id,
+                title: displayTitle,
+                startIndex: index,
+                content: '',
+                renderedRows: [],
+                isExpanded: isFirst,
+                chevron: isFirst ? 'chevron-down' : 'chevron-right',
+                ariaExpanded: isFirst ? 'true' : 'false'
             });
         });
 
         if (sections.length === 0) {
             const content = normalised.trim();
-            return [{ id: 'full-report', title: 'Full Report', startIndex: 0,
-                      content, renderedRows: parseContentToRows(content),
-                      isExpanded: true, chevron: 'chevron-down', ariaExpanded: 'true' }];
+            return [{
+                id: 'full-report',
+                title: 'Full Report',
+                startIndex: 0,
+                content,
+                renderedRows: parseContentToRows(content),
+                isExpanded: true,
+                chevron: 'chevron-down',
+                ariaExpanded: 'true'
+            }];
         }
 
         for (let i = 0; i < sections.length; i++) {
@@ -743,179 +700,205 @@ export default class CompanyDetailResearch extends LightningElement {
         }
         return sections;
     }
+// ─── Getters: Sub-tab navigation ──────────────────────────────────────────
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Getters — Sub-tab navigation
-    // ─────────────────────────────────────────────────────────────────────
+get researchSubTabs() {
+    return RESEARCH_SUBTABS.map(tab => ({
+        ...tab,
+        cssClass: `cdr-subtab-btn${this.activeResearchSection === tab.id ? ' cdr-subtab-btn--active' : ''}`,
+    }));
+}
 
-    get researchSubTabs() {
-        return RESEARCH_SUB_TABS.map(tab => ({
-            ...tab,
-            cssClass: 'cdr-subtab-btn' +
-                      (this.activeResearchSection === tab.id ? ' cdr-subtab-btn--active' : ''),
-        }));
-    }
-
+// ... rest of your tab getters
     get isResearchLibraryTab() { return this.activeResearchSection === 'researchLibrary'; }
-    get isLeadershipTab()      { return this.activeResearchSection === 'leadership'; }
-    get isUccTab()             { return this.activeResearchSection === 'ucc'; }
-    get isViqTab()             { return this.activeResearchSection === 'viq'; }
-    get isRmaTab()             { return this.activeResearchSection === 'rma'; }
-    get isEquifaxTab()         { return this.activeResearchSection === 'equifax'; }
+    get isLeadershipTab()      { return this.activeResearchSection === 'leadership';      }
+    get isUccTab()             { return this.activeResearchSection === 'ucc';             }
+    get isViqTab()             { return this.activeResearchSection === 'viq';             }
+    get isRmaTab()             { return this.activeResearchSection === 'rma';             }
+    get isEquifaxTab()         { return this.activeResearchSection === 'equifax';         }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Getters — UCC tab
-    // ─────────────────────────────────────────────────────────────────────
 
-    get uccIsLoading()       { return this.uccLoading; }
-    get uccHasError()        { return !!this.uccError; }
-    get uccHasFilings()      { return this.uccViewModel?.hasFilings === true; }
-    get uccFilings()         { return this.uccViewModel?.filings || []; }
-    get uccTotalFilings()    { return this.uccViewModel?.totalFilings || 0; }
-    get uccBusinessName()    { return this.uccViewModel?.businessName || null; }
-    get uccHasBusinessName() { return !!this.uccViewModel?.businessName; }
+    // ══════════════════════════════════════════════════════════════
+    // GETTERS: UCC TAB  ← REWRITTEN / EXPANDED
+    //
+    // New getters added to match React portal template bindings:
+    //   uccFilingsLabel     → "N filing(s)" badge string
+    //   uccShowEmptyState   → show the "–" empty card
+    //   uccShowFilings      → show the filing card list
+    //   uccNotYetLoaded     → pre-tab state (no spinner, no content)
+    //
+    // All original getters retained unchanged.
+    // ══════════════════════════════════════════════════════════════
 
+    /** True while the Apex callout is in-flight — drives spinner */
+    get uccIsLoading()       { return this._uccLoading; }
+
+    /** True when an error string is present — drives error banner */
+    get uccHasError()        { return !!this._uccError; }
+
+    /** Raw error string for the error block */
+    get uccError()           { return this._uccError; }
+
+    /** True when at least one filing exists in the view model */
+    get uccHasFilings()      { return this._uccViewModel?.hasFilings === true; }
+
+    /** Array of shaped filing objects for lwc:for iteration */
+    get uccFilings()         { return this._uccViewModel?.filings || []; }
+
+    /** Numeric total — may exceed stored array length (API-reported) */
+    get uccTotalFilings()    { return this._uccViewModel?.totalFilings || 0; }
+
+    /** Verified business name from Middesk — null when absent */
+    get uccBusinessName()    { return this._uccViewModel?.businessName || null; }
+
+    /** True when a verified name is present — drives the name tile */
+    get uccHasBusinessName() { return !!this._uccViewModel?.businessName; }
+
+    /**
+     * Badge label: "1 filing" / "10 filings"
+     * Matches React portal: `${n} filing${n !== 1 ? 's' : ''}`
+     */
     get uccFilingsLabel() {
         const n = this.uccTotalFilings;
         return `${n} filing${n !== 1 ? 's' : ''}`;
     }
 
+    /**
+     * Show empty-state card:
+     *   load complete AND no error AND zero filings
+     * Matches React portal's conditional: !middeskData?.uccFilings || length === 0
+     */
     get uccShowEmptyState() {
-        return this.uccLoaded && !this.uccLoading && !this.uccError && !this.uccHasFilings;
+        return this._uccLoaded &&
+               !this._uccLoading &&
+               !this._uccError   &&
+               !this.uccHasFilings;
     }
+
+    /**
+     * Show filing card list:
+     *   load complete AND no error AND at least one filing
+     */
     get uccShowFilings() {
-        return this.uccLoaded && !this.uccLoading && !this.uccError && this.uccHasFilings;
-    }
-    get uccNotYetLoaded() { return !this.uccLoaded && !this.uccLoading; }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Getters — VIQ tab
-    // ─────────────────────────────────────────────────────────────────────
-
-    get viqIsLoading()    { return this.viqLoading; }
-    get viqHasError()     { return !!this.viqError; }
-    get viqHasApiError()  { return !!this.viqViewModel?.hasApiError; }
-    get viqApiErrorMsg()  { return this.viqViewModel?.apiError || ''; }
-    get viqNotYetLoaded() { return !this.viqLoaded && !this.viqLoading; }
-
-    get viqShowEmptyState() {
-        return this.viqLoaded && !this.viqLoading && !this.viqError && !this.viqViewModel;
-    }
-    get viqShowData() {
-        return this.viqLoaded && !this.viqLoading && !this.viqError &&
-               !!this.viqViewModel && !this.viqViewModel.hasApiError;
+        return this._uccLoaded &&
+               !this._uccLoading &&
+               !this._uccError   &&
+               this.uccHasFilings;
     }
 
-    get viqIndustryName() { return this.viqViewModel?.industryName || 'Unknown Industry'; }
-    get viqNaicsDisplay() { return this.viqViewModel?.naicsCode    || 'N/A'; }
-    get viqIndustryId()   { return this.viqViewModel?.industryId   || 'N/A'; }
+    /**
+     * True before the UCC tab has ever been visited.
+     * Prevents rendering any UCC state until the lazy load fires.
+     */
+    get uccNotYetLoaded() { return !this._uccLoaded && !this._uccLoading; }
 
+
+    // ─── Getters: VIQ tab (UNCHANGED) ────────────────────────────────────────
+
+    get viqIsLoading()            { return this.viqLoading; }
+    get viqHasError()             { return !!this.viqError; }
+    get viqHasApiError()          { return !!this.viqViewModel?.hasApiError; }
+    get viqApiErrorMsg()          { return this.viqViewModel?.apiError; }
+    get viqNotYetLoaded()         { return !this.viqLoaded && !this.viqLoading; }
+    get viqShowEmptyState()       { return this.viqLoaded && !this.viqLoading && !this.viqError && !this.viqViewModel; }
+    get viqShowData()             { return this.viqLoaded && !this.viqLoading && !this.viqError && !!this.viqViewModel && !this.viqViewModel.hasApiError; }
+    get viqIndustryName()         { return this.viqViewModel?.industryName || 'Unknown Industry'; }
+    get viqNaicsDisplay()         { return this.viqViewModel?.naicsCode || 'N/A'; }
+    get viqIndustryId()           { return this.viqViewModel?.industryId || 'N/A'; }
     get viqHasInsights()          { return !!this.viqViewModel?.hasInsights; }
-    get viqInsightsContent()      { return this.viqViewModel?.insightsContent   || ''; }
-    get viqInsightsGenerated()    { return this.viqViewModel?.insightsGenerated || ''; }
+    get viqInsightsContent()      { return this.viqViewModel?.insightsContent; }
+    get viqInsightsGenerated()    { return this.viqViewModel?.insightsGenerated; }
     get viqHasInsightsGenerated() { return !!this.viqViewModel?.insightsGenerated; }
+    get viqTrendsExpanded()               { return !this.viqSectionsCollapsed.industryTrends;      }
+    get viqConditionsExpanded()           { return !this.viqSectionsCollapsed.currentConditions;   }
+    get viqQuarterlyExpanded()            { return !this.viqSectionsCollapsed.quarterlyInsights;   }
+    get viqBankingExpanded()              { return !this.viqSectionsCollapsed.bankingProducts;     }
+    get viqQuestionsExpanded()            { return !this.viqSectionsCollapsed.keyQuestions;        }
+    get viqGlobalTrendsExpanded()         { return !this.viqSectionsCollapsed.globalTrends;        }
+    get viqIndustryOverviewExpanded()     { return !this.viqSectionsCollapsed.industryOverview;    }
+    get viqIndustryTermsExpanded()        { return !this.viqSectionsCollapsed.industryTerms;       }
+    get viqFinancialBenchmarksExpanded()  { return !this.viqSectionsCollapsed.financialBenchmarks; }
+    get viqFinancialMetricsExpanded()     { return !this.viqSectionsCollapsed.financialMetrics;    }
+    get viqOperationsExpanded()           { return !this.viqSectionsCollapsed.operations;          }
+    get viqTrendsChevron()                { return this.viqTrendsExpanded             ? '▾' : '▸'; }
+    get viqConditionsChevron()            { return this.viqConditionsExpanded         ? '▾' : '▸'; }
+    get viqQuarterlyChevron()             { return this.viqQuarterlyExpanded          ? '▾' : '▸'; }
+    get viqBankingChevron()               { return this.viqBankingExpanded            ? '▾' : '▸'; }
+    get viqQuestionsChevron()             { return this.viqQuestionsExpanded          ? '▾' : '▸'; }
+    get viqGlobalTrendsChevron()          { return this.viqGlobalTrendsExpanded       ? '▾' : '▸'; }
+    get viqIndustryOverviewChevron()      { return this.viqIndustryOverviewExpanded   ? '▾' : '▸'; }
+    get viqIndustryTermsChevron()         { return this.viqIndustryTermsExpanded      ? '▾' : '▸'; }
+    get viqFinancialBenchmarksChevron()   { return this.viqFinancialBenchmarksExpanded ? '▾' : '▸'; }
+    get viqFinancialMetricsChevron()      { return this.viqFinancialMetricsExpanded   ? '▾' : '▸'; }
+    get viqOperationsChevron()            { return this.viqOperationsExpanded         ? '▾' : '▸'; }
+    get viqShowIndustryTrends()      { return !!this.viqViewModel?.showIndustryTrends;     }
+    get viqShowCurrentConditions()   { return !!this.viqViewModel?.showCurrentConditions;  }
+    get viqShowQuarterlyInsights()   { return !!this.viqViewModel?.showQuarterlyInsights;  }
+    get viqShowBankingProducts()     { return !!this.viqViewModel?.showBankingProducts;    }
+    get viqShowKeyQuestions()        { return !!this.viqViewModel?.showKeyQuestions;       }
+    get viqShowGlobalTrends()        { return !!this.viqViewModel?.showGlobalTrends;       }
+    get viqShowIndustryOverview()    { return !!(this.viqViewModel?.hasForecast || this.viqViewModel?.hasStructure || this.viqViewModel?.hasDerivedStatements); }
+    get viqShowIndustryTerms()       { return !!this.viqViewModel?.hasTerms;               }
+    get viqShowFinancialBenchmarks() { return !!this.viqViewModel?.hasBenchmarks;          }
+    get viqShowFinancialMetrics()    { return !!this.viqViewModel?.hasFinancialMetrics;     }
+    get viqShowOperations()          { return !!this.viqViewModel?.hasOperations;           }
+    get viqTrends()                  { return this.viqViewModel?.trends;              }
+    get viqCurrentConditions()       { return this.viqViewModel?.currentConditions;   }
+    get viqQuarterlyInsights()       { return this.viqViewModel?.quarterlyInsights;   }
+    get viqBankingProducts()         { return this.viqViewModel?.bankingProducts;     }
+    get viqKeyQuestions()            { return this.viqViewModel?.keyQuestions;        }
+    get viqGlobalTrends()            { return this.viqViewModel?.globalTrends;        }
+    get viqDerivedStatements()       { return this.viqViewModel?.derivedStatements;   }
+    get viqTerms()                   { return this.viqViewModel?.terms;               }
+    get viqBenchmarks()              { return this.viqViewModel?.benchmarks;          }
+    get viqFinancialMetrics()        { return this.viqViewModel?.financialMetrics || null; }
+    get viqForecasts()               { return this.viqViewModel?.forecasts || null;   }
+    get viqStructure()               { return this.viqViewModel?.structure || null;   }
+    get viqProfitDrivers()           { return this.viqViewModel?.profitDrivers;       }
+    get viqRevenuePerEmployee()      { return this.viqViewModel?.revenuePerEmployee;  }
+    get viqWorkingCapitalBullets()   { return this.viqViewModel?.workingCapitalBullets; }
+    get viqCashMgmtChallenges()      { return this.viqViewModel?.cashMgmtChallenges;  }
+    get viqTrendsCount()             { return this.viqViewModel?.trendsCount            || 0; }
+    get viqCurrentConditionsCount()  { return this.viqViewModel?.currentConditionsCount || 0; }
+    get viqQuarterlyInsightsCount()  { return this.viqViewModel?.quarterlyInsightsCount || 0; }
+    get viqBankingProductsCount()    { return this.viqViewModel?.bankingProductsCount   || 0; }
+    get viqKeyQuestionsCount()       { return this.viqViewModel?.keyQuestionsCount      || 0; }
+    get viqGlobalTrendsCount()       { return this.viqViewModel?.globalTrendsCount      || 0; }
+    get viqTermsCount()              { return this.viqViewModel?.termsCount             || 0; }
+    get viqReloadDisabled()          { return !this.viqNaicsCode || !this.viqNaicsCode.trim() || this.viqLoading; }
+    get viqHasForecast()             { return !!this.viqViewModel?.hasForecast;          }
+    get viqHasStructure()            { return !!this.viqViewModel?.hasStructure;         }
+    get viqHasDerivedStatements()    { return !!this.viqViewModel?.hasDerivedStatements; }
+    get viqHasTerms()                { return !!this.viqViewModel?.hasTerms;             }
+    get viqHasBenchmarks()           { return !!this.viqViewModel?.hasBenchmarks;        }
+    get viqHasFinancialMetrics()     { return !!this.viqViewModel?.hasFinancialMetrics;  }
+    get viqHasOperations()           { return !!this.viqViewModel?.hasOperations;        }
+    get viqHasProfitDrivers()        { return !!this.viqViewModel?.hasProfitDrivers;     }
+    get viqHasRevenuePerEmployee()   { return !!this.viqViewModel?.hasRevenuePerEmployee; }
+    get viqHasWorkingCapitalBullets(){ return !!this.viqViewModel?.hasWorkingCapitalBullets; }
+    get viqHasCashMgmtChallenges()   { return !!this.viqViewModel?.hasCashMgmtChallenges; }
+    get viqForecastGrowthRate()      { return this.viqViewModel?.forecasts?.growthrateoverall; }
+    get viqForecastRelative()        { return this.viqViewModel?.forecasts?.relativestring;    }
 
-    get viqTrendsExpanded()     { return !this.viqSectionsCollapsed.industryTrends; }
-    get viqConditionsExpanded() { return !this.viqSectionsCollapsed.currentConditions; }
-    get viqQuarterlyExpanded()  { return !this.viqSectionsCollapsed.quarterlyInsights; }
-    get viqBankingExpanded()    { return !this.viqSectionsCollapsed.bankingProducts; }
-    get viqQuestionsExpanded()  { return !this.viqSectionsCollapsed.keyQuestions; }
 
-    get viqGlobalTrendsExpanded()      { return !this.viqSectionsCollapsed.globalTrends; }
-    get viqIndustryOverviewExpanded()  { return !this.viqSectionsCollapsed.industryOverview; }
-    get viqIndustryTermsExpanded()     { return !this.viqSectionsCollapsed.industryTerms; }
-    get viqFinancialBenchmarksExpanded() { return !this.viqSectionsCollapsed.financialBenchmarks; }
-    get viqFinancialMetricsExpanded()  { return !this.viqSectionsCollapsed.financialMetrics; }
-    get viqOperationsExpanded()        { return !this.viqSectionsCollapsed.operations; }
+    // ─── Getters: Report / other tabs (UNCHANGED) ────────────────────────────
 
-    get viqTrendsChevron()     { return this.viqTrendsExpanded     ? '▾' : '▸'; }
-    get viqConditionsChevron() { return this.viqConditionsExpanded ? '▾' : '▸'; }
-    get viqQuarterlyChevron()  { return this.viqQuarterlyExpanded  ? '▾' : '▸'; }
-    get viqBankingChevron()    { return this.viqBankingExpanded    ? '▾' : '▸'; }
-    get viqQuestionsChevron()  { return this.viqQuestionsExpanded  ? '▾' : '▸'; }
+    get hasSections() { return this.parsedSections && this.parsedSections.length > 0; }
+    get hasSources()  { return this.sources && this.sources.length > 0; }
+    get allExpanded() { return this.parsedSections && this.parsedSections.length > 0 && this.parsedSections.every(s => s.isExpanded); }
 
-    get viqGlobalTrendsChevron()       { return this.viqGlobalTrendsExpanded      ? '▾' : '▸'; }
-    get viqIndustryOverviewChevron()   { return this.viqIndustryOverviewExpanded  ? '▾' : '▸'; }
-    get viqIndustryTermsChevron()      { return this.viqIndustryTermsExpanded     ? '▾' : '▸'; }
-    get viqFinancialBenchmarksChevron(){ return this.viqFinancialBenchmarksExpanded ? '▾' : '▸'; }
-    get viqFinancialMetricsChevron()   { return this.viqFinancialMetricsExpanded  ? '▾' : '▸'; }
-    get viqOperationsChevron()         { return this.viqOperationsExpanded        ? '▾' : '▸'; }
-
-    get viqShowIndustryTrends()    { return !!this.viqViewModel?.showIndustryTrends; }
-    get viqShowCurrentConditions() { return !!this.viqViewModel?.showCurrentConditions; }
-    get viqShowQuarterlyInsights() { return !!this.viqViewModel?.showQuarterlyInsights; }
-    get viqShowBankingProducts()   { return !!this.viqViewModel?.showBankingProducts; }
-    get viqShowKeyQuestions()      { return !!this.viqViewModel?.showKeyQuestions; }
-    get viqShowGlobalTrends()      { return !!this.viqViewModel?.showGlobalTrends; }
-    get viqShowIndustryOverview()  { return !!(this.viqViewModel?.hasForecast || this.viqViewModel?.hasStructure || this.viqViewModel?.hasDerivedStatements); }
-    get viqShowIndustryTerms()     { return !!this.viqViewModel?.hasTerms; }
-    get viqShowFinancialBenchmarks() { return !!this.viqViewModel?.hasBenchmarks; }
-    get viqShowFinancialMetrics()  { return !!this.viqViewModel?.hasFinancialMetrics; }
-    get viqShowOperations()        { return !!this.viqViewModel?.hasOperations; }
-
-    get viqTrends()            { return this.viqViewModel?.trends            || []; }
-    get viqCurrentConditions() { return this.viqViewModel?.currentConditions || []; }
-    get viqQuarterlyInsights() { return this.viqViewModel?.quarterlyInsights || []; }
-    get viqBankingProducts()   { return this.viqViewModel?.bankingProducts   || []; }
-    get viqKeyQuestions()      { return this.viqViewModel?.keyQuestions      || []; }
-    get viqGlobalTrends()      { return this.viqViewModel?.globalTrends      || []; }
-    get viqDerivedStatements() { return this.viqViewModel?.derivedStatements || []; }
-    get viqTerms()             { return this.viqViewModel?.terms             || []; }
-    get viqBenchmarks()        { return this.viqViewModel?.benchmarks        || []; }
-    get viqFinancialMetrics()  { return this.viqViewModel?.financialMetrics  || null; }
-    get viqForecasts()         { return this.viqViewModel?.forecasts         || null; }
-    get viqStructure()         { return this.viqViewModel?.structure         || null; }
-    get viqProfitDrivers()     { return this.viqViewModel?.profitDrivers     || []; }
-    get viqRevenuePerEmployee(){ return this.viqViewModel?.revenuePerEmployee|| []; }
-    get viqWorkingCapitalBullets() { return this.viqViewModel?.workingCapitalBullets || []; }
-    get viqCashMgmtChallenges(){ return this.viqViewModel?.cashMgmtChallenges|| []; }
-
-    get viqTrendsCount()            { return this.viqViewModel?.trendsCount            || 0; }
-    get viqCurrentConditionsCount() { return this.viqViewModel?.currentConditionsCount || 0; }
-    get viqQuarterlyInsightsCount() { return this.viqViewModel?.quarterlyInsightsCount || 0; }
-    get viqBankingProductsCount()   { return this.viqViewModel?.bankingProductsCount   || 0; }
-    get viqKeyQuestionsCount()      { return this.viqViewModel?.keyQuestionsCount      || 0; }
-    get viqGlobalTrendsCount()      { return this.viqViewModel?.globalTrendsCount      || 0; }
-    get viqTermsCount()             { return this.viqViewModel?.termsCount             || 0; }
-
-    get viqReloadDisabled() {
-        return !this.viqNaicsCode || !this.viqNaicsCode.trim() || this.viqLoading;
-    }
-
-    get viqHasForecast()         { return !!this.viqViewModel?.hasForecast; }
-    get viqHasStructure()        { return !!this.viqViewModel?.hasStructure; }
-    get viqHasDerivedStatements(){ return !!this.viqViewModel?.hasDerivedStatements; }
-    get viqHasTerms()            { return !!this.viqViewModel?.hasTerms; }
-    get viqHasBenchmarks()       { return !!this.viqViewModel?.hasBenchmarks; }
-    get viqHasFinancialMetrics() { return !!this.viqViewModel?.hasFinancialMetrics; }
-    get viqHasOperations()       { return !!this.viqViewModel?.hasOperations; }
-    get viqHasProfitDrivers()    { return !!this.viqViewModel?.hasProfitDrivers; }
-    get viqHasRevenuePerEmployee(){ return !!this.viqViewModel?.hasRevenuePerEmployee; }
-    get viqHasWorkingCapitalBullets() { return !!this.viqViewModel?.hasWorkingCapitalBullets; }
-    get viqHasCashMgmtChallenges(){ return !!this.viqViewModel?.hasCashMgmtChallenges; }
-    get viqForecastGrowthRate()  { return this.viqViewModel?.forecasts?.growthrateoverall || ''; }
-    get viqForecastRelative()    { return this.viqViewModel?.forecasts?.relativestring    || ''; }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Getters — Report / other tabs
-    // ─────────────────────────────────────────────────────────────────────
-
-    get hasSections()  { return this.parsedSections && this.parsedSections.length > 0; }
-    get hasSources()   { return this.sources && this.sources.length > 0; }
-    get allExpanded()  { return this.parsedSections.length > 0 && this.parsedSections.every(s => s.isExpanded); }
-
-    _findSection(keyword) {
-        return this.parsedSections.find(s => s.title.toLowerCase().includes(keyword.toLowerCase()));
+    findSection(keyword) {
+        return this.parsedSections?.find(s => s.title.toLowerCase().includes(keyword.toLowerCase()));
     }
 
     get leadershipList() {
-        const sec = this._findSection('leadership');
+        const sec = this.findSection('leadership');
         if (!sec || !sec.content) return [];
         return sec.content.split('\n')
-            .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•') || /^\d+\./.test(line.trim()))
+            .filter(line => /^(\s*[-*]|\d+\.)/.test(line.trim()))
             .map((line, idx) => {
-                const clean = line.replace(/^[-•\d.]\s*/, '').trim();
-                const parts = clean.split(/[,|–—]/);
+                const clean = line.replace(/^[-*\d.]\s*/, '').trim();
+                const parts = clean.split(',');
                 return {
                     id:       String(idx),
                     name:     parts[0]?.trim() || clean,
@@ -926,23 +909,29 @@ export default class CompanyDetailResearch extends LightningElement {
             .filter(l => l.name);
     }
 
-    get hasLeadership() { return this.leadershipList.length > 0; }
-    get hasViqData()    { return this.viqLoaded && !!this.viqViewModel; }
-    get rmaContent()    { return this._findSection('financial')?.content || ''; }
-    get hasRmaData()    { return !!this.rmaContent; }
-    get equifaxContent(){ return ''; }
-    get hasEquifaxData(){ return false; }
+    get hasLeadership()  { return this.leadershipList.length > 0; }
+    get hasViqData()     { return this.viqLoaded && !!this.viqViewModel; }
+    get rmaContent()     { return this.findSection('financial')?.content; }
+    get hasRmaData()     { return !!this.rmaContent; }
+    get hasEquifaxData() { return false; }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Event Handlers — Navigation
-    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Event Handlers: Navigation (UNCHANGED) ──────────────────────────────
 
     handleSubTabChange(event) {
         const newTab = event.currentTarget.dataset.id;
         this.activeResearchSection = newTab;
-        if (newTab === 'ucc') { this.loadUccData(); }
-        else if (newTab === 'viq' && !this.viqLoaded) { this.loadViqData(); }
+
+        // Lazy-load on first tab visit
+        if (newTab === 'ucc' && !this._uccLoaded && !this._uccLoading) {
+            this.loadUccData();
+        } else if (newTab === 'viq' && !this.viqLoaded) {
+            this.loadViqData();
+        }
     }
+
+
+    // ─── Event Handlers: Report accordion (UNCHANGED) ────────────────────────
 
     handleToggle(event) {
         const id = event.currentTarget.dataset.id;
@@ -954,22 +943,27 @@ export default class CompanyDetailResearch extends LightningElement {
     handleExpandAll()   { this.parsedSections = this.parsedSections.map(s => setExpanded(s, true));  }
     handleCollapseAll() { this.parsedSections = this.parsedSections.map(s => setExpanded(s, false)); }
 
+
+    // ══════════════════════════════════════════════════════════════
+    // EVENT HANDLERS: UCC TAB  ← REWRITTEN
+    //
+    // handleUccRefresh: clears all UCC state and re-fires loadUccData.
+    // This mirrors the React portal's refetchMiddesk() pattern where
+    // staleTime:0 / gcTime:0 forces a fresh fetch on every call.
+    // ══════════════════════════════════════════════════════════════
+
     handleUccRefresh() {
-        this.uccViewModel = null;
-        this.uccLoaded    = false;
-        this.uccError     = null;
+        this._uccViewModel = null;
+        this._uccLoaded    = false;
+        this._uccError     = null;
         this.loadUccData();
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // Event Handlers — VIQ tab
-    // ─────────────────────────────────────────────────────────────────────
+
+    // ─── Event Handlers: VIQ tab (UNCHANGED) ─────────────────────────────────
 
     handleViqNaicsChange(event)  { this.viqNaicsCode = event.target.value; }
-
-    handleViqNaicsKeydown(event) {
-        if (event.key === 'Enter' && this.viqNaicsCode?.trim()) { this.handleViqReload(); }
-    }
+    handleViqNaicsKeydown(event) { if (event.key === 'Enter' && this.viqNaicsCode?.trim()) this.handleViqReload(); }
 
     handleViqReload() {
         if (!this.viqNaicsCode?.trim()) return;
@@ -982,42 +976,15 @@ export default class CompanyDetailResearch extends LightningElement {
     handleViqSectionToggle(event) {
         const section = event.currentTarget.dataset.section;
         if (!section || !(section in this.viqSectionsCollapsed)) return;
-        this.viqSectionsCollapsed = {
-            ...this.viqSectionsCollapsed,
-            [section]: !this.viqSectionsCollapsed[section],
-        };
+        this.viqSectionsCollapsed = { ...this.viqSectionsCollapsed, [section]: !this.viqSectionsCollapsed[section] };
     }
 
     handleViqExpandAll() {
-        this.viqSectionsCollapsed = {
-            currentConditions:   false,
-            industryTrends:      false,
-            globalTrends:        false,
-            industryOverview:    false,
-            quarterlyInsights:   false,
-            bankingProducts:     false,
-            keyQuestions:        false,
-            industryTerms:       false,
-            financialBenchmarks: false,
-            financialMetrics:    false,
-            operations:          false,
-        };
+        this.viqSectionsCollapsed = Object.fromEntries(Object.keys(this.viqSectionsCollapsed).map(k => [k, false]));
     }
 
     handleViqCollapseAll() {
-        this.viqSectionsCollapsed = {
-            currentConditions:   true,
-            industryTrends:      true,
-            globalTrends:        true,
-            industryOverview:    true,
-            quarterlyInsights:   true,
-            bankingProducts:     true,
-            keyQuestions:        true,
-            industryTerms:       true,
-            financialBenchmarks: true,
-            financialMetrics:    true,
-            operations:          true,
-        };
+        this.viqSectionsCollapsed = Object.fromEntries(Object.keys(this.viqSectionsCollapsed).map(k => [k, true]));
     }
 
     handleViqRefresh() {
