@@ -3,7 +3,7 @@
  *               IMPORTANT: Uses hardcoded hex values throughout the VIQ section
  *               to prevent Salesforce SLDS from overriding CSS custom properties.
  * @author       AI Navigator Platform
- * @last modified on : 05-19-2026
+ * @last modified on : 05-20-2026
  */
 
 
@@ -428,50 +428,258 @@ input  { font: inherit; color: inherit; }
 
 
 
-/* ═══════════════════════════════════════════════════════════════════
+/* ============================================================
    LEADERSHIP TAB
-═══════════════════════════════════════════════════════════════════ */
+   Matches React portal: border card, blue header, exec cards
+   with avatar, confidence badge, section blocks, LinkedIn link
+   ============================================================ */
 
-
-
-
-.cdr-leadership-list { display: flex; flex-direction: column; gap: 0.75rem; }
-
-
-
-
-.cdr-leader-card {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: #ffffff;
-    border: 1px solid #e0e4ea;
+/* Outer card — mirrors .ucc-outer-card structure */
+.ldr-outer-card {
+    background: #ffffff !important;
+    border: 1px solid #bfdbfe !important;
     border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
 }
 
+/* Card header — blue tint matching React portal leadership header */
+.ldr-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: #eff6ff !important;
+    border-bottom: 1px solid #bfdbfe !important;
+}
 
+.ldr-card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
+.ldr-card-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
 
-.cdr-leader-avatar {
-    width: 36px;
-    height: 36px;
+/* Header person icon */
+.ldr-header-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ldr-header-icon {
+    width: 18px !important;
+    height: 18px !important;
+    color: #1d4ed8 !important;
+    flex-shrink: 0;
+}
+
+/* Header title */
+.ldr-header-title {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #1e3a8a !important;
+}
+
+/* Count badge — "5 executives" pill */
+.ldr-count-badge {
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    font-size: 0.6875rem !important;
+    font-weight: 500 !important;
+    padding: 2px 8px !important;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+/* Refresh button */
+.ldr-refresh-btn {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px;
+    border-radius: 50% !important;
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
+    font-size: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: 1px solid #bfdbfe !important;
+    padding: 0 !important;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.ldr-refresh-btn:hover {
+    background: #bfdbfe !important;
+}
+
+/* Card body */
+.ldr-card-body {
+    background: #ffffff !important;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Individual executive card */
+.ldr-exec-card {
+    border: 1px solid #e5e7eb !important;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #ffffff !important;
+    transition: border-color 140ms ease;
+}
+
+.ldr-exec-card:hover {
+    border-color: #93c5fd !important;
+}
+
+/* Top row: avatar + name/designation + badge */
+.ldr-exec-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Avatar initials circle */
+.ldr-avatar {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background: #e8f4fd;
-    color: #0176d3;
+    background: #dbeafe !important;
+    color: #1d4ed8 !important;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 700;
+    flex-shrink: 0;
+}
+
+/* Name + designation column */
+.ldr-exec-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ldr-exec-name {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    line-height: 1.3;
+}
+
+.ldr-exec-designation {
+    font-size: 0.75rem !important;
+    color: #1d4ed8 !important;
+    margin-top: 2px;
+}
+
+/* Confidence badge base */
+.ldr-badge {
+    font-size: 0.6875rem !important;
+    font-weight: 500 !important;
+    padding: 2px 8px !important;
+    border-radius: 9999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
+/* Verified — green */
+.ldr-badge--high {
+    background: #dcfce7 !important;
+    color: #15803d !important;
+}
+
+/* Pending — yellow */
+.ldr-badge--pending {
+    background: #fef9c3 !important;
+    color: #a16207 !important;
+}
+
+/* Unverified — gray */
+.ldr-badge--low {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+}
+
+/* Experience / Education / Skills section blocks */
+.ldr-exec-section {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #f9fafb !important;
+    border-radius: 6px;
+    border: 1px solid #f3f4f6 !important;
+}
+
+.ldr-exec-section:last-of-type {
+    margin-bottom: 0.5rem;
+}
+
+.ldr-exec-section-label {
+    font-size: 0.625rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #6b7280 !important;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.ldr-exec-section-value {
+    font-size: 0.8125rem !important;
+    color: #1f2937 !important;
+    line-height: 1.55;
+}
+
+/* Skills — comma-separated list wraps naturally */
+.ldr-skills-wrap {
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Footer links row */
+.ldr-exec-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.625rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f3f4f6;
+}
+
+.ldr-exec-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem !important;
+    color: #1d4ed8 !important;
+    text-decoration: none;
+}
+
+.ldr-exec-link:hover {
+    text-decoration: underline;
+    color: #1e40af !important;
+}
+
+.ldr-link-icon {
+    width: 12px !important;
+    height: 12px !important;
     flex-shrink: 0;
 }
 
 
 
-
-.cdr-leader-name  { font-size: 0.8125rem; font-weight: 600; color: #1a1d23; }
-.cdr-leader-title { font-size: 0.75rem; color: #5a6272; margin-top: 1px; }
 
 
 

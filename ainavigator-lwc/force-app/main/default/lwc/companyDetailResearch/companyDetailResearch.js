@@ -10,7 +10,8 @@ import { LightningElement, api, track } from 'lwc';
 import getAiNavigatorReport  from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
 import getUccFilings         from '@salesforce/apex/CompanyDetailController.getUccFilings';
 import getVerticalIqData     from '@salesforce/apex/CompanyDetailController.getVerticalIqData';
-
+import getLeadership from '@salesforce/apex/CompanyDetailController.getLeadership';
+import getLeadershipData from '@salesforce/apex/CompanyDetailController.getLeadershipData';
 // Optional display-title overrides
 const TITLE_OVERRIDES = {
     'ucc/lien analysis': 'UCC/Lien Analysis',
@@ -298,7 +299,67 @@ function buildUccViewModel(raw) {
         }),
     };
 }
+    // ═══════════════════════════════════════════════════════════════════
+    // LEADERSHIP VIEW MODEL BUILDER
+    //
+    // Maps the /v1/user/leadership-lookup API response to display-ready
+    // objects. Each executive object from the API contains:
+    //   fullName, designation, employmentHistory, education, specialties,
+    //   linkedInUrl, sourceUrl, sourceConfidence (high/low/pending-verification)
+    // ═══════════════════════════════════════════════════════════════════
 
+    function buildLeadershipViewModel(raw) {
+        if (!raw) return { executives: [], hasExecutives: false, totalCount: 0 };
+
+        const list = Array.isArray(raw) ? raw : (raw.executives || raw.leaders || raw.leadership || []);
+
+        const executives = list.map((p, idx) => {
+            const fullName   = p.fullName   || p.name  || '';
+            const initials   = fullName
+                .split(' ')
+                .filter(Boolean)
+                .map(w => w[0].toUpperCase())
+                .slice(0, 2)
+                .join('');
+
+            // sourceConfidence badge: high → green, low → gray, pending-verification → yellow
+            const confidence = p.sourceConfidence || 'low';
+            const confidenceClass =
+                confidence === 'high'                ? 'ldr-badge ldr-badge--high'    :
+                confidence === 'pending-verification'? 'ldr-badge ldr-badge--pending' :
+                                                    'ldr-badge ldr-badge--low';
+            const confidenceLabel =
+                confidence === 'high'                ? 'Verified'          :
+                confidence === 'pending-verification'? 'Pending'           :
+                                                    'Unverified';
+
+            return {
+                id:                   String(idx),
+                fullName,
+                initials,
+                designation:          p.designation         || '',
+                employmentHistory:    p.employmentHistory    || null,
+                hasEmploymentHistory: !!p.employmentHistory,
+                education:            p.education            || null,
+                hasEducation:         !!p.education,
+                specialties:          p.specialties          || null,
+                hasSpecialties:       !!p.specialties,
+                linkedInUrl:          p.linkedInUrl          || null,
+                hasLinkedIn:          !!p.linkedInUrl,
+                sourceUrl:            p.sourceUrl            || null,
+                hasSourceUrl:         !!p.sourceUrl,
+                sourceConfidence:     confidence,
+                confidenceClass,
+                confidenceLabel,
+            };
+        }).filter(e => e.fullName);
+
+        return {
+            executives,
+            hasExecutives: executives.length > 0,
+            totalCount:    executives.length,
+        };
+    }
 
 // ─── VIQ View Model Builder (UNCHANGED) ─────────────────────────────────────
 
@@ -483,8 +544,14 @@ export default class CompanyDetailResearch extends LightningElement {
     @track viqLoaded            = false;
     @track viqNaicsCode         = '';
     @track viqSectionsCollapsed = { ...VIQ_SECTIONS_DEFAULT_COLLAPSED };
-
-
+    // Leadership tab state
+    @track _leadershipViewModel = null;
+    @track _leadershipLoading   = false;
+    @track _leadershipError     = null;
+    @track _leadershipLoaded    = false;
+    @track leadershipData = null;
+    @track leadershipError = null;
+    @track leadershipLoaded = false; 
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     connectedCallback() {
@@ -610,6 +677,37 @@ export default class CompanyDetailResearch extends LightningElement {
             .finally(() => { this.viqLoading = false; this.viqLoaded = true; });
     }
 
+handleSectionClick(event) {
+    this.activeSection = event.currentTarget.dataset.section;
+
+    // Lazy-load leadership only when that tab is first opened
+    if (this.activeSection === 'leadership' && !this.leadershipLoaded) {
+        this.loadLeadership();
+    }
+}
+
+    loadLeadership() {
+        if (!this.companyId) return;
+        this.leadershipIsLoading = true;
+        this.leadershipError = null;
+
+        getLeadershipData({ companyId: this.companyId })
+            .then(json => {
+                const raw = JSON.parse(json);
+                this.leadershipData = raw;
+                this.leadershipLoaded = true;
+                this.leadershipIsLoading = false;
+            })
+            .catch(err => {
+                this.leadershipError = err?.body?.message || 'Failed to load leadership data.';
+                this.leadershipIsLoading = false;
+            });
+    }
+
+    handleLeadershipRefresh() {
+        this.leadershipLoaded = false;
+        this.loadLeadership();
+    }
 
     // ─── Helpers (UNCHANGED) ──────────────────────────────────────────────────
 
@@ -891,42 +989,119 @@ get researchSubTabs() {
         return this.parsedSections?.find(s => s.title.toLowerCase().includes(keyword.toLowerCase()));
     }
 
-    get leadershipList() {
-        const sec = this.findSection('leadership');
-        if (!sec || !sec.content) return [];
-        return sec.content.split('\n')
-            .filter(line => /^(\s*[-*]|\d+\.)/.test(line.trim()))
-            .map((line, idx) => {
-                const clean = line.replace(/^[-*\d.]\s*/, '').trim();
-                const parts = clean.split(',');
-                return {
-                    id:       String(idx),
-                    name:     parts[0]?.trim() || clean,
-                    title:    parts[1]?.trim() || '',
-                    initials: (parts[0]?.trim() || clean).split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(),
-                };
-            })
-            .filter(l => l.name);
-    }
-
-    get hasLeadership()  { return this.leadershipList.length > 0; }
     get hasViqData()     { return this.viqLoaded && !!this.viqViewModel; }
     get rmaContent()     { return this.findSection('financial')?.content; }
     get hasRmaData()     { return !!this.rmaContent; }
     get hasEquifaxData() { return false; }
+    // ─── Getters: Leadership Tab ──────────────────────────────────────────────
 
+    get leadershipIsLoading()  { return this._leadershipLoading; }
+    get leadershipHasError()   { return !!this._leadershipError; }
+    get leadershipError()      { return this._leadershipError; }
+    get leadershipNotYetLoaded() { return !this._leadershipLoaded && !this._leadershipLoading; }
 
+    get leadershipExecutives() {
+    if (!this.leadershipData?.leaders) return [];
+    return this.leadershipData.leaders.map((l, index) => {
+        const name = l.fullName || l.name || '';
+
+        // Best valid email (grade A or A-)
+        const bestEmail = (l.emails || []).find(e =>
+            e.smtp_valid === 'valid' && (e.grade === 'A' || e.grade === 'A-')
+        );
+
+        // Best valid phone (recommended first)
+        const bestPhone = (l.phones || []).find(p => p.recommended)
+            || (l.phones || [])[0];
+
+        // Employment history — show top 3 current/recent
+        const jobLines = (l.jobHistory || [])
+            .slice(0, 3)
+            .map(j => `${j.title} @ ${j.company}${j.isCurrent ? ' (Current)' : ''}`)
+            .join(' · ');
+
+        // Education — degree + school
+        const eduLines = (l.education || [])
+            .slice(0, 2)
+            .map(e => [e.degree, e.school].filter(Boolean).join(', '))
+            .join(' · ');
+
+        // Skills — comma list
+        const skillsText = (l.skills || []).join(', ');
+
+        // Confidence: rocketreach = verified/high, perplexity = unverified/low
+        const sourceMap = {
+            rocketreach: { label: 'Verified',   cls: 'ldr-badge ldr-badge--high' },
+            perplexity:  { label: 'Unverified',  cls: 'ldr-badge ldr-badge--low'  },
+        };
+        const conf = sourceMap[l.source] || { label: 'Unverified', cls: 'ldr-badge ldr-badge--low' };
+        const rawTitle = l.designation || l.title || '';
+        const designation = rawTitle.length > 60
+            ? rawTitle.substring(0, 57) + '...'
+            : rawTitle;
+        return {
+            id: String(l.rocketReachId || name || index),
+            fullName:             name,
+            designation:          designation,
+            initials:             this.getInitials(name),
+            confidenceLabel:      conf.label,
+            confidenceClass:      conf.cls,
+            hasEmploymentHistory: !!jobLines,
+            employmentHistory:    jobLines,
+            hasEducation:         !!eduLines,
+            education:            eduLines,
+            hasSpecialties:       !!skillsText,
+            specialties:          skillsText,
+            hasLinkedIn:          !!l.linkedInUrl,
+            linkedInUrl:          l.linkedInUrl,
+            email:                bestEmail?.email || '',
+            phone:                bestPhone?.number || '',
+            location:             l.location || [l.city, l.state, l.country].filter(Boolean).join(', '),
+        };
+    });
+}
+
+get leadershipHasError() {
+    return !!this.leadershipError;
+}
+
+get leadershipCountLabel() {
+    const count = this.leadershipData?.leaders?.length || 0;
+    return `${count} executive${count !== 1 ? 's' : ''}`;
+}
+   get leadershipTotalCount() { return this.leadershipData?.leaders?.length || 0; }
+
+    get leadershipHasExecutives() {
+        return this._leadershipLoaded &&
+            !this._leadershipLoading &&
+            !this._leadershipError &&
+            this._leadershipViewModel?.hasExecutives === true;
+    }
+
+    get leadershipShowEmptyState() {
+        return this._leadershipLoaded &&
+            !this._leadershipLoading &&
+            !this._leadershipError &&
+            !this._leadershipViewModel?.hasExecutives;
+    }
+
+    // Keep hasLeadership as alias for backward-compat with any existing HTML refs
+    get hasLeadership() { return this.leadershipHasExecutives; }
+    getInitials(name) {
+        if (!name) return '??';
+        return name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+    }
     // ─── Event Handlers: Navigation (UNCHANGED) ──────────────────────────────
 
     handleSubTabChange(event) {
         const newTab = event.currentTarget.dataset.id;
         this.activeResearchSection = newTab;
-
-        // Lazy-load on first tab visit
         if (newTab === 'ucc' && !this._uccLoaded && !this._uccLoading) {
             this.loadUccData();
         } else if (newTab === 'viq' && !this.viqLoaded) {
             this.loadViqData();
+        } else if (newTab === 'leadership' && !this._leadershipLoaded && !this._leadershipLoading) {
+            this.loadLeadership();
         }
     }
 
@@ -958,8 +1133,6 @@ get researchSubTabs() {
         this._uccError     = null;
         this.loadUccData();
     }
-
-
     // ─── Event Handlers: VIQ tab (UNCHANGED) ─────────────────────────────────
 
     handleViqNaicsChange(event)  { this.viqNaicsCode = event.target.value; }

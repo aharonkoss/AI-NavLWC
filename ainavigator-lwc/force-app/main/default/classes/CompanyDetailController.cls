@@ -4,7 +4,7 @@
  *               stored on Company__c after RESEARCH_DONE platform event fires.
  * @author       AI Navigator Platform
  * @group        AI Navigator Integration
- * @last modified on  : 05-14-2026
+ * @last modified on  : 05-20-2026
 **/
 public with sharing class CompanyDetailController {
 
@@ -261,8 +261,120 @@ public with sharing class CompanyDetailController {
         }
         return handleResponse(res, 'getVerticalIqData', companyId);
     }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Leadership Lookup — GET /v1/user/leadership-lookup
+    //
+    // Calls the Perplexity + RocketReach executive lookup endpoint.
+    // Uses Company__c.Name (required) and Website__c (optional) as query params.
+    // Returns null on 404 so the LWC renders an empty state gracefully.
+    // Uses AzureHttpService.buildRequest() for all header/auth configuration —
+    // consistent with AzureManualCompanyCallout, AzureUploadCompanyCallout, etc.
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled
+    public static String getLeadership(String companyId) {
+        if (String.isBlank(companyId)) {
+            throw new AuraHandledException('companyId is required.');
+        }
 
+        // Fetch Name and Website from the Company__c record
+        Company__c c;
+        try {
+            c = [
+                SELECT Name, Website__c
+                FROM   Company__c
+                WHERE  Id = :companyId
+                LIMIT  1
+            ];
+        } catch (QueryException e) {
+            throw new AuraHandledException('Company record not found: ' + companyId);
+        }
 
+        if (String.isBlank(c.Name)) {
+            throw new AuraHandledException('Company name is required for leadership lookup.');
+        }
+
+        // Build path: /v1/user/leadership-lookup?company=...&url=...
+        String path = '/v1/user/leadership-lookup'
+            + '?company=' + EncodingUtil.urlEncode(c.Name.trim(), 'UTF-8');
+
+        if (String.isNotBlank(c.Website__c)) {
+            path += '&url=' + EncodingUtil.urlEncode(c.Website__c.trim(), 'UTF-8');
+        }
+
+        // Use AzureHttpService — same pattern as AzureManualCompanyCallout,
+        // AzureUploadCompanyCallout, etc. All headers/auth set automatically.
+        String correlationId = AiNavigatorEventService.generateCorrelationId();
+
+        HttpRequest req = AzureHttpService.buildRequest(
+            'GET',
+            path,
+            correlationId,
+            UserInfo.getUserId()
+        );
+
+        HttpResponse res;
+        try {
+            res = new Http().send(req);
+        } catch (CalloutException e) {
+            throw new AuraHandledException('Leadership lookup callout failed: ' + e.getMessage());
+        }
+
+        // 404 = no executives found — return null so LWC renders empty state
+        if (res.getStatusCode() == 404) {
+            return null;
+        }
+
+        return handleResponse(res, 'getLeadership', companyId);
+    }
+    /**
+     * getLeadershipData
+     * Calls Azure GET /v1/user/leadership-lookup and returns raw JSON.
+     * Scoped to Leadership tab only — no other methods changed.
+     */
+        @AuraEnabled(cacheable=false)
+        public static String getLeadershipData(String companyName, String companyUrl) {
+            if (String.isBlank(companyName)) {
+                throw new AuraHandledException('companyName is required');
+            }
+            try {
+                String correlationId = AiNavigatorEventService.generateCorrelationId();
+                String path = 'v1/user/leadership-lookup?company='
+                    + EncodingUtil.urlEncode(companyName, 'UTF-8')
+                    + (String.isNotBlank(companyUrl)
+                        ? '&url=' + EncodingUtil.urlEncode(companyUrl, 'UTF-8')
+                        : '');
+
+                HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, UserInfo.getUserId());
+                HttpResponse res = new Http().send(req);
+
+                // Log the callout
+                try {
+                    insert new Azure_Request_Log__c(
+                        HTTP_Method__c    = 'GET',
+                        Endpoint_Name__c  = 'leadership-lookup',
+                        Response_Body__c  = res.getBody(),
+                        Status__c        = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
+                        HTTP_Status_Code__c = res.getStatusCode(),
+                        Correlation_ID__c  = correlationId
+                    );
+                } catch (Exception logEx) {
+                    System.debug(LoggingLevel.ERROR, 'getLeadershipData log failed: ' + logEx.getMessage());
+                }
+
+                if (res.getStatusCode() == 200) {
+                    return res.getBody();
+                } else {
+                    throw new AuraHandledException(
+                        'Leadership API error ' + res.getStatusCode() + ': '
+                        + AzureHttpService.parseErrorResponse(res)
+                    );
+                }
+            } catch (AuraHandledException ahe) {
+                throw ahe;
+            } catch (Exception e) {
+                throw new AuraHandledException('Error fetching leadership data: ' + e.getMessage());
+            }
+        }
 
     // ─────────────────────────────────────────────────────────────────────────
     // PDF Report URL

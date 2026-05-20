@@ -156,33 +156,170 @@
         </template>
       </template>
     </template>
-
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- TAB: Leadership                                                     -->
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <template if:true={isLeadershipTab}>
+  <!-- ============================================================ -->
+  <!-- TAB Leadership                                               -->
+  <!-- ============================================================ -->
+  <template if:true={isLeadershipTab}>
       <div class="cdr-subtab-content">
-        <template if:true={hasLeadership}>
-          <div class="cdr-leadership-list">
-            <template for:each={leadershipList} for:item="leader">
-              <div key={leader.id} class="cdr-leader-card">
-                <div class="cdr-leader-avatar">{leader.initials}</div>
-                <div class="cdr-leader-info">
-                  <div class="cdr-leader-name">{leader.name}</div>
-                  <div class="cdr-leader-title">{leader.title}</div>
-                </div>
+
+          <!-- Loading -->
+          <template if:true={leadershipIsLoading}>
+              <div class="cdr-loading">
+                  <div class="cdr-spinner"></div>
+                  <span>Loading leadership data...</span>
               </div>
-            </template>
-          </div>
-        </template>
-        <template if:false={hasLeadership}>
-          <div class="cdr-empty">
-            <span class="cdr-empty-icon">&#128100;</span>
-            <p>Leadership data will appear here once research is complete.</p>
-          </div>
-        </template>
+          </template>
+
+          <!-- Error -->
+          <template if:true={leadershipHasError}>
+              <div class="cdr-error">
+                  <span class="cdr-error-icon">&#9888;</span>
+                  <span>{leadershipError}</span>
+              </div>
+          </template>
+
+      <!-- Not Yet Loaded (pre-tab visit, not currently fetching) -->
+      <template if:true={leadershipNotYetLoaded}>
+          <template if:false={leadershipIsLoading}>
+              <div class="cdr-loading">
+                  <div class="cdr-spinner"></div>
+                  <span>Loading leadership data...</span>
+              </div>
+          </template>
+      </template>
+
+          <!-- Data View -->
+          <template if:true={leadershipHasExecutives}>
+              <!-- Outer card — matches React portal border rounded-lg overflow-hidden -->
+              <div class="ldr-outer-card">
+
+                  <!-- Card Header -->
+                  <div class="ldr-card-header">
+                      <div class="ldr-card-header-left">
+                          <!-- Person icon -->
+                          <span class="ldr-header-icon-wrap" aria-hidden="true">
+                              <svg class="ldr-header-icon" xmlns="http://www.w3.org/2000/svg"
+                                  viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                  <circle cx="12" cy="7" r="4"/>
+                              </svg>
+                          </span>
+                          <span class="ldr-header-title">Leadership</span>
+                          <!-- Count badge -->
+                          <span class="ldr-count-badge">{leadershipCountLabel}</span>
+                      </div>
+                      <div class="ldr-card-header-right">
+                          <button class="ldr-refresh-btn"
+                                  title="Refresh leadership data"
+                                  onclick={handleLeadershipRefresh}>&#8635;</button>
+                      </div>
+                  </div>
+                  <!-- end ldr-card-header -->
+
+                  <!-- Card Body — list of executive cards -->
+                  <div class="ldr-card-body">
+                      <template for:each={leadershipExecutives} for:item="exec">
+                          <div key={exec.id} class="ldr-exec-card">
+
+                              <!-- Top row: avatar + name/designation + confidence badge -->
+                              <div class="ldr-exec-top">
+                                  <!-- Avatar circle with initials -->
+                                  <div class="ldr-avatar">{exec.initials}</div>
+
+                                  <!-- Name + designation -->
+                                  <div class="ldr-exec-info">
+                                      <div class="ldr-exec-name">{exec.fullName}</div>
+                                      <template if:true={exec.designation}>
+                                          <div class="ldr-exec-designation">{exec.designation}</div>
+                                      </template>
+                                  </div>
+
+                                  <!-- Confidence badge: Verified / Pending / Unverified -->
+                                  <span class={exec.confidenceClass}>{exec.confidenceLabel}</span>
+                              </div>
+                              <!-- end ldr-exec-top -->
+
+                              <!-- Employment History -->
+                              <template if:true={exec.hasEmploymentHistory}>
+                                  <div class="ldr-exec-section">
+                                      <div class="ldr-exec-section-label">Experience</div>
+                                      <div class="ldr-exec-section-value">{exec.employmentHistory}</div>
+                                  </div>
+                              </template>
+
+                              <!-- Education -->
+                              <template if:true={exec.hasEducation}>
+                                  <div class="ldr-exec-section">
+                                      <div class="ldr-exec-section-label">Education</div>
+                                      <div class="ldr-exec-section-value">{exec.education}</div>
+                                  </div>
+                              </template>
+
+                              <!-- Specialties -->
+                              <template if:true={exec.hasSpecialties}>
+                                  <div class="ldr-exec-section">
+                                      <div class="ldr-exec-section-label">Skills</div>
+                                      <div class="ldr-exec-section-value ldr-skills-wrap">{exec.specialties}</div>
+                                  </div>
+                              </template>
+
+                              <!-- Footer links: LinkedIn + Source -->
+                              <!-- Best Email -->
+                            <template if:true={exec.email}>
+                                <div class="ldr-exec-section">
+                                    <div class="ldr-exec-section-label">Email</div>
+                                    <div class="ldr-exec-section-value">{exec.email}</div>
+                                </div>
+                            </template>
+
+                            <!-- Best Phone -->
+                            <template if:true={exec.phone}>
+                                <div class="ldr-exec-section">
+                                    <div class="ldr-exec-section-label">Phone</div>
+                                    <div class="ldr-exec-section-value">{exec.phone}</div>
+                                </div>
+                            </template>
+                              <template if:true={exec.hasLinkedIn}>
+                                  <div class="ldr-exec-links">
+                                      <a class="ldr-exec-link"
+                                        href={exec.linkedInUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer">
+                                          <!-- LinkedIn icon -->
+                                          <svg class="ldr-link-icon" xmlns="http://www.w3.org/2000/svg"
+                                              viewBox="0 0 24 24" fill="currentColor">
+                                              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                                              <rect x="2" y="9" width="4" height="12"/>
+                                              <circle cx="4" cy="4" r="2"/>
+                                          </svg>
+                                          LinkedIn Profile
+                                      </a>
+                                  </div>
+                              </template>
+
+                          </div>
+                          <!-- end ldr-exec-card -->
+                      </template>
+                  </div>
+                  <!-- end ldr-card-body -->
+
+              </div>
+              <!-- end ldr-outer-card -->
+          </template>
+          <!-- end leadershipHasExecutives -->
+
+          <!-- Empty State -->
+          <template if:true={leadershipShowEmptyState}>
+              <div class="cdr-empty">
+                  <span class="cdr-empty-icon">&#128100;</span>
+                  <p>No leadership data found for this company.</p>
+              </div>
+          </template>
+
       </div>
-    </template>
+  </template>
+  <!-- end isLeadershipTab -->
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- TAB: UCC — PIXEL-PERFECT MATCH TO REACT PORTAL                     -->
