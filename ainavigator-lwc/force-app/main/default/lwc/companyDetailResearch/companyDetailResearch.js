@@ -113,7 +113,7 @@ function parseContentToRows(text) {
 
         const headingMatch = trimmed.match(/^(#{1,4})\s?(.+)/);
         if (headingMatch) {
-            rows.push({ id: `h-${i}`, isHeading: true, level: headingMatch[1].length, text: stripInlineMd(headingMatch[2]) });
+            rows.push({ id: `h-${i}`, isHeading: true, level: headingMatch[1].length, isH3: headingMatch[1].length <= 3, text: stripInlineMd(headingMatch[2]) });
             continue;
         }
 
@@ -314,50 +314,93 @@ function buildUccViewModel(raw) {
         const list = Array.isArray(raw) ? raw : (raw.executives || raw.leaders || raw.leadership || []);
 
         const executives = list.map((p, idx) => {
-            const fullName   = p.fullName   || p.name  || '';
-            const initials   = fullName
+            const fullName = p.fullName || p.name || '';
+
+            const initials = fullName
                 .split(' ')
                 .filter(Boolean)
                 .map(w => w[0].toUpperCase())
                 .slice(0, 2)
                 .join('');
 
-            // sourceConfidence badge: high → green, low → gray, pending-verification → yellow
-            const confidence = p.sourceConfidence || 'low';
-            const confidenceClass =
-                confidence === 'high'                ? 'ldr-badge ldr-badge--high'    :
-                confidence === 'pending-verification'? 'ldr-badge ldr-badge--pending' :
-                                                    'ldr-badge ldr-badge--low';
-            const confidenceLabel =
-                confidence === 'high'                ? 'Verified'          :
-                confidence === 'pending-verification'? 'Pending'           :
-                                                    'Unverified';
+            // Emails — pick recommended or first valid grade
+            const emails = Array.isArray(p.emails) && p.emails.length > 0
+                ? p.emails
+                : (p.email ? [{ email: p.email, type: 'professional', grade: '' }] : []);
+            const recommendedEmail = emails.find(e => e.grade === 'A') || emails[0] || null;
+
+            // Phones — pick recommended
+            const phones = Array.isArray(p.phones) && p.phones.length > 0
+                ? p.phones
+                : (p.phone ? [{ number: p.phone, type: 'professional', recommended: true }] : []);
+            const recommendedPhone = phones.find(ph => ph.recommended) || phones[0] || null;
+
+            // Employment history from jobHistory[]
+            const jobHistory = Array.isArray(p.jobHistory) && p.jobHistory.length > 0
+                ? p.jobHistory.map((j, jIdx) => ({
+                    key:       `jh-${idx}-${jIdx}`,
+                    title:     j.title || '',
+                    company:   j.company || '',
+                    startDate: formatDate(j.startDate),
+                    endDate:   j.isCurrent ? 'Present' : formatDate(j.endDate),
+                    isCurrent: !!j.isCurrent
+                }))
+                : [];
+
+            // Education
+            const education = Array.isArray(p.education) && p.education.length > 0
+                ? p.education.map((e, eIdx) => ({
+                    key:    `edu-${idx}-${eIdx}`,
+                    school: e.school || '',
+                    degree: e.degree || '',
+                    major:  e.major || ''
+                }))
+                : [];
+
+            // Skills
+            const skills = Array.isArray(p.skills) ? p.skills.filter(Boolean) : [];
+
+            // Social profiles
+            const linkedInUrl  = p.linkedInUrl  || p.links?.linkedin  || null;
+            const twitterUrl   = p.twitterUrl   || p.links?.twitter   || null;
 
             return {
-                id:                   String(idx),
+                id:               String(idx),
                 fullName,
                 initials,
-                designation:          p.designation         || '',
-                employmentHistory:    p.employmentHistory    || null,
-                hasEmploymentHistory: !!p.employmentHistory,
-                education:            p.education            || null,
-                hasEducation:         !!p.education,
-                specialties:          p.specialties          || null,
-                hasSpecialties:       !!p.specialties,
-                linkedInUrl:          p.linkedInUrl          || null,
-                hasLinkedIn:          !!p.linkedInUrl,
-                sourceUrl:            p.sourceUrl            || null,
-                hasSourceUrl:         !!p.sourceUrl,
-                sourceConfidence:     confidence,
-                confidenceClass,
-                confidenceLabel,
+                designation:      p.designation || p.title || '',
+                company:          p.company || '',
+                location:         p.location || [p.city, p.state, p.country].filter(Boolean).join(', ') || null,
+                profilePicUrl:    p.profilePicUrl || null,
+                hasProfilePic:    !!p.profilePicUrl,
+                emails,
+                recommendedEmail,
+                hasEmails:        emails.length > 0,
+                emailCount:       emails.length,
+                phones,
+                recommendedPhone,
+                hasPhones:        phones.length > 0,
+                phoneCount:       phones.length,
+                jobHistory,
+                hasJobHistory:    jobHistory.length > 0,
+                jobHistoryCount:  jobHistory.length,
+                education,
+                hasEducation:     education.length > 0,
+                skills,
+                hasSkills:        skills.length > 0,
+                skillCount:       skills.length,
+                linkedInUrl,
+                hasLinkedIn:      !!linkedInUrl,
+                twitterUrl,
+                hasTwitter:       !!twitterUrl,
+                source:           p.source || null
             };
         }).filter(e => e.fullName);
 
         return {
             executives,
             hasExecutives: executives.length > 0,
-            totalCount:    executives.length,
+            totalCount:    executives.length
         };
     }
 
@@ -549,9 +592,7 @@ export default class CompanyDetailResearch extends LightningElement {
     @track _leadershipLoading   = false;
     @track _leadershipError     = null;
     @track _leadershipLoaded    = false;
-    @track leadershipData = null;
-    @track leadershipError = null;
-    @track leadershipLoaded = false; 
+    @track _leadershipData = null;
     // ─── Lifecycle ────────────────────────────────────────────────────────────
 
     connectedCallback() {
@@ -687,27 +728,31 @@ handleSectionClick(event) {
 }
 
     loadLeadership() {
-        if (!this.companyId) return;
-        this.leadershipIsLoading = true;
-        this.leadershipError = null;
+    if (!this.companyId) return;
+    this._leadershipLoading = true;
+    this._leadershipError   = null;
 
-        getLeadershipData({ companyId: this.companyId })
-            .then(json => {
-                const raw = JSON.parse(json);
-                this.leadershipData = raw;
-                this.leadershipLoaded = true;
-                this.leadershipIsLoading = false;
-            })
-            .catch(err => {
-                this.leadershipError = err?.body?.message || 'Failed to load leadership data.';
-                this.leadershipIsLoading = false;
-            });
-    }
+    getAiNavigatorReport({ companyId: this.companyId })
+        .then(json => {
+            const report = JSON.parse(json);
+            console.log('LEADERSHIP DEBUG:', JSON.stringify(Object.keys(report)));
+            console.log('LEADERSHIP NODE:', JSON.stringify(report?.leadership));
+            const leaders = report?.leadership?.leaders;
 
-    handleLeadershipRefresh() {
-        this.leadershipLoaded = false;
-        this.loadLeadership();
-    }
+            if (!leaders || leaders.length === 0) {
+                throw new Error('No leadership data found in report.');
+            }
+
+            this._leadershipData      = { executives: leaders };
+            this._leadershipViewModel = buildLeadershipViewModel(this._leadershipData);
+            this._leadershipLoaded    = true;
+            this._leadershipLoading   = false;
+        })
+        .catch(err => {
+            this._leadershipError   = err?.body?.message || err?.message || 'Failed to load leadership data.';
+            this._leadershipLoading = false;
+        });
+}
 
     // ─── Helpers (UNCHANGED) ──────────────────────────────────────────────────
 
@@ -734,11 +779,11 @@ handleSectionClick(event) {
 
         lines.forEach((line, index) => {
             const trimmed = line.trim();
-            const match   = trimmed.match(/^(#{1,2})\s?(.+)/);
+            const match = trimmed.match(/^(#{1,2})(?!#)\s?(.+)/);
             if (!match) return;
             if (match[1].length === 1) return;
 
-            const rawTitle = stripInlineMd(match[2]);
+            const rawTitle = stripInlineMd(match[2]).replace(/^#+\s*/, '');
 
             // ✅ Substring match for boilerplate headings
             const rawLower = rawTitle.toLowerCase();
@@ -995,95 +1040,132 @@ get researchSubTabs() {
     get hasEquifaxData() { return false; }
     // ─── Getters: Leadership Tab ──────────────────────────────────────────────
 
-    get leadershipIsLoading()  { return this._leadershipLoading; }
+    get leadershipIsLoading()    { return this._leadershipLoading; }  
     get leadershipHasError()   { return !!this._leadershipError; }
     get leadershipError()      { return this._leadershipError; }
     get leadershipNotYetLoaded() { return !this._leadershipLoaded && !this._leadershipLoading; }
-
-    get leadershipExecutives() {
-    if (!this.leadershipData?.leaders) return [];
-    return this.leadershipData.leaders.map((l, index) => {
+get leadershipExecutives() {
+    if (!this._leadershipData?.executives) return [];
+    return this._leadershipData.executives.map((l, index) => {
         const name = l.fullName || l.name || '';
 
-        // Best valid email (grade A or A-)
-        const bestEmail = (l.emails || []).find(e =>
-            e.smtp_valid === 'valid' && (e.grade === 'A' || e.grade === 'A-')
-        );
-
-        // Best valid phone (recommended first)
-        const bestPhone = (l.phones || []).find(p => p.recommended)
-            || (l.phones || [])[0];
-
-        // Employment history — show top 3 current/recent
-        const jobLines = (l.jobHistory || [])
-            .slice(0, 3)
-            .map(j => `${j.title} @ ${j.company}${j.isCurrent ? ' (Current)' : ''}`)
-            .join(' · ');
-
-        // Education — degree + school
-        const eduLines = (l.education || [])
-            .slice(0, 2)
-            .map(e => [e.degree, e.school].filter(Boolean).join(', '))
-            .join(' · ');
-
-        // Skills — comma list
-        const skillsText = (l.skills || []).join(', ');
-
-        // Confidence: rocketreach = verified/high, perplexity = unverified/low
+        // Confidence badge
         const sourceMap = {
             rocketreach: { label: 'Verified',   cls: 'ldr-badge ldr-badge--high' },
             perplexity:  { label: 'Unverified',  cls: 'ldr-badge ldr-badge--low'  },
         };
         const conf = sourceMap[l.source] || { label: 'Unverified', cls: 'ldr-badge ldr-badge--low' };
+
         const rawTitle = l.designation || l.title || '';
-        const designation = rawTitle.length > 60
-            ? rawTitle.substring(0, 57) + '...'
-            : rawTitle;
+        const designation = rawTitle.length > 60 ? rawTitle.substring(0, 57) + '...' : rawTitle;
+
+        // ── Emails: full array for iteration ──
+        const emails = (l.emails || []).map(e => ({
+            email: e.email,
+            type:  e.email_type || e.type || 'professional',
+            grade: e.grade || '',
+        }));
+        const recommendedEmail = emails.find(e => e.grade === 'A' || e.grade === 'A-') || emails[0] || null;
+
+        // ── Phones: full array for iteration ──
+        const phones = (l.phones || []).map(p => ({
+            number:      p.number || p.phone || '',
+            type:        p.type || '',
+            recommended: !!p.recommended,
+        }));
+
+        // ── Job history: full array for iteration ──
+        const jobHistory = (l.jobHistory || []).map((j, jIdx) => ({
+            key:       `jh-${index}-${jIdx}`,
+            title:     j.title || '',
+            company:   j.company || '',
+            startDate: j.startDate || '',
+            endDate:   j.isCurrent ? 'Present' : (j.endDate || ''),
+            isCurrent: !!j.isCurrent,
+            rowClass:  j.isCurrent ? 'ldr-job-row ldr-job-row--current' : 'ldr-job-row',
+        }));
+
+        // ── Education: full array for iteration ──
+        const education = (l.education || []).map((e, eIdx) => ({
+            key:    `edu-${index}-${eIdx}`,
+            school: e.school || '',
+            degree: e.degree || '',
+            major:  e.major  || '',
+        }));
+
+        // ── Skills: full array for iteration ──
+        const skills = (l.skills || []).filter(Boolean);
+
+        // Social
+        const linkedInUrl = l.linkedInUrl || l.links?.linkedin || null;
+        const twitterUrl  = l.twitterUrl  || l.links?.twitter  || null;
+
         return {
-            id: String(l.rocketReachId || name || index),
-            fullName:             name,
-            designation:          designation,
-            initials:             this.getInitials(name),
-            confidenceLabel:      conf.label,
-            confidenceClass:      conf.cls,
-            hasEmploymentHistory: !!jobLines,
-            employmentHistory:    jobLines,
-            hasEducation:         !!eduLines,
-            education:            eduLines,
-            hasSpecialties:       !!skillsText,
-            specialties:          skillsText,
-            hasLinkedIn:          !!l.linkedInUrl,
-            linkedInUrl:          l.linkedInUrl,
-            email:                bestEmail?.email || '',
-            phone:                bestPhone?.number || '',
-            location:             l.location || [l.city, l.state, l.country].filter(Boolean).join(', '),
+            id:               String(l.rocketReachId || name || index),
+            fullName:         name,
+            designation:      designation,
+            initials:         this.getInitials(name),
+            location:         l.location || [l.city, l.state, l.country].filter(Boolean).join(', ') || '',
+            profilePicUrl:    l.profilePicUrl || null,
+            hasProfilePic:    !!l.profilePicUrl,
+            confidenceLabel:  conf.label,
+            confidenceClass:  conf.cls,
+
+            // Emails
+            emails,
+            recommendedEmail,
+            hasEmails:        emails.length > 0,
+            emailCount:       emails.length,
+
+            // Phones
+            phones,
+            hasPhones:        phones.length > 0,
+            phoneCount:       phones.length,
+
+            // Job history
+            jobHistory,
+            hasJobHistory:    jobHistory.length > 0,
+            jobHistoryCount:  jobHistory.length,
+
+            // Education
+            education,
+            hasEducation:     education.length > 0,
+            educationCount:   education.length,
+
+            // Skills
+            skills,
+            hasSkills:        skills.length > 0,
+            skillCount:       skills.length,
+
+            // Social
+            linkedInUrl,
+            hasLinkedIn:      !!linkedInUrl,
+            twitterUrl,
+            hasTwitter:       !!twitterUrl,
         };
     });
 }
-
+   
 get leadershipHasError() {
-    return !!this.leadershipError;
+    return !!this._leadershipError;
 }
 
 get leadershipCountLabel() {
-    const count = this.leadershipData?.leaders?.length || 0;
+    const count = this._leadershipData?.executives?.length || 0;
     return `${count} executive${count !== 1 ? 's' : ''}`;
 }
-   get leadershipTotalCount() { return this.leadershipData?.leaders?.length || 0; }
+   get leadershipTotalCount() { return this._leadershipData?.executives?.length || 0; }
 
-    get leadershipHasExecutives() {
-        return this._leadershipLoaded &&
-            !this._leadershipLoading &&
-            !this._leadershipError &&
-            this._leadershipViewModel?.hasExecutives === true;
-    }
+   get leadershipHasExecutives() {
+    return this._leadershipViewModel?.executives?.length > 0;
+}
 
-    get leadershipShowEmptyState() {
-        return this._leadershipLoaded &&
-            !this._leadershipLoading &&
-            !this._leadershipError &&
-            !this._leadershipViewModel?.hasExecutives;
-    }
+get leadershipShowEmptyState() {
+    return this._leadershipLoaded &&
+          !this._leadershipLoading &&
+          !this._leadershipError &&
+          !(this._leadershipViewModel?.executives?.length > 0);
+}
 
     // Keep hasLeadership as alias for backward-compat with any existing HTML refs
     get hasLeadership() { return this.leadershipHasExecutives; }
