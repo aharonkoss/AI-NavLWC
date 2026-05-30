@@ -1,0 +1,114 @@
+.opp-navigator-wrapper {
+    background-color: #f3f4f6;
+    border-radius: 4px;
+}
+
+.opp-navigator-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #dddbda;
+}
+
+.opp-navigator-body {
+    min-height: 240px;
+    position: relative;
+    border: none;
+}
+
+/* State Render Layouts */
+.state-container {
+    flex-direction: column;
+    min-height: 200px;
+    justify-content: center;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Pulsing Sonar Loader */
+.spinner-sonar {
+    width: 48px;
+    height: 48px;
+    background-color: #0176d3;
+    border-radius: 50%;
+    position: relative;
+    animation: sonarPulse 1.6s ease-out-in infinite;
+}
+
+@keyframes sonarPulse {
+    0% {
+        transform: scale(0.6);
+        opacity: 0.1;
+    }
+    50% {
+        opacity: 0.75;
+    }
+    100% {
+        transform: scale(1.1);
+        opacity: 0;
+    }
+}
+
+/* Pending Badging style matching LWC themes */
+.status-badge-pending {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fef3c7;
+    font-size: 0.75rem;
+}
+
+/* Table Style Formatting overriding defaults for compact grids */
+.section-header-bar {
+    background-color: #f3f4f6;
+    color: #1a1d23;
+    font-size: 0.8125rem;
+    border-left: 3px solid #0176d3;
+}
+
+.table-wrapper {
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+}
+
+.table-header-cell {
+    background-color: #fafaf9 !important;
+    color: #514f4d !important;
+    font-size: 0.72rem !important;
+    padding: 8px 12px !important;
+    border-bottom: 2px solid #dddbda;
+}
+
+.table-body-cell {
+    padding: 8px 12px !important;
+    font-size: 0.8125rem;
+    vertical-align: top;
+    color: #1a1d23;
+}
+
+.text-para {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: #1a1d23;
+}
+
+.text-heading {
+    font-size: 0.8125rem;
+    letter-spacing: 0.04em;
+    color: #4b5563;
+    border-bottom: 1px solid #edf0f4;
+    padding-bottom: 4px;
+}
+
+.bullet-symbol {
+    color: #0176d3;
+    font-size: 1rem;
+    line-height: 1.25;
+}

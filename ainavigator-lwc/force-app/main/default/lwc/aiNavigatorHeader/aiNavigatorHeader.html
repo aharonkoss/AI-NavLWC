@@ -1,0 +1,183 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 05-29-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <!-- LWC Navigation Header for AI Navigator -->
+    <div class="slds-box slds-box_xx-small slds-theme_default slds-m-bottom_small slds-p-around_none bg-white header-container" id="ai-nav-hdr-root">
+        <div class="slds-grid slds-grid_vertical-align-center slds-p-around_medium flex-container">
+            <!-- Brand Logo Area -->
+            <div class="slds-col slds-grow-none slds-m-right_large logo-box">
+                <div class="slds-grid slds-grid_vertical-align-center logo-flex">
+                    <div class="logo-wrapper slds-m-right_small">
+                        <template if:true={logoUrl}>
+                            <img src={logoUrl} alt="AI Navigator Logo" class="brand-logo-img" />
+                        </template>
+                        <template if:false={logoUrl}>
+                            <svg class="brand-logo-svg" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M 23,72 A 41,41 0 1,1 81,30" stroke="#004D73" stroke-width="7.5" stroke-linecap="round" fill="none" />
+                                <path d="M 33,83 A 41,41 0 0,0 85,39" stroke="#004D73" stroke-width="7.5" stroke-linecap="round" fill="none" />
+                                <path d="M 14,74 L 25,54" stroke="#00729F" stroke-width="6.5" stroke-linecap="round" fill="none" />
+                                <path d="M 25,54 L 35,61" stroke="#00729F" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                                <path d="M 64,56 L 80,24" stroke="#00729F" stroke-width="6.5" stroke-linecap="round" fill="none" />
+                                <path d="M 52,28 L 37,73 L 52,62 Z" fill="#00729F" />
+                                <path d="M 52,28 L 67,71 L 52,62 Z" fill="#90C1D7" />
+                            </svg>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integrated Navigation Ribbon -->
+            <div class="slds-col slds-grow navigation-bar-container">
+                <div class="nav-ribbon slds-grid slds-grid_vertical-align-center">
+                    <template for:each={tabs} for:item="tab">
+                        <template if:true={tab.isDivider}>
+                            <div key={tab.id} class="nav-divider"></div>
+                        </template>
+
+                        <template if:false={tab.isDivider}>
+                            <button
+                                key={tab.id}
+                                disabled={tab.disabled}
+                                class={tab.classes}
+                                data-tab={tab.id}
+                                onclick={handleTabClick}
+                            >
+                                <span class="tab-label">{tab.label}</span>
+                                <template if:true={tab.hasDot}>
+                                    <span class="alert-dot-container">
+                                        <span class="alert-pulse"></span>
+                                        <span class="alert-dot"></span>
+                                    </span>
+                                </template>
+                                <template if:true={tab.isLocked}>
+                                    <span class="lock-icon">🔒</span>
+                                </template>
+                            </button>
+                        </template>
+                    </template>
+
+                    <!-- User and Notification Meta -->
+                    <div class="slds-col_bump-left slds-grid slds-grid_vertical-align-center slds-p-left_medium right-meta">
+                        <!-- Call Plan Dropdown Toggle -->
+                        <div class="dropdown-wrapper">
+                            <button
+                                disabled={isCallPlanDisabled}
+                                class={callPlanButtonClass}
+                                onclick={toggleDropdown}
+                            >
+                                <span class="tab-label">Call Plan</span>
+                                <svg class="chevron-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                                <template if:true={isCallPlanActive}>
+                                    <span class="badge-active">Active</span>
+                                </template>
+                            </button>
+
+                            <template if:true={isDropdownOpen}>
+                                <div class="dropdown-backdrop" onclick={closeDropdown}></div>
+                                <div class="dropdown-menu-right">
+                                    <button class="dropdown-item" data-tab="call-plan" onclick={handleDropdownItemClick}>
+                                        <span class="item-icon">📖</span> Discovery Call Plan
+                                    </button>
+                                    <button class="dropdown-item" data-tab="coach" onclick={handleDropdownItemClick}>
+                                        <span class="item-icon">🏅</span> Coaching Practice
+                                    </button>
+                                    <button class="dropdown-item" data-tab="simulator" onclick={handleDropdownItemClick}>
+                                        <span class="item-icon">▶️</span> Discovery Simulator
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+
+                        <!-- Notification Bell -->
+                        <div class="notification-trigger" onclick={toggleNotifications}>
+                            <span class="bell-icon">
+                                <svg class="bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; display: block; color: #ffffff;">
+                                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                </svg>
+                            </span>
+                            <template if:true={hasNotifications}>
+                                <span class="notification-badge">{notificationCount}</span>
+                            </template>
+                        </div>
+
+                        <!-- User Profile Area -->
+                        <div class="user-avatar-container slds-m-left_medium">
+                            <div class="avatar-circle">{currentUserInitial}</div>
+                            <span class="user-profile-name slds-m-left_small slds-show_medium">{currentUserName}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Banner Feed overlay inside LWC -->
+        <template if:true={showNotificationsMenu}>
+            <div class="alerts-feed-wrapper slds-p-horizontal_medium slds-p-bottom_medium">
+                <div class="alerts-feed-content slds-p-around_medium">
+                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_small border-b">
+                        <div class="feed-title text-indigo-900 font-bold">Active Target Alerts Feed</div>
+                        <button class="close-feed" onclick={closeNotifications}>&times; Close Feed</button>
+                    </div>
+                    <div class="feed-items slds-p-vertical_x-small">
+                        <div class="feed-item slds-m-bottom_x-small">
+                            <span class="bullet-alert orange">•</span> PE Acquisition Interest alert detected on Acme Manufacturing Co.
+                        </div>
+                        <div class="feed-item slds-m-bottom_x-small">
+                            <span class="bullet-alert orange">•</span> Receivables Cycle bottleneck identified on Keystone Medical Supplies.
+                        </div>
+                        <div class="feed-item slds-m-bottom_x-small">
+                            <span class="bullet-alert orange">•</span> IT Contract award notice compiled for BlueSky Technology Group.
+                        </div>
+                    </div>
+                    <div class="slds-text-align_right shrink-0">
+                        <button class="mark-read shadow-sm btn-clear" onclick={markAllRead}>Mark all as read</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Company Context Ribbon - Re-engineered to match the React Portal's style -->
+        <template if:true={companySelected}>
+            <div class="context-ribbon">
+                <div class="context-left">
+                    <!-- Back Arrow -->
+                    <button class="back-arrow-btn" onclick={handleClearCompany} title="Back to Dashboard">
+                        &larr;
+                    </button>
+                    
+                    <!-- Company Name -->
+                    <span class="selected-target-name">{selectedCompanyName}</span>
+
+                    <!-- Location details -->
+                    <template if:true={hasLocation}>
+                        <span class="context-divider">|</span>
+                        <span class="location-text">{formattedLocation}</span>
+                    </template>
+
+                    <!-- Website URL link -->
+                    <template if:true={companyWebsite}>
+                        <span class="context-divider">|</span>
+                        <a href={websiteUrl} target="_blank" rel="noopener noreferrer" class="website-link">
+                            {companyWebsite}
+                        </a>
+                    </template>
+
+                    <!-- Status badge -->
+                    <template if:true={companyStatus}>
+                        <span class="context-divider">|</span>
+                        <span class={statusBadgeClass}>
+                            {companyStatus}
+                        </span>
+                    </template>
+                </div>
+            </div>
+        </template>
+    </div>
+</template>

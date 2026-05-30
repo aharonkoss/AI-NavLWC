@@ -5,7 +5,6 @@ import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
 import getSignals from '@salesforce/apex/DashboardController.getSignals';
 import updateCompany from '@salesforce/apex/DashboardController.updateCompany';
 import deleteCompany from '@salesforce/apex/DashboardController.deleteCompany';
-import retryCompany from '@salesforce/apex/DashboardController.retryCompany';
 
 export default class Dashboard extends NavigationMixin(LightningElement) {
     @track stats = { totalCompanies: 0, processing: 0, completed: 0, opened: 0 };
@@ -15,7 +14,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track companyFilter = 'all';
     @track dateFilter = '';
     @track currentPage = 1;
-    @track selectedCompany = null; // { companyId, name, signals }
     ITEMS_PER_PAGE = 10;
 
     connectedCallback() {
@@ -34,10 +32,8 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .then(result => {
                 const raw = JSON.parse(result);
                 this._companies = raw.map(c => this.mapCompany(c));
-                // Load signals for all completed companies
-                this._companies
-                    .filter(c => c.status === 'completed')
-                    .forEach(c => this.loadSignalsForCompany(c.companyId));
+                // Load signals for ALL companies (not just completed)
+                this._companies.forEach(c => this.loadSignalsForCompany(c.companyId));
             })
             .catch(error => console.error('Error loading companies:', error));
     }
@@ -45,9 +41,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     loadSignalsForCompany(companyId) {
         getSignals({ companyId })
             .then(result => {
-                const signals = JSON.parse(result);
+                const data = JSON.parse(result);
+                // API returns { companyId, signals: [], lastUpdatedAt }
+                const signals = Array.isArray(data) ? data : (data.signals || []);
                 this._companySignals = { ...this._companySignals, [companyId]: signals };
-                // Recompute companies to update signal badge
                 this._companies = this._companies.map(c =>
                     c.companyId === companyId ? this.mapCompany(c, signals) : c
                 );
@@ -67,6 +64,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             statusClass: this.getStatusClass(c.status),
             statusLabel: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown',
             isProcessingOrPending: c.status === 'processing' || c.status === 'pending',
+            isCompleted: c.status === 'completed',
             stageIsPreCall:        (c.stage || 'PreCall') === 'PreCall',
             stageIsAppointmentSet: c.stage === 'Appointment Set',
             stageIsFaceToFace:     c.stage === 'Face To Face',
@@ -78,13 +76,22 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             signalCount:           signalSummary ? signalSummary.count : 0,
             signalMaxPriority:     signalSummary ? signalSummary.maxPriority : 1,
             signalWarningCount:    signalSummary ? signalSummary.warningCount : 0,
-            signalBadgeClass:      signalSummary ? 'signal-badge ' + this.getSignalBadgeClass(signalSummary.maxPriority) : '',
+            // New: label for the signal badge button
+            // Shows "Signals" when no signals, "4" when no warnings, "22 (11)" when warnings exist
+            signalBadgeLabel:      signalSummary
+                                        ? (signalSummary.warningCount > 0
+                                            ? `${signalSummary.count} (${signalSummary.warningCount})`
+                                            : `${signalSummary.count}`)
+                                        : 'Signals',
+            signalBadgeClass:      signalSummary
+                                        ? 'signal-badge ' + this.getSignalBadgeClass(signalSummary.maxPriority)
+                                        : 'signal-badge signal-default',
             showSignalWarning:     signalSummary ? signalSummary.warningCount > 0 : false
         };
     }
 
     getSignalSummary(signals, status) {
-        if (status !== 'completed' || !signals || signals.length === 0) return null;
+        if (!signals || signals.length === 0) return null;
         const nonNeutral = signals.filter(s => s.signalType !== 'Neutral');
         if (nonNeutral.length === 0) return null;
         const priorities = nonNeutral.map(s => this.getSignalPriority(s));
@@ -95,10 +102,12 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return { count: nonNeutral.length, maxPriority, warningCount };
     }
 
+    // NOTE: Removed status === 'completed' gate — now shows signals for all statuses
+
     getSignalPriority(signal) {
         const type = (signal.signalType || '').toLowerCase();
-        const category = (signal.signalCategory || '').toLowerCase();
-        const name = (signal.signalName || '').toLowerCase();
+        const category = (signal.signalCategory || signal.signalType || '').toLowerCase();
+        const name = (signal.signalName || signal.headline || '').toLowerCase();
         if (category.includes('capital') || category.includes('m&a') || category.includes('acquisition')) return 5;
         if (name.includes('acquisition') || name.includes('capital') || name.includes('funding')) return 5;
         if (category.includes('leadership') || name.includes('cfo') || name.includes('ceo')) return 4;
@@ -206,7 +215,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     get isFirstPage()    { return this.currentPage === 1; }
     get isLastPage()     { return this.currentPage === this.totalPages; }
     get filteredCount()  { return this.filteredCompanies.length; }
-    get isModalOpen()    { return this.selectedCompany !== null; }
 
     get paginationLabel() {
         const start = (this.currentPage - 1) * this.ITEMS_PER_PAGE + 1;
@@ -226,6 +234,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     handleFilterChange(event)     { this.companyFilter = event.target.value; if (this.companyFilter !== 'byDate') this.dateFilter = ''; this.currentPage = 1; }
     handleDateFilterChange(event) { this.dateFilter = event.target.value; this.currentPage = 1; }
     handleClearFilter()           { this.companyFilter = 'all'; this.dateFilter = ''; this.searchTerm = ''; this.currentPage = 1; }
+
     handlePrevPage() {
         if (this.currentPage > 1) {
             this.currentPage--;
@@ -259,21 +268,16 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .catch(error => console.error('Error updating client type:', error));
     }
 
+    // Signal badge click → navigate to Company Detail on Signals tab
     handleOpenSignals(event) {
         const companyId = event.currentTarget.dataset.companyid;
-        const company = this._companies.find(c => c.companyId === companyId);
-        if (!company) return;
-        const signals = this._companySignals[companyId] || [];
-        this.selectedCompany = {
-            companyId: company.companyId,
-            name: company.name,
-            signals
-        };
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'Company_Detail' },
+            state: { c__companyId: companyId, c__tab: 'signals' }
+        });
     }
 
-    handleCloseModal() {
-        this.selectedCompany = null;
-    }
     handleDelete(event) {
         const companyId = event.currentTarget.dataset.companyid;
         const company = this._companies.find(c => c.companyId === companyId);
@@ -290,25 +294,15 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         deleteCompany({ companyId })
             .catch(error => {
                 console.error('Error deleting company:', error);
-                // Rollback on failure
                 this._companies = [...this._companies, company];
             });
     }
 
-    handleRetry(event) {
-        const companyId = event.currentTarget.dataset.companyid;
-        this._companies = this._companies.map(c => {
-            if (c.companyId !== companyId) return c;
-            return this.mapCompany({ ...c, status: 'pending' });
-        });
-        retryCompany({ companyId })
-            .catch(error => console.error('Error retrying company:', error));
-    }
     handleCompanyClick(event) {
         const companyId = event.currentTarget.dataset.companyId;
         this[NavigationMixin.Navigate]({
             type: 'standard__navItemPage',
-            attributes: { apiName: 'Company_Detail' },  // must match your App Page API name exactly
+            attributes: { apiName: 'Company_Detail' },
             state: { c__companyId: companyId }
         });
     }

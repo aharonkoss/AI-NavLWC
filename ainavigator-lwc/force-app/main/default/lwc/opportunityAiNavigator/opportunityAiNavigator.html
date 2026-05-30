@@ -1,0 +1,171 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 05-29-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <div class="opp-navigator-wrapper">
+    
+    <!-- Header/Action Bar -->
+    <div class="slds-page-header slds-page-header_joined slds-p-around_small opp-navigator-header">
+      <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <div class="slds-media slds-no-space slds-grow">
+          <div class="slds-media__figure">
+            <span class="slds-icon_container slds-icon-standard-opportunity" title="AI Navigator">
+              <lightning-icon icon-name="standard:opportunity" size="small"></lightning-icon>
+            </span>
+          </div>
+          <div class="slds-media__body">
+            <h1 class="slds-page-header__title slds-truncate slds-align-middle" title="AI Navigator Research">AI Navigator</h1>
+            <p class="slds-text-body_small slds-line-height_reset">Company Overview Insights</p>
+          </div>
+        </div>
+        <div>
+          <lightning-button-icon 
+            icon-name="utility:refresh" 
+            variant="border-filled" 
+            alternative-text="Refresh Data" 
+            onclick={handleRefresh}
+            disabled={isLoading}>
+          </lightning-button-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="slds-box slds-box_xs slds-theme_default opp-navigator-body">
+      
+      <!-- 1. Spinner/Loading -->
+      <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_large state-container">
+          <lightning-spinner alternative-text="Loading AI Navigator details" size="medium"></lightning-spinner>
+          <span class="slds-m-left_medium">Fetching research updates...</span>
+        </div>
+      </template>
+
+      <!-- 2. Error Message Block -->
+      <template if:false={isLoading}>
+        <template if:true={error}>
+          <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+            <lightning-icon icon-name="utility:error" size="x-small" variant="inverse" class="slds-m-right_x-small"></lightning-icon>
+            <h2>{error}</h2>
+          </div>
+        </template>
+      </template>
+
+      <!-- 3. Dynamic States when loaded -->
+      <template if:false={isLoading}>
+        <template if:false={error}>
+          
+          <!-- State A: No Company record found for the Opportunity -->
+          <template if:true={showNoRecordState}>
+            <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
+              <lightning-icon icon-name="utility:info_alt" size="large" variant="warning"></lightning-icon>
+              <p class="slds-text-heading_small slds-m-top_medium font-semibold text-center">No AI Navigator record found for this Opportunity.</p>
+              <p class="slds-text-color_weak slds-m-top_x-small text-center">Verify that the associated Account contains a valid Company Name and Website.</p>
+            </div>
+          </template>
+
+          <!-- State B: Record found but not yet Completed -->
+          <template if:true={showProcessingState}>
+            <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
+              <div class="spinner-sonar slds-m-bottom_medium"></div>
+              <p class="slds-text-heading_small font-semibold text-center">AI Navigator is still researching...</p>
+              <p class="slds-text-color_weak slds-m-top_x-small text-center">Please check back later to view the compiled industry and firmographic details.</p>
+              <span class="slds-badge slds-m-top_medium status-badge-pending">Status: {companyStatus}</span>
+            </div>
+          </template>
+
+          <!-- State C: Ready / Completed -->
+          <template if:true={showCompletedState}>
+            <template if:true={overviewSection}>
+              <div class="slds-section slds-is-open">
+                
+                <!-- Section Title Header -->
+                <div class="slds-section__title slds-theme_shade slds-p-around_xx-small section-header-bar">
+                  <span class="slds-truncate slds-p-horizontal_small font-bold" title={overviewSection.title}>
+                    {overviewSection.title}
+                  </span>
+                </div>
+
+                <!-- Section Rows & Markdown Table Parsing Content -->
+                <div class="slds-section__content slds-p-around_small">
+                  <template for:each={overviewSection.renderedRows} for:item="row">
+                    
+                    <!-- Table Layout Render -->
+                    <template if:true={row.isTable}>
+                      <div key={row.id} class="slds-scrollable_x slds-m-bottom_medium table-wrapper">
+                        <table class="slds-table slds-table_bordered slds-table_col-bordered slds-no-row-hover">
+                          <thead>
+                            <tr class="slds-line-height_reset">
+                              <template for:each={row.headerCells} for:item="cell">
+                                <th key={cell.text} scope="col" class="slds-text-title_caps font-bold table-header-cell">
+                                  <div class="slds-truncate" title={cell.text}>{cell.text}</div>
+                                </th>
+                              </template>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <template for:each={row.bodyRows} for:item="brow">
+                              <tr key={brow.id} class="slds-hint-parent">
+                                <template for:each={brow.cells} for:item="cell">
+                                  <td key={cell.text} class="table-body-cell">
+                                    <div class="slds-cell-wrap" title={cell.text}>{cell.text}</div>
+                                  </td>
+                                </template>
+                              </tr>
+                            </template>
+                          </tbody>
+                        </table>
+                      </div>
+                    </template>
+
+                    <!-- Text Layout Render -->
+                    <template if:true={row.isText}>
+                      <p key={row.id} class="slds-m-bottom_small text-para">{row.html}</p>
+                    </template>
+
+                    <!-- Bullet Rows Layout Render -->
+                    <template if:true={row.isBullet}>
+                      <div key={row.id} class="slds-grid slds-grid_vertical-align-start slds-m-bottom_xx-small slds-p-left_small">
+                        <span class="slds-m-right_x-small bullet-symbol">•</span>
+                        <p class="slds-grow text-para">{row.html}</p>
+                      </div>
+                    </template>
+
+                    <!-- Heading Layout Render -->
+                    <template if:true={row.isHeading}>
+                      <h3 key={row.id} class="slds-text-title_caps slds-m-top_medium slds-m-bottom_small font-bold text-heading">
+                        {row.text}
+                      </h3>
+                    </template>
+
+                    <!-- Spacer Elements Layout Render -->
+                    <template if:true={row.isSpacer}>
+                      <div key={row.id} class="slds-m-bottom_medium"></div>
+                    </template>
+
+                  </template>
+                </div>
+
+              </div>
+            </template>
+
+            <!-- Fallback if Completed status exists but Overview block is missing in report -->
+            <template if:false={overviewSection}>
+              <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
+                <lightning-icon icon-name="utility:warning" size="medium" variant="warning"></lightning-icon>
+                <p class="slds-text-heading_small slds-m-top_medium text-center">No Company Overview data parsed.</p>
+                <p class="slds-text-color_weak slds-m-top_x-small text-center">The generated report format did not include a compatible Company Overview heading.</p>
+              </div>
+            </template>
+          </template>
+
+        </template>
+      </template>
+
+    </div>
+  </div>
+</template>

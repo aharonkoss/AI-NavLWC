@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Source_Company__c</fullName>
+    <description>The original company record owned by the sender.</description>
+    <label>Source Company</label>
+    <referenceTo>Company__c</referenceTo>
+    <relationshipLabel>Shared With Users</relationshipLabel>
+    <relationshipName>Shared_With_Users</relationshipName>
+    <type>Lookup</type>
+</CustomField>

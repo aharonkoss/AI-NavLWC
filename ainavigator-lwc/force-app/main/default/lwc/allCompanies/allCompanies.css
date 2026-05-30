@@ -1,4 +1,6 @@
 .ac-wrapper {
+    max-width: 1152px;
+    margin: 0 auto;
     padding: 24px 28px;
     background-color: #f3f4f6;
     min-height: 100vh;

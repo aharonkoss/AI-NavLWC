@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description>Junction object to track which companies have been shared with which users.</description>
+    <label>Shared Company</label>
+    <nameField>
+        <displayFormat>SH-{0000}</displayFormat>
+        <label>Shared Company Name</label>
+        <type>AutoNumber</type>
+    </nameField>
+    <pluralLabel>Shared Companies</pluralLabel>
+    <sharingModel>ReadWrite</sharingModel>
+</CustomObject>

@@ -7,9 +7,9 @@
 }
 
 /* ── Page Header ── */
-.page-header { margin-bottom: 12px; }
+.page-header { margin-bottom: 16px; }
 .page-title {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     font-weight: 700;
     color: #111827;
     margin: 0;
@@ -25,11 +25,11 @@
 .stat-card {
     background: #ffffff;
     border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+    padding: 20px 20px;
     border: 1px solid #f0f0f0;
 }
-.stat-row { display: flex; align-items: center; gap: 12px; }
+.stat-row { display: flex; align-items: center; gap: 10px; }
 .stat-icon {
     width: 28px; height: 28px; border-radius: 4px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -57,14 +57,14 @@
 .companies-card {
     background: #ffffff;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
     border: 1px solid #f0f0f0;
     overflow: hidden;
 }
 
 /* ── Companies Header ── */
 .companies-header {
-    padding: 14px 20px;
+    padding: 12px 20px;
     border-bottom: 1px solid #f3f4f6;
     display: flex;
     align-items: center;
@@ -91,11 +91,12 @@
 }
 .search-input {
     width: 100%;
-    padding: 6px 12px;
+    padding: 5px 10px;
     font-size: 0.8rem;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
+    border-radius: 5px;
     outline: none;
+    background: #fff;
 }
 .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }
 .search-clear-btn {
@@ -105,26 +106,28 @@
     border: none;
     cursor: pointer;
     white-space: nowrap;
+    padding: 0;
 }
 .search-clear-btn:hover { color: #111827; }
 
 /* ── Filter ── */
 .filter-wrapper { display: flex; align-items: center; gap: 8px; }
 .filter-select {
-    padding: 6px 10px;
-    font-size: 0.8rem;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    background: #fff;
-    outline: none;
-    cursor: pointer;
-}
-.filter-select:focus { border-color: #3b82f6; }
-.date-input {
     padding: 5px 8px;
     font-size: 0.8rem;
     border: 1px solid #d1d5db;
-    border-radius: 6px;
+    border-radius: 5px;
+    background: #fff;
+    outline: none;
+    cursor: pointer;
+    color: #374151;
+}
+.filter-select:focus { border-color: #3b82f6; }
+.date-input {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    border: 1px solid #d1d5db;
+    border-radius: 5px;
     outline: none;
 }
 .clear-filter-btn {
@@ -135,36 +138,41 @@
     cursor: pointer;
     white-space: nowrap;
     text-decoration: underline;
+    padding: 0;
 }
 .clear-filter-btn:hover { color: #111827; }
 
 /* ── Companies List + Row ── */
 .companies-list { max-height: 550px; overflow-y: auto; }
+
 .company-row {
     display: grid;
-    grid-template-columns: 1fr auto auto auto auto auto auto;
+    /* name | date | stage | clienttype | signals | status | actions */
+    grid-template-columns: 1fr 80px 120px 144px 90px 90px 40px;
     align-items: center;
     gap: 12px;
     padding: 10px 20px;
-    border-bottom: 1px solid #f9fafb;
-    transition: background 0.15s;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: background 0.12s;
 }
 .company-row:hover { background-color: #f9fafb; }
 .company-row:last-child { border-bottom: none; }
 
 /* ── Company Name Col ── */
-.company-name-col { min-width: 160px; }
+.company-name-col { min-width: 140px; overflow: hidden; }
 .company-name {
+    display: block;
     font-size: 0.875rem;
     font-weight: 500;
     color: #111827;
-    margin: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.company-row:hover .company-name { color: #2563eb; }
 .company-location {
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: #6b7280;
     margin: 2px 0 0 0;
     white-space: nowrap;
@@ -173,8 +181,7 @@
 /* ── Date Col ── */
 .company-date-col {
     white-space: nowrap;
-    min-width: 70px;
-    text-align: center;
+    text-align: left;
 }
 .date-text { font-size: 0.75rem; color: #6b7280; }
 
@@ -205,46 +212,91 @@
 }
 .dropdown-clienttype:focus { border-color: #22c55e; }
 
-/* ── Status Badge ── */
-.company-status-col { white-space: nowrap; }
-.status-badge {
-    display: inline-block;
-    padding: 2px 10px;
+/* ── Signals Badge Col ── */
+.company-signals-col {
+    white-space: nowrap;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+.signal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px 8px;
     border-radius: 9999px;
     font-size: 0.7rem;
     font-weight: 600;
+    border: 1px solid;
+    cursor: pointer;
+    transition: opacity 0.12s;
+    white-space: nowrap;
+    background: none;
+}
+.signal-badge:hover { opacity: 0.75; }
+.signal-icon { font-size: 0.65rem; }
+
+/* Priority levels — matches React getSignalBadgeClass */
+.signal-p5 { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+.signal-p4 { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+.signal-p3 { background: #fefce8; color: #a16207; border-color: #fde68a; }
+.signal-p2 { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.signal-p1 { background: #f9fafb; color: #4b5563; border-color: #e5e7eb; }
+
+/* Default "Signals" button (no signals yet) — purple outline like React */
+.signal-default {
+    background: transparent;
+    color: #7c3aed;
+    border-color: #c4b5fd;
+}
+.signal-default:hover { background: #f5f3ff; }
+
+/* ── Status Badge ── */
+.company-status-col { white-space: nowrap; }
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    min-width: 72px;
+    text-align: center;
 }
 .status-completed  { background: #dcfce7; color: #16a34a; }
 .status-processing { background: #fef3c7; color: #d97706; }
 .status-pending    { background: #f3f4f6; color: #6b7280; }
 .status-failed     { background: #fee2e2; color: #dc2626; }
 
-/* ── Action Buttons ── */
-.company-actions-col { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-.btn-retry {
-    padding: 3px 10px;
-    font-size: 0.7rem;
-    color: #d97706;
-    background: transparent;
-    border: 1px solid #fcd34d;
-    border-radius: 4px;
-    cursor: pointer;
+/* ── Action Buttons (trash only) ── */
+.company-actions-col {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
-.btn-retry:hover { background: #fef3c7; }
 .btn-delete {
-    padding: 3px 8px;
-    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
     color: #9ca3af;
     background: transparent;
-    border: 1px solid #e5e7eb;
+    border: none;
     border-radius: 4px;
     cursor: pointer;
+    padding: 0;
+    transition: color 0.12s, background 0.12s;
 }
-.btn-delete:hover { color: #dc2626; border-color: #fca5a5; background: #fff5f5; }
+.btn-delete:hover {
+    color: #ef4444;
+    background: #fee2e2;
+}
 
 /* ── Empty State ── */
 .empty-state {
-    padding: 40px;
+    padding: 48px 20px;
     text-align: center;
     color: #6b7280;
     font-size: 0.875rem;
@@ -254,9 +306,9 @@
 .pagination {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 16px;
-    padding: 12px 20px;
+    padding: 10px 20px;
     border-top: 1px solid #f3f4f6;
 }
 .page-btn {
@@ -267,50 +319,8 @@
     border: 1px solid #d1d5db;
     border-radius: 6px;
     cursor: pointer;
+    transition: background 0.12s;
 }
 .page-btn:hover:not(:disabled) { background: #f9fafb; }
 .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .page-label { font-size: 0.8rem; color: #6b7280; }
-/* ── Signals Badge ── */
-.company-signals-col {
-    white-space: nowrap;
-    min-width: 80px;
-    width: 80px;
-    text-align: center;
-}
-.signal-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding: 2px 8px;
-    border-radius: 9999px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    border: 1px solid;
-    cursor: pointer;
-    transition: opacity 0.15s;
-}
-.signal-badge:hover { opacity: 0.8; }
-.signal-p5 { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
-.signal-p4 { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
-.signal-p3 { background: #fefce8; color: #a16207; border-color: #fde68a; }
-.signal-p2 { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.signal-p1 { background: #f9fafb; color: #4b5563; border-color: #e5e7eb; }
-.signal-warning-dot { color: #dc2626; font-size: 0.65rem; }
-/* ── Clickable Company Name ── */
-.company-name-btn {
-    background: none;
-    border: none;
-    padding: 0;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #111827;
-    cursor: pointer;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 220px;
-    display: block;
-}
-.company-name-btn:hover { color: #2563eb; text-decoration: underline; }

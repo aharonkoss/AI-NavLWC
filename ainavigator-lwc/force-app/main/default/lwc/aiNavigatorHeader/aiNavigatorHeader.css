@@ -1,0 +1,522 @@
+/* LWC custom styling for AI Navigator Header - React Portal Aligned */
+:host {
+    display: block;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Header Container - matches <header className="shadow-sm bg-white"> */
+.header-container {
+    border: none !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    border-radius: 0 !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* Tailwind shadow-sm */
+    background-color: #ffffff;
+    overflow: visible;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Inner flex container - matches px-4 sm:px-6 lg:px-8 py-1 */
+.flex-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.25rem 1rem !important; /* py-1 px-4 */
+    background-color: #ffffff;
+}
+
+@media (min-width: 640px) {
+    .flex-container {
+        padding-left: 1.5rem !important; /* sm:px-6 */
+        padding-right: 1.5rem !important;
+    }
+}
+
+@media (min-width: 1024px) {
+    .flex-container {
+        padding-left: 2rem !important; /* lg:px-8 */
+        padding-right: 2rem !important;
+    }
+}
+
+/* Brand logo box */
+.logo-box {
+    display: flex;
+    align-items: center;
+    padding: 0;
+}
+
+.logo-flex {
+    display: flex;
+    align-items: center;
+}
+
+.logo-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Logo Image - matches Tailwind h-10 (40px) */
+.brand-logo-img {
+    height: 40px; 
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+/* Fallback SVG */
+.brand-logo-svg {
+    width: 40px;
+    height: 40px;
+    display: block;
+}
+
+/* Navigation Ribbon - matches bg-blue-600 px-3 py-1 ml-4 rounded-lg */
+.navigation-bar-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.nav-ribbon {
+    background-color: #2563eb; /* Tailwind bg-blue-600 */
+    border-radius: 0.5rem; /* Tailwind rounded-lg (8px) */
+    padding: 0.25rem 0.75rem; /* py-1 px-3 */
+    margin-left: 1rem; /* ml-4 */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; 
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 38px;
+    overflow: visible;
+}
+
+/* Navigation Tabs - matches px-2 py-1 text-xs font-medium rounded transition-colors text-blue-100 */
+.nav-tab {
+    background: transparent;
+    border: none;
+    color: #dbeafe !important; /* Tailwind text-blue-100 */
+    padding: 0.25rem 0.5rem; /* py-1 px-2 */
+    border-radius: 0.25rem; /* Tailwind rounded (4px) */
+    font-size: 12px; /* Tailwind text-xs */
+    font-weight: 500; /* Tailwind font-medium */
+    cursor: pointer;
+    transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    white-space: nowrap;
+}
+
+/* Tab Hover state - matches hover:bg-blue-500 hover:text-white */
+.nav-tab:hover:not(:disabled) {
+    background-color: #3b82f6; /* Tailwind bg-blue-500 */
+    color: #ffffff !important;
+}
+
+/* Active Tab state - matches bg-blue-700 text-white */
+.active-tab {
+    background-color: #1d4ed8 !important; /* Tailwind bg-blue-700 */
+    color: #ffffff !important;
+    border-radius: 0.25rem;
+    font-weight: 500;
+}
+
+/* Disabled Tab state - matches text-blue-300 */
+.tab-disabled {
+    color: #93c5fd !important; /* Tailwind text-blue-300 */
+    opacity: 1; /* override previous opacity */
+    cursor: not-allowed !important;
+}
+
+/* Custom Divider - matches <div className="h-4 w-px bg-blue-400"> */
+.nav-divider {
+    height: 16px; /* h-4 */
+    width: 1px; /* w-px */
+    background-color: #60a5fa; /* bg-blue-400 */
+    margin: 0 0.5rem; /* horizontal spacing */
+    align-self: center;
+    display: inline-block;
+}
+
+/* Active alert dot */
+.alert-dot-container {
+    position: relative;
+    display: inline-flex;
+    height: 8px;
+    width: 8px;
+}
+
+.alert-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #fb923c;
+    border-radius: 50%;
+    animation: slds-ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+    opacity: 0.8;
+}
+
+.alert-dot {
+    position: relative;
+    display: inline-block;
+    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+    background-color: #f97316;
+}
+
+/* Lock Icon styling */
+.lock-icon {
+    font-size: 10px;
+    opacity: 0.85;
+    margin-left: 2px;
+}
+
+/* Dropdown Menu structures */
+.dropdown-wrapper {
+    position: relative;
+}
+
+/* React-matched SVG Chevron style */
+.chevron-svg {
+    width: 12px; /* w-3 */
+    height: 12px; /* h-3 */
+    margin-left: 0.25rem; /* ml-1 */
+    transition: transform 150ms;
+}
+
+.badge-active {
+    font-size: 8px;
+    background-color: #f97316;
+    color: #ffffff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    font-weight: 800;
+    margin-left: 6px;
+}
+
+.dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: transparent;
+}
+
+.dropdown-menu-right {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 10px;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    min-width: 200px;
+    padding: 0.375rem 0;
+    z-index: 1001;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    padding: 0.6rem 1.25rem;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 150ms;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f5f9;
+    color: #0f172a;
+}
+
+/* Left / Right bump split inside Ribbon - matches ml-3 gap-2 */
+.right-meta {
+    display: flex;
+    align-items: center;
+    margin-left: 0.75rem; /* ml-3 */
+    gap: 0.5rem; /* gap-2 */
+}
+
+/* Notifications Bell - matches p-1.5 rounded hover:bg-blue-500 */
+.notification-trigger {
+    position: relative;
+    cursor: pointer;
+    padding: 0.375rem; /* p-1.5 */
+    border-radius: 0.25rem; /* rounded (4px) */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 150ms;
+}
+
+.notification-trigger:hover {
+    background-color: #3b82f6; /* Tailwind bg-blue-500 */
+}
+
+.bell-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bell-svg {
+    width: 20px !important; /* w-5 */
+    height: 20px !important; /* h-5 */
+    color: #ffffff;
+}
+
+/* Notification badge - matches absolute -top-1 -right-1 bg-red-500 h-4 w-4 text-xs font-medium */
+.notification-badge {
+    position: absolute;
+    top: -4px; /* -top-1 */
+    right: -4px; /* -right-1 */
+    background-color: #ef4444; /* Tailwind bg-red-500 */
+    color: #ffffff;
+    font-size: 10px; /* text-xs approximate */
+    font-weight: 500; /* font-medium */
+    border-radius: 9999px; /* full rounded */
+    height: 16px; /* h-4 */
+    width: 16px; /* w-4 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* User avatar container - matches flex items-center space-x-2 p-1 rounded hover:bg-blue-500 */
+.user-avatar-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* space-x-2 */
+    padding: 0.25rem; /* p-1 */
+    border-radius: 0.25rem; /* rounded (4px) */
+    cursor: pointer;
+    transition: background-color 150ms;
+    white-space: nowrap;
+}
+
+.user-avatar-container:hover {
+    background-color: #3b82f6; /* Tailwind bg-blue-500 */
+}
+
+/* Avatar circle - matches w-6 h-6 bg-white rounded-full text-blue-600 font-medium text-xs */
+.avatar-circle {
+    width: 24px; /* w-6 */
+    height: 24px; /* h-6 */
+    background-color: #ffffff;
+    color: #2563eb; /* Tailwind text-blue-600 */
+    font-weight: 500; /* font-medium */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px; /* text-xs */
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* User profile name - matches text-xs font-medium text-white */
+.user-profile-name {
+    color: #ffffff !important; 
+    font-size: 12px; /* text-xs */
+    font-weight: 500; /* font-medium */
+    font-family: inherit !important;
+}
+
+/* Context Ribbon - Re-engineered to match the React Portal's style */
+.context-ribbon {
+    background-color: #ffffff !important;
+    border: 1px solid #e5e7eb !important; /* gray-200 matching react portal border */
+    border-radius: 0.5rem !important; /* rounded-lg (8px) */
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06) !important; /* shadow-sm */
+    padding: 0.5rem 1rem !important;
+    margin: 0.5rem auto 0 auto !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important; /* left-aligned matching react portal */
+}
+
+.context-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: wrap !important;
+}
+
+/* Back Arrow Button - matching React portal styling */
+.back-arrow-btn {
+    background: transparent !important;
+    border: none !important;
+    color: #9ca3af !important; /* text-gray-400 */
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    padding: 0 0.25rem !important;
+    transition: color 150ms !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.back-arrow-btn:hover {
+    color: #2563eb !important; /* text-blue-600 */
+    text-decoration: none !important;
+}
+
+/* Selected target name - dark text color, semi-bold matching h1.text-sm.font-semibold */
+.selected-target-name {
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #111827 !important; /* text-gray-900 */
+}
+
+/* Context Divider - vertical bar | */
+.context-divider {
+    color: #d1d5db !important; /* text-gray-300 */
+    font-size: 12px !important;
+    margin: 0 0.25rem !important;
+}
+
+/* Location text - text-xs text-gray-500 */
+.location-text {
+    font-size: 12px !important;
+    color: #6b7280 !important; /* text-gray-500 */
+    font-weight: 500 !important;
+}
+
+/* Website link - blue text, underlined on hover, truncated */
+.website-link {
+    font-size: 12px !important;
+    color: #2563eb !important; /* text-blue-600 */
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    max-width: 200px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+}
+
+.website-link:hover {
+    text-decoration: underline !important;
+}
+
+/* Status badge - completed */
+.status-badge-completed {
+    display: inline-block !important;
+    padding: 0.125rem 0.5rem !important; /* px-1.5 py-0.5 */
+    border-radius: 9999px !important; /* rounded-full */
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background-color: #d1fae5 !important; /* bg-green-100 */
+    color: #065f46 !important; /* text-green-800 */
+    text-transform: lowercase !important;
+}
+
+/* Status badge - processing */
+.status-badge-processing {
+    display: inline-block !important;
+    padding: 0.125rem 0.5rem !important;
+    border-radius: 9999px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background-color: #fef3c7 !important; /* bg-yellow-100 */
+    color: #92400e !important; /* text-yellow-800 */
+    text-transform: lowercase !important;
+}
+
+/* Status badge - default */
+.status-badge-default {
+    display: inline-block !important;
+    padding: 0.125rem 0.5rem !important;
+    border-radius: 9999px !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    background-color: #f3f4f6 !important; /* bg-gray-100 */
+    color: #374151 !important; /* text-gray-800 */
+    text-transform: lowercase !important;
+}
+
+/* Alerts panel feed overlays */
+.alerts-feed-wrapper {
+    background-color: #ffffff;
+}
+
+.alerts-feed-content {
+    background-color: #f8fafc;
+    border: 1px solid #eff6ff;
+    border-radius: 0.75rem;
+}
+
+.feed-title {
+    font-size: 13px;
+}
+
+.close-feed {
+    background: none;
+    border: none;
+    font-size: 16px;
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.close-feed:hover {
+    color: #475569;
+}
+
+.feed-item {
+    font-size: 11px;
+    color: #475569;
+    padding: 4px 0;
+}
+
+.bullet-alert {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.orange {
+    color: #f59e0b;
+}
+
+.mark-read {
+    font-size: 11px;
+    color: #2563eb;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+}
+
+.mark-read:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+@keyframes slds-ping {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}

@@ -1,11 +1,15 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, track, wire } from 'lwc'; // Added 'wire' here
 import { NavigationMixin } from 'lightning/navigation';
 import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
 import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
 import getSignals from '@salesforce/apex/DashboardController.getSignals';
 import updateCompany from '@salesforce/apex/DashboardController.updateCompany';
 import deleteCompany from '@salesforce/apex/DashboardController.deleteCompany';
-import retryCompany from '@salesforce/apex/DashboardController.retryCompany';
+// Sharing Imports
+import getTeammates from '@salesforce/apex/DashboardController.getTeammates';
+import shareCompanies from '@salesforce/apex/DashboardController.shareCompanies';
+import getSharedUsers from '@salesforce/apex/DashboardController.getSharedUsers';
+import unshareCompany from '@salesforce/apex/DashboardController.unshareCompany';
 
 export default class Dashboard extends NavigationMixin(LightningElement) {
     @track stats = { totalCompanies: 0, processing: 0, completed: 0, opened: 0 };
@@ -15,8 +19,23 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track companyFilter = 'all';
     @track dateFilter = '';
     @track currentPage = 1;
-    @track selectedCompany = null; // { companyId, name, signals }
     ITEMS_PER_PAGE = 10;
+
+    // --- Sharing State ---
+    @track selectedCompanyIds = new Set();
+    @track shareTargetUserId = '';
+    @track isSharing = false;
+    @track shareMessage = null; // Custom toast object: { text: '', type: 'success'|'error' }
+    
+    // --- Unshare Modal State ---
+    @track isUnshareModalOpen = false;
+    @track currentUnshareCompanyId = '';
+    @track currentUnshareCompanyName = '';
+    @track sharedWithUsersList = [];
+
+    // Fetch teammates (users in same profile)
+    @wire(getTeammates)
+    teammates;
 
     connectedCallback() {
         this.loadStats();
@@ -34,10 +53,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .then(result => {
                 const raw = JSON.parse(result);
                 this._companies = raw.map(c => this.mapCompany(c));
-                // Load signals for all completed companies
-                this._companies
-                    .filter(c => c.status === 'completed')
-                    .forEach(c => this.loadSignalsForCompany(c.companyId));
+                this._companies.forEach(c => this.loadSignalsForCompany(c.companyId));
             })
             .catch(error => console.error('Error loading companies:', error));
     }
@@ -45,9 +61,9 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     loadSignalsForCompany(companyId) {
         getSignals({ companyId })
             .then(result => {
-                const signals = JSON.parse(result);
+                const data = JSON.parse(result);
+                const signals = Array.isArray(data) ? data : (data.signals || []);
                 this._companySignals = { ...this._companySignals, [companyId]: signals };
-                // Recompute companies to update signal badge
                 this._companies = this._companies.map(c =>
                     c.companyId === companyId ? this.mapCompany(c, signals) : c
                 );
@@ -55,9 +71,11 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .catch(error => console.error('Error loading signals for', companyId, error));
     }
 
+    // Single consolidated mapCompany method
     mapCompany(c, signals) {
         const companySignals = signals || this._companySignals[c.companyId] || [];
         const signalSummary = this.getSignalSummary(companySignals, c.status);
+        
         return {
             ...c,
             locationDisplay: [c.city, c.state].filter(Boolean).join(', '),
@@ -66,7 +84,16 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                 : '-',
             statusClass: this.getStatusClass(c.status),
             statusLabel: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown',
-            isProcessingOrPending: c.status === 'processing' || c.status === 'pending',
+            
+            // --- Sharing UI Logic ---
+            isSelected: this.selectedCompanyIds.has(c.companyId),
+            hasSharedLabel: !!c.sharedByName, 
+            sharedByLabel: `Shared by ${c.sharedByName}`,
+            // Show Unshare if shared with others AND we own it (no sharedByName)
+            showUnshareButton: c.isShared && !c.sharedByName,
+            // Show Share only if completed, not shared yet, and we own it
+            showShareButton: !c.isShared && !c.sharedByName && c.status === 'completed',
+            
             stageIsPreCall:        (c.stage || 'PreCall') === 'PreCall',
             stageIsAppointmentSet: c.stage === 'Appointment Set',
             stageIsFaceToFace:     c.stage === 'Face To Face',
@@ -75,16 +102,163 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             clientTypeIsExisting:  c.clientType === 'Existing Customer',
             clientTypeIsPast:      c.clientType === 'Past Customer',
             hasSignals:            signalSummary !== null,
-            signalCount:           signalSummary ? signalSummary.count : 0,
-            signalMaxPriority:     signalSummary ? signalSummary.maxPriority : 1,
-            signalWarningCount:    signalSummary ? signalSummary.warningCount : 0,
-            signalBadgeClass:      signalSummary ? 'signal-badge ' + this.getSignalBadgeClass(signalSummary.maxPriority) : '',
-            showSignalWarning:     signalSummary ? signalSummary.warningCount > 0 : false
+            signalBadgeLabel:      signalSummary
+                                        ? (signalSummary.warningCount > 0
+                                            ? `${signalSummary.count} (${signalSummary.warningCount})`
+                                            : `${signalSummary.count}`)
+                                        : 'Signals',
+            signalBadgeClass:      'signal-badge ' + (signalSummary ? this.getSignalBadgeClass(signalSummary.maxPriority) : 'signal-default')
         };
     }
 
+    // --- Selection Handlers ---
+
+    handleRowSelect(event) {
+    event.stopPropagation(); // Double protection
+    // Use 'companyid' (all lowercase) to match the HTML data-companyid
+    const companyId = event.target.dataset.companyid; 
+    
+    if (this.selectedCompanyIds.has(companyId)) {
+        this.selectedCompanyIds.delete(companyId);
+    } else {
+        this.selectedCompanyIds.add(companyId);
+    }
+    this._updateSelectionState();
+}
+
+    handleSelectAll(event) {
+        const checked = event.target.checked;
+        if (checked) {
+            this.paginatedCompanies.forEach(c => {
+                // Only select rows we are allowed to share (Owner + Completed)
+                if (c.status === 'completed' && !c.sharedByName) {
+                    this.selectedCompanyIds.add(c.companyId);
+                }
+            });
+        } else {
+            this.selectedCompanyIds.clear();
+        }
+        this._updateSelectionState();
+    }
+
+    _updateSelectionState() {
+        // Force refresh mapping to update 'isSelected' reactive state
+        this._companies = this._companies.map(c => ({
+            ...c,
+            isSelected: this.selectedCompanyIds.has(c.companyId)
+        }));
+        // Logic to trigger re-render of the 'Select All' checkbox if needed
+        this.selectedCompanyIds = new Set(this.selectedCompanyIds);
+    }
+
+    // --- Sharing Actions ---
+
+    handleTeammateChange(event) {
+        this.shareTargetUserId = event.target.value;
+    }
+
+    handleShare() {
+        if (!this.shareTargetUserId || this.selectedCompanyIds.size === 0) return;
+
+        this.isSharing = true;
+        shareCompanies({ 
+            companyIds: Array.from(this.selectedCompanyIds), 
+            targetUserId: this.shareTargetUserId 
+        })
+        .then(() => {
+            this.showCustomToast('Companies shared successfully', 'success');
+            this.selectedCompanyIds.clear();
+            this.shareTargetUserId = '';
+            this.loadCompanies(); // Refresh the list
+            this.loadStats();
+        })
+        .catch(error => {
+            this.showCustomToast('Failed to share: ' + (error.body ? error.body.message : error.message), 'error');
+        })
+        .finally(() => {
+            this.isSharing = false;
+        });
+    }
+
+    handleCancelSelection() {
+        this.selectedCompanyIds.clear();
+        this.shareTargetUserId = '';
+        this._updateSelectionState();
+    }
+
+    // --- Unsharing Logic ---
+    // 1. Add this method to prevent the row click from firing when clicking the checkbox
+    stopPropagation(event) {
+        event.stopPropagation();
+    }
+    handleOpenUnshareModal(event) {
+        event.stopPropagation();
+        const companyId = event.currentTarget.dataset.companyid;
+        const comp = this._companies.find(c => c.companyId === companyId);
+        
+        this.currentUnshareCompanyId = companyId;
+        this.currentUnshareCompanyName = comp ? comp.name : '';
+        
+        getSharedUsers({ companyId })
+            .then(result => {
+                this.sharedWithUsersList = result;
+                this.isUnshareModalOpen = true;
+            })
+            .catch(error => console.error(error));
+    }
+
+    handleCloseUnshareModal() {
+        this.isUnshareModalOpen = false;
+        this.sharedWithUsersList = [];
+    }
+
+    handleConfirmUnshare(event) {
+        const sharedRecordId = event.currentTarget.dataset.sharedid;
+        unshareCompany({ sharedCompanyRecordId: sharedRecordId })
+            .then(() => {
+                this.showCustomToast('Access removed', 'success');
+                // Refresh local list of users in modal
+                this.sharedWithUsersList = this.sharedWithUsersList.filter(u => u.id !== sharedRecordId);
+                if (this.sharedWithUsersList.length === 0) {
+                    this.handleCloseUnshareModal();
+                }
+                this.loadCompanies(); 
+            })
+            .catch(error => {
+                this.showCustomToast('Error removing access', 'error');
+            });
+    }
+
+    showCustomToast(text, type) {
+        this.shareMessage = { text, type };
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        setTimeout(() => {
+            this.shareMessage = null;
+        }, 4000);
+    }
+
+    // --- Getters for UI visibility ---
+    get toastClass() {
+        return this.shareMessage 
+            ? `custom-toast toast-${this.shareMessage.type}` 
+            : 'custom-toast';
+    }
+    get showShareToolbar() {
+        return this.selectedCompanyIds.size > 0;
+    }
+
+    get selectionCountLabel() {
+        return `${this.selectedCompanyIds.size} selected`;
+    }
+
+    get isShareDisabled() {
+        return !this.shareTargetUserId || this.isSharing;
+    }
+
+    // --- Existing Helper Logic ---
+
     getSignalSummary(signals, status) {
-        if (status !== 'completed' || !signals || signals.length === 0) return null;
+        if (!signals || signals.length === 0) return null;
         const nonNeutral = signals.filter(s => s.signalType !== 'Neutral');
         if (nonNeutral.length === 0) return null;
         const priorities = nonNeutral.map(s => this.getSignalPriority(s));
@@ -97,8 +271,8 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     getSignalPriority(signal) {
         const type = (signal.signalType || '').toLowerCase();
-        const category = (signal.signalCategory || '').toLowerCase();
-        const name = (signal.signalName || '').toLowerCase();
+        const category = (signal.signalCategory || signal.signalType || '').toLowerCase();
+        const name = (signal.signalName || signal.headline || '').toLowerCase();
         if (category.includes('capital') || category.includes('m&a') || category.includes('acquisition')) return 5;
         if (name.includes('acquisition') || name.includes('capital') || name.includes('funding')) return 5;
         if (category.includes('leadership') || name.includes('cfo') || name.includes('ceo')) return 4;
@@ -124,13 +298,12 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return map[status] || 'status-badge status-pending';
     }
 
-    // ── Stats Getters ───────────────────────────────────────────────
+    // --- Stats & Pagination Getters ---
     get totalCompanies() { return this.stats.totalCompanies || 0; }
     get processing()     { return this.stats.processing || 0; }
     get completed()      { return this.stats.completed || 0; }
     get opened()         { return this.stats.opened || 0; }
 
-    // ── Filter Options ──────────────────────────────────────────────
     get filterOptions() {
         return [
             { label: 'All',                  value: 'all' },
@@ -153,7 +326,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     get showDateFilter()  { return this.companyFilter === 'byDate'; }
     get showClearFilter() { return this.companyFilter !== 'all' || this.searchTerm; }
 
-    // ── Filtered + Sorted + Paginated ───────────────────────────────
     get filteredCompanies() {
         let sorted = [...this._companies].sort((a, b) => {
             const p = s => s === 'processing' ? 2 : s === 'pending' ? 1 : 0;
@@ -188,9 +360,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     get totalPages() {
-        return this.companyFilter === 'all'
-            ? Math.ceil(this.filteredCompanies.length / this.ITEMS_PER_PAGE)
-            : 1;
+        return this.companyFilter === 'all' ? Math.ceil(this.filteredCompanies.length / this.ITEMS_PER_PAGE) : 1;
     }
 
     get paginatedCompanies() {
@@ -206,7 +376,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     get isFirstPage()    { return this.currentPage === 1; }
     get isLastPage()     { return this.currentPage === this.totalPages; }
     get filteredCount()  { return this.filteredCompanies.length; }
-    get isModalOpen()    { return this.selectedCompany !== null; }
 
     get paginationLabel() {
         const start = (this.currentPage - 1) * this.ITEMS_PER_PAGE + 1;
@@ -220,96 +389,64 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return 'No companies yet.';
     }
 
-    // ── Event Handlers ──────────────────────────────────────────────
+    // --- Standard Handlers ---
     handleSearchChange(event)     { this.searchTerm = event.target.value; this.currentPage = 1; }
     handleClearSearch()           { this.searchTerm = ''; this.currentPage = 1; }
     handleFilterChange(event)     { this.companyFilter = event.target.value; if (this.companyFilter !== 'byDate') this.dateFilter = ''; this.currentPage = 1; }
     handleDateFilterChange(event) { this.dateFilter = event.target.value; this.currentPage = 1; }
     handleClearFilter()           { this.companyFilter = 'all'; this.dateFilter = ''; this.searchTerm = ''; this.currentPage = 1; }
-    handlePrevPage() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.template.querySelector('.companies-list')?.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    }
-    handleNextPage() {
-        if (this.currentPage < this.totalPages) {
-            this.currentPage++;
-            this.template.querySelector('.companies-list')?.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-    }
+    handlePrevPage()              { if (this.currentPage > 1) this.currentPage--; }
+    handleNextPage()              { if (this.currentPage < this.totalPages) this.currentPage++; }
 
     handleStageChange(event) {
         const companyId = event.target.dataset.companyid;
         const newStage = event.target.value;
-        this._companies = this._companies.map(c =>
-            c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c
-        );
-        updateCompany({ companyId, stage: newStage, clientType: null })
-            .catch(error => console.error('Error updating stage:', error));
+        this._companies = this._companies.map(c => c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c);
+        updateCompany({ companyId, stage: newStage, clientType: null }).catch(err => console.error(err));
     }
 
     handleClientTypeChange(event) {
         const companyId = event.target.dataset.companyid;
         const newClientType = event.target.value;
-        this._companies = this._companies.map(c =>
-            c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c
-        );
-        updateCompany({ companyId, stage: null, clientType: newClientType })
-            .catch(error => console.error('Error updating client type:', error));
+        this._companies = this._companies.map(c => c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c);
+        updateCompany({ companyId, stage: null, clientType: newClientType }).catch(err => console.error(err));
     }
 
     handleOpenSignals(event) {
         const companyId = event.currentTarget.dataset.companyid;
-        const company = this._companies.find(c => c.companyId === companyId);
-        if (!company) return;
-        const signals = this._companySignals[companyId] || [];
-        this.selectedCompany = {
-            companyId: company.companyId,
-            name: company.name,
-            signals
-        };
+        this[NavigationMixin.Navigate]({
+            type: 'standard__navItemPage',
+            attributes: { apiName: 'Company_Detail' },
+            state: { c__companyId: companyId, c__tab: 'signals' }
+        });
     }
 
-    handleCloseModal() {
-        this.selectedCompany = null;
-    }
     handleDelete(event) {
         const companyId = event.currentTarget.dataset.companyid;
         const company = this._companies.find(c => c.companyId === companyId);
         if (!company) return;
-        // Optimistic UI — remove immediately
         this._companies = this._companies.filter(c => c.companyId !== companyId);
-        this.stats = {
-            ...this.stats,
-            totalCompanies: Math.max(0, (this.stats.totalCompanies || 0) - 1),
-            processing: company.status === 'processing' ? Math.max(0, (this.stats.processing || 0) - 1) : (this.stats.processing || 0),
-            completed:  company.status === 'completed'  ? Math.max(0, (this.stats.completed  || 0) - 1) : (this.stats.completed  || 0),
-            opened:     company.status === 'opened'     ? Math.max(0, (this.stats.opened     || 0) - 1) : (this.stats.opened     || 0)
-        };
-        deleteCompany({ companyId })
-            .catch(error => {
-                console.error('Error deleting company:', error);
-                // Rollback on failure
-                this._companies = [...this._companies, company];
-            });
+        deleteCompany({ companyId }).catch(error => {
+            console.error(error);
+            this._companies = [...this._companies, company];
+        });
     }
 
-    handleRetry(event) {
-        const companyId = event.currentTarget.dataset.companyid;
-        this._companies = this._companies.map(c => {
-            if (c.companyId !== companyId) return c;
-            return this.mapCompany({ ...c, status: 'pending' });
-        });
-        retryCompany({ companyId })
-            .catch(error => console.error('Error retrying company:', error));
-    }
     handleCompanyClick(event) {
-        const companyId = event.currentTarget.dataset.companyId;
-        this[NavigationMixin.Navigate]({
-            type: 'standard__navItemPage',
-            attributes: { apiName: 'Company_Detail' },  // must match your App Page API name exactly
-            state: { c__companyId: companyId }
-        });
+        // Look for the ID on the currentTarget (the row)
+        const companyId = event.currentTarget.dataset.companyid; 
+        
+        if (!companyId) return; // Prevent navigation if ID is missing
+
+        const company = this._companies.find(c => c.companyId === companyId);
+        
+        this.dispatchEvent(new CustomEvent('companyselect', { 
+            detail: { companyId: companyId, companyName: company ? company.name : '' }
+        }));
+
+        const url = new URL(window.location.href);
+        url.searchParams.set('c__companyId', companyId);
+        url.searchParams.set('c__tab', 'research');
+        window.history.pushState({}, '', url.toString());
     }
 }

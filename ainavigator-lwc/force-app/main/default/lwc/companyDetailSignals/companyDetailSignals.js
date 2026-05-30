@@ -2,23 +2,18 @@
  * @description companyDetailSignals — Signals & Risk Assessment child component.
  *
  * Data flow (updated):
- *  1. Initial load → calls CompanySignalsController.getSignals(salesforceCompanyId)
- *     which internally looks up Azure_Company_Id__c and calls
- *     GET /v1/user/companies/{azureCompanyId}/signals on Azure.
+ *  1. Initial load → reads c__companyId query parameter (via CurrentPageReference 
+ *     with a window.location fallback for hard page refreshes) or falls back to parent @api prop,
+ *     then calls CompanySignalsController.getSignals(salesforceCompanyId)
  *  2. Live updates → parent companyDetail.js subscribes to AINavigatorInbound__e
  *     and calls the public refreshSignals() @api method when a SIGNALALERT
  *     event arrives for this company.
  *
- * NOTE: The @api company prop is still used for PDF generation.
- *       The @api signalsData prop is now IGNORED on initial mount —
- *       this component fetches its own data via Apex.
- *       signalsData is still accepted for backward-compat with parent
- *       pass-down during live SIGNALALERT updates.
- *
  * @group AI Navigator - LWC
- * @last-modified 2026-05-16
+ * @last-modified 2026-05-28
  */
 import { LightningElement, api, track, wire } from 'lwc';
+import { CurrentPageReference } from 'lightning/navigation';
 import getSignalsApex from '@salesforce/apex/CompanySignalsController.getSignals';
 
 // Priority CSS class map — matches existing .cds-p stylesheet classes
@@ -45,16 +40,64 @@ let signalIdCounter = 0;               // local monotonic ID for keyed iteration
 export default class CompanyDetailSignals extends LightningElement {
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Internal state
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @track _companyId  = null;
+    @track _signalsData = null;
+    @track isLoading    = true;
+    @track error        = null;
+    @track newSignalIds = new Set();
+    
+    // Prevent duplicate Apex calls if wire and api setters trigger consecutively
+    _lastLoadedCompanyId = null;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Page Reference Wire (Reads c__companyId query parameter)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @wire(CurrentPageReference)
+    getStateParameters(currentPageReference) {
+        console.log('[CDS] Current page reference state details:', JSON.stringify(currentPageReference?.state));
+        
+        let urlCompanyId;
+
+        // Try standard LWC page reference parsing first
+        if (currentPageReference && currentPageReference.state && currentPageReference.state.c__companyId) {
+            urlCompanyId = currentPageReference.state.c__companyId;
+            console.log('[CDS] Detected URL parameter c__companyId via PageReference:', urlCompanyId);
+        } else {
+            // Fallback for hard page refreshes where state is initially empty
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                urlCompanyId = urlParams.get('c__companyId');
+                if (urlCompanyId) {
+                    console.log('[CDS] Fallback: Detected c__companyId via window.location.search:', urlCompanyId);
+                }
+            } catch (e) {
+                console.error('[CDS] Fallback parsing failed:', e);
+            }
+        }
+        
+        if (urlCompanyId) {
+            this._companyId = urlCompanyId;
+            this._loadSignals(urlCompanyId);
+        } else {
+            console.warn('[CDS] No companyId detected yet. Remaining in loading state.');
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Public API
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
-     * Salesforce Company__c.Id — used to fetch signals from Azure via Apex.
-     * Set by the parent companyDetail.js component.
+     * Salesforce Company__c.Id — fallback mechanism if passed by parent component.
      */
     @api
     get companyId() { return this._companyId; }
     set companyId(value) {
+        console.log('[CDS] API companyId setter called with value:', value);
         this._companyId = value;
         if (value) {
             this._loadSignals(value);
@@ -68,14 +111,11 @@ export default class CompanyDetailSignals extends LightningElement {
      * Called by companyDetail.js when a SIGNALALERT inbound Platform Event
      * arrives for this company. Prepends the new signals so the user sees
      * them immediately without a full page reload.
-     *
-     * @param {Object} payload - Parsed SignalAlert.v1 payload
-     *   payload.signals  - array of new signal objects
      */
     @api
     refreshSignals(payload) {
         if (!payload || !Array.isArray(payload.signals) || payload.signals.length === 0) {
-            console.warn('companyDetailSignals.refreshSignals: empty or invalid payload', payload);
+            console.warn('[CDS] refreshSignals: empty or invalid payload', payload);
             return;
         }
 
@@ -98,53 +138,46 @@ export default class CompanyDetailSignals extends LightningElement {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // Internal state
-    // ─────────────────────────────────────────────────────────────────────────
-
-    @track _companyId  = null;
-    @track _signalsData = null;
-    @track isLoading    = true;
-    @track error        = null;
-    @track newSignalIds = new Set();
-
-    // ─────────────────────────────────────────────────────────────────────────
     // Data load — calls CompanySignalsController.getSignals via imperative Apex
     // ─────────────────────────────────────────────────────────────────────────
 
     _loadSignals(salesforceCompanyId) {
+        // Guard against duplicate network requests
+        if (this._lastLoadedCompanyId === salesforceCompanyId) {
+            console.log('[CDS] Call to _loadSignals bypassed. Already loaded/loading companyId:', salesforceCompanyId);
+            return;
+        }
+
+        console.log('[CDS] Calling getSignals Apex for companyId:', salesforceCompanyId);
+        this._lastLoadedCompanyId = salesforceCompanyId;
         this.isLoading = true;
         this.error     = null;
 
         getSignalsApex({ salesforceCompanyId })
             .then(result => {
+                console.log('[CDS] Apex signals payload returned successfully.');
                 const parsed = JSON.parse(result);
-                // Azure returns { signals: [...] }
-                // Fall back to array-root for backward compat with mock shape
-                this._signalsData = Array.isArray(parsed)
-                    ? { signals: parsed }
-                    : parsed;
+                console.log('[CDS] Raw parsed response structure:', JSON.stringify(parsed));
+
+                // Normalize nested API structure (handles 'data.signals' vs 'signals' vs array root)
+                let signalsArray = [];
+                if (Array.isArray(parsed)) {
+                    signalsArray = parsed;
+                } else if (parsed?.data?.signals && Array.isArray(parsed.data.signals)) {
+                    signalsArray = parsed.data.signals;
+                } else if (parsed?.signals && Array.isArray(parsed.signals)) {
+                    signalsArray = parsed.signals;
+                }
+
+                console.log(`[CDS] Normalized signals array. Total items: ${signalsArray.length}`);
+                this._signalsData = { signals: signalsArray };
                 this.isLoading = false;
             })
             .catch(err => {
-                console.error('companyDetailSignals: Azure fetch error', err);
+                console.error('[CDS] Azure fetch error:', err);
                 this.error     = err?.body?.message || 'Failed to load signals from Azure.';
                 this.isLoading = false;
             });
-    }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // PDF download handler (unchanged — wired to existing PDF generator child)
-    // ─────────────────────────────────────────────────────────────────────────
-
-    isDownloading = false;
-
-    handleDownloadPDF() {
-        const gen = this.template.querySelector('c-pdf-generator');
-        if (gen) {
-            this.isDownloading = true;
-            gen.generatePDF()
-                .finally(() => { this.isDownloading = false; });
-        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -169,6 +202,8 @@ export default class CompanyDetailSignals extends LightningElement {
     }
 
     get hasSignals() {
-        return this.signals.length > 0;
+        const has = this.signals.length > 0;
+        console.log('[CDS] hasSignals evaluation status:', has);
+        return has;
     }
 }

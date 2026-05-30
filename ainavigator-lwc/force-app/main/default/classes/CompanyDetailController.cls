@@ -4,7 +4,7 @@
  *               stored on Company__c after RESEARCH_DONE platform event fires.
  * @author       AI Navigator Platform
  * @group        AI Navigator Integration
- * @last modified on  : 05-20-2026
+ * @last modified on  : 05-21-2026
 **/
 public with sharing class CompanyDetailController {
 
@@ -253,7 +253,7 @@ public with sharing class CompanyDetailController {
         if (String.isNotBlank(naicsCode)) {
             endpoint += '?naicsCode=' + EncodingUtil.urlEncode(naicsCode.trim(), 'UTF-8');
         }
-        HttpResponse res = makeAzureGet(endpoint, companyId);
+        HttpResponse res = makeAzureGetWithTimeout(endpoint, companyId, 30000);
         // 404 = VIQ_NOT_FOUND — not yet fetched/available; return null so LWC
         // can show the empty-state card rather than an error message.
         if (res.getStatusCode() == 404) {
@@ -480,7 +480,27 @@ public with sharing class CompanyDetailController {
             throw new AuraHandledException('Azure callout failed: ' + e.getMessage());
         }
     }
+    private static HttpResponse makeAzureGetWithTimeout(String endpoint, String salesforceCompanyId, Integer timeoutMs) {
+        String subscriptionKey = CONFIG?.ApimSubscriptionKey__c;
 
+        HttpRequest req = new HttpRequest();
+        req.setEndpoint(endpoint);
+        req.setMethod('GET');
+        req.setTimeout(timeoutMs);
+
+        req.setHeader('Ocp-Apim-Subscription-Key', subscriptionKey != null ? subscriptionKey : '');
+        req.setHeader('X-Client-Id',      UserInfo.getOrganizationId());
+        req.setHeader('X-User-Id',        UserInfo.getUserId());
+        req.setHeader('X-Correlation-Id', generateCorrelationId());
+        req.setHeader('Content-Type',     'application/json');
+        req.setHeader('Accept',           'application/json');
+
+        try {
+            return new Http().send(req);
+        } catch (CalloutException e) {
+            throw new AuraHandledException('Azure callout failed: ' + e.getMessage());
+        }
+    }
 
     private static String handleResponse(HttpResponse res, String context, String companyId) {
         Integer code = res.getStatusCode();
@@ -506,10 +526,11 @@ public with sharing class CompanyDetailController {
         );
 
         if (code == 404) {
-            throw new AuraHandledException(
-                'Research data not yet available for this company. ' +
-                'It may still be processing. (' + azureMessage + ')'
-            );
+            String notFoundMsg = context.containsIgnoreCase('VerticalIq') || 
+                                context.containsIgnoreCase('Ucc')
+                ? 'Industry data not yet available for this company. Try entering a NAICS code manually. (' + azureMessage + ')'
+                : 'Research data not yet available for this company. It may still be processing. (' + azureMessage + ')';
+            throw new AuraHandledException(notFoundMsg);
         }
 
         throw new AuraHandledException(azureMessage);

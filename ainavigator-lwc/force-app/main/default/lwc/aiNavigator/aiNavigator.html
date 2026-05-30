@@ -1,0 +1,113 @@
+<!--
+  @description       : Parent LWC Shell Component
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 05-29-2026
+-->
+<template>
+    <!-- Parent LWC Shell Component (Clean Orchestrator for Production Org) -->
+    <div class="slds-card slds-p-around_medium bg-slate-50 parent-container" id="ai-nav-p-root">
+        
+        <!-- Nested LWC Header Component with mapped context attributes -->
+        <c-ai-navigator-header
+            active-tab={activeTab}
+            company-selected={companySelected}
+            selected-company-name={selectedCompanyName}
+            company-city={companyCity}
+            company-state={companyState}
+            company-website={companyWebsite}
+            company-status={companyStatus}
+            notification-count={notificationCount}
+            ontabchange={handleTabChange}
+            onclearcompany={handleClearCompany}
+            onclearnotifications={handleClearNotifications}
+        ></c-ai-navigator-header>
+
+        <!-- Main Body Workspace -->
+        <div class="slds-m-top_medium body-workspace">
+            
+            <!-- 1. DASHBOARD COMPONENT -->
+            <template if:true={isDashboardTab}>
+                <c-dashboard 
+                    oncompanyselect={handleCompanySelect}
+                    oncompanyclick={handleCompanySelect}
+                ></c-dashboard>
+            </template>
+
+            <!-- 2. UPLOAD SPREADSHEET COMPONENT -->
+            <template if:true={isUploadTab}>
+                <c-upload 
+                    onuploadsuccess={handleUploadSuccess}
+                ></c-upload>
+            </template>
+
+            <!-- 3. INPUT FORM COMPONENT -->
+            <template if:true={isInputTab}>
+                <c-input-form 
+                    oncompanysaved={handleCompanySaved}
+                    oncompanysubmitted={handleCompanySaved}
+                ></c-input-form>
+            </template>
+
+            <!-- 4. SIGNALS CONFIGS GUIDE -->
+            <template if:true={isSignalsConfigTab}>
+                <c-signals-config></c-signals-config>
+            </template>
+
+            <!-- 5. ACTIVE RESEARCH VIEW -->
+            <template if:true={isResearchTab}>
+                <c-company-detail-research 
+                    company-id={selectedCompanyId}
+                ></c-company-detail-research>
+            </template>
+
+            <!-- 6. ACTIVE SIGNALS LIST -->
+            <template if:true={isSignalsTab}>
+                <c-company-detail-signals 
+                    signals-data={signalsData}
+                    company={company}
+                ></c-company-detail-signals>
+            </template>
+
+            <!-- 7. INSIGHTS SUMMARY -->
+            <template if:true={isInsightsTab}>
+                <c-company-detail-insights 
+                    company-id={selectedCompanyId}
+                ></c-company-detail-insights>
+            </template>
+
+            <!-- 8. DISCOVERY CALL PLAN -->
+            <template if:true={isCallPlanTab}>
+                <c-company-detail-call-plan 
+                    company-id={selectedCompanyId}
+                    company={company}
+                ></c-company-detail-call-plan>
+            </template>
+
+            <!-- 9. COACHING COMPONENT -->
+            <template if:true={isCoachTab}>
+                <c-company-detail-coach 
+                    company={company}
+                    live-updates={liveUpdates}
+                    signals-data={signalsData}
+                    ai-research={aiResearch}
+                    discovery-call-plan={discoveryCallPlanData}
+                ></c-company-detail-coach>
+            </template>
+
+            <!-- 10. DISCOVERY SIMULATOR -->
+            <template if:true={isSimulatorTab}>
+                <c-company-detail-simulator 
+                    company={company}
+                    ai-research={aiResearch}
+                    discovery-call-plan={discoveryCallPlanData}
+                ></c-company-detail-simulator>
+            </template>
+
+        </div>
+
+        <div class="slds-card__footer text-center select-none footer-container">
+            <p class="font-bold font-sans text-slate text-xs">AI Navigator - Company Research Platform</p>
+        </div>
+    </div>
+</template>

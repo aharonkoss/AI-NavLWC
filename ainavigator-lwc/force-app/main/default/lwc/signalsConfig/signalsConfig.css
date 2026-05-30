@@ -1,7 +1,16 @@
-.sc-wrapper {
-    padding: 24px 28px;
+/* ── Root Component Container (Fills the background) ── */
+:host {
+    display: block;
     background-color: #f3f4f6;
+    width: 100%;
     min-height: 100vh;
+}
+.sc-wrapper {
+    max-width: 1154px;   /* Caps the content width to match the dashboard's width limit */
+    margin: 0 auto;      /* Centers the entire page content column */
+    padding: 24px 20px;  /* Provides clean top and side breathing room */
+    width: 100%;
+    background-color: #f3f4f6;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -18,6 +27,7 @@
     font-weight: 700;
     color: #111827;
 }
+
 .sc-subtitle {
     margin: 4px 0 0;
     font-size: 0.85rem;

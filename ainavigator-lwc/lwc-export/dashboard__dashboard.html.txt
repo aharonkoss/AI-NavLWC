@@ -1,9 +1,7 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 03-27-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : AI Navigator Dashboard LWC - Updated to match React app UI
+  @author            : AI Navigator
+  @last modified on  : 05-21-2026
 -->
 <template>
     <div class="dashboard-wrapper">
@@ -15,7 +13,7 @@
 
         <!-- KPI Stats Cards -->
         <div class="stats-grid">
-            <div class="stat-card" title="Companies currently being analyzed by AI">
+            <div class="stat-card">
                 <div class="stat-row">
                     <div class="stat-icon icon-blue"><span class="icon-letter">T</span></div>
                     <div>
@@ -24,7 +22,7 @@
                     </div>
                 </div>
             </div>
-            <div class="stat-card" title="Companies currently being analyzed by AI">
+            <div class="stat-card">
                 <div class="stat-row">
                     <div class="stat-icon icon-amber"><span class="icon-letter">P</span></div>
                     <div>
@@ -33,7 +31,7 @@
                     </div>
                 </div>
             </div>
-            <div class="stat-card" title="Companies currently being analyzed by AI">
+            <div class="stat-card">
                 <div class="stat-row">
                     <div class="stat-icon icon-green"><span class="icon-letter">C</span></div>
                     <div>
@@ -42,7 +40,7 @@
                     </div>
                 </div>
             </div>
-            <div class="stat-card" title="Companies currently being analyzed by AI">
+            <div class="stat-card">
                 <div class="stat-row">
                     <div class="stat-icon icon-purple"><span class="icon-letter">O</span></div>
                     <div>
@@ -92,22 +90,14 @@
             <div class="companies-list">
                 <template if:true={hasCompanies}>
                     <template for:each={paginatedCompanies} for:item="company">
-                        <div key={company.companyId} 
+                        <div key={company.companyId}
                             class="company-row"
                             data-company-id={company.companyId}
                             onclick={handleCompanyClick}
                         >
-
                             <!-- Company Name + Location -->
                             <div class="company-name-col">
-                                <button
-                                    class="company-name-btn"
-                                    data-companyid={company.companyId}
-                                    onclick={handleOpenSignals}
-                                    title="View signals"
-                                >
-                                    {company.name}
-                                </button>
+                                <span class="company-name">{company.name}</span>
                                 <p class="company-location">{company.locationDisplay}</p>
                             </div>
 
@@ -117,7 +107,7 @@
                             </div>
 
                             <!-- Stage Dropdown -->
-                            <div class="company-dropdown-col">
+                            <div class="company-dropdown-col" onclick={stopPropagation}>
                                 <select class="dropdown-stage" data-companyid={company.companyId} onchange={handleStageChange}>
                                     <option value="PreCall"         selected={company.stageIsPreCall}>PreCall</option>
                                     <option value="Appointment Set" selected={company.stageIsAppointmentSet}>Appointment Set</option>
@@ -127,7 +117,7 @@
                             </div>
 
                             <!-- Client Type Dropdown -->
-                            <div class="company-dropdown-col">
+                            <div class="company-dropdown-col" onclick={stopPropagation}>
                                 <select class="dropdown-clienttype" data-companyid={company.companyId} onchange={handleClientTypeChange}>
                                     <option value="Prospect"          selected={company.clientTypeIsProspect}>Prospect</option>
                                     <option value="Existing Customer" selected={company.clientTypeIsExisting}>Existing Customer</option>
@@ -136,7 +126,7 @@
                             </div>
 
                             <!-- Signals Badge -->
-                            <div class="company-signals-col">
+                            <div class="company-signals-col" onclick={stopPropagation}>
                                 <template if:true={company.hasSignals}>
                                     <button
                                         class={company.signalBadgeClass}
@@ -144,10 +134,19 @@
                                         onclick={handleOpenSignals}
                                         title="View signals"
                                     >
-                                        ⚡ {company.signalCount}
-                                        <template if:true={company.showSignalWarning}>
-                                            <span class="signal-warning-dot"> ▲{company.signalWarningCount}</span>
-                                        </template>
+                                        <span class="signal-icon">⚡</span>
+                                        <span>{company.signalBadgeLabel}</span>
+                                    </button>
+                                </template>
+                                <template if:false={company.hasSignals}>
+                                    <button
+                                        class="signal-badge signal-default"
+                                        data-companyid={company.companyId}
+                                        onclick={handleOpenSignals}
+                                        title="View signals"
+                                    >
+                                        <span class="signal-icon">⚡</span>
+                                        <span>Signals</span>
                                     </button>
                                 </template>
                             </div>
@@ -157,21 +156,21 @@
                                 <span class={company.statusClass}>{company.statusLabel}</span>
                             </div>
 
-                    <!-- Actions -->
-                    <div class="company-actions-col">
-                        <template if:true={company.isProcessingOrPending}>
-                            <button
-                                class="btn-retry"
-                                data-companyid={company.companyId}
-                                onclick={handleRetry}
-                            >↺ Retry</button>
-                        </template>
-                        <button
-                            class="btn-delete"
-                            data-companyid={company.companyId}
-                            onclick={handleDelete}
-                        >✕</button>
-                    </div>
+                            <!-- Actions: delete only (retry removed) -->
+                            <div class="company-actions-col" onclick={stopPropagation}>
+                                <button
+                                    class="btn-delete"
+                                    data-companyid={company.companyId}
+                                    onclick={handleDelete}
+                                    title="Delete company"
+                                >
+                                    <!-- Trash icon SVG -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
 
                         </div>
                     </template>
@@ -193,16 +192,6 @@
             </template>
 
         </div>
-
-        <!-- Signals Modal -->
-        <template if:true={isModalOpen}>
-            <c-signals-modal
-                company-name={selectedCompany.name}
-                company-id={selectedCompany.companyId}
-                signals={selectedCompany.signals}
-                onclose={handleCloseModal}
-            ></c-signals-modal>
-        </template>
 
     </div>
 </template>

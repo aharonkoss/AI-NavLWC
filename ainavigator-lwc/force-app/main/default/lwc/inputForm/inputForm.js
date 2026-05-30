@@ -131,7 +131,8 @@ export default class InputForm extends LightningElement {
             city        : this.city.trim(),
             state       : this.state.trim(),
             stage       : this.stage,
-            clientType  : this.clientType
+            clientType  : this.clientType,
+            isCalledFromLead : false
         })
         .then(resultJson => {
             const result = JSON.parse(resultJson);

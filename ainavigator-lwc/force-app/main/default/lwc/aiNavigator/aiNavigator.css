@@ -1,0 +1,25 @@
+/* Salesforce LWC App Styling Rules matching SLDS layout and custom palettes */
+:host {
+    background-color: #f9fafb !important; /* Tailwind bg-gray-50 */
+    min-height: 100vh;
+    display: block;
+}
+
+.parent-container {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    max-width: 80rem;
+    margin: 0 auto;
+}
+
+.body-workspace {
+    min-height: 480px;
+}
+
+/* Footer info */
+.footer-container {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 12px;
+}

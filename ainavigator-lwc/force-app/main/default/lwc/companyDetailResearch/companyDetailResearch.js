@@ -23,23 +23,18 @@ const RESEARCH_SUBTABS = [
     { id: 'researchLibrary', label: 'Research Library' },
     { id: 'leadership',      label: 'Leadership'       },
     { id: 'ucc',             label: 'UCC'              },
-    { id: 'viq',             label: 'VIQ'              },
     { id: 'rma',             label: 'RMA'              },
     { id: 'equifax',         label: 'Equifax'          },
 ];
 
 // VIQ section keys must match viqSectionsCollapsed keys
 const VIQ_SECTIONS_DEFAULT_COLLAPSED = {
-    currentConditions:    false,
-    industryTrends:       false,
     globalTrends:         true,
     industryOverview:     false,
     quarterlyInsights:    true,
     bankingProducts:      true,
     keyQuestions:         true,
     industryTerms:        true,
-    financialBenchmarks:  true,
-    financialMetrics:     true,
     operations:           true,
 };
 
@@ -404,154 +399,184 @@ function buildUccViewModel(raw) {
         };
     }
 
-// ─── VIQ View Model Builder (UNCHANGED) ─────────────────────────────────────
+// ─── VIQ View Model Builder ─────────────────────────────────────
+    function buildViqViewModel(parsed) {
+        if (!parsed) return null;
 
-function buildViqViewModel(raw) {
-    const industryName = raw.industryName;
-    const naicsCode    = String(raw.naicsCode);
-    const industryId   = String(raw.industryId);
-    const apiError     = raw.error || null;
-    const overview     = raw.industryOverview || {};
+        const root = parsed.data || parsed;
 
-    const trends = safeArray(overview.trends).map((item, idx) => {
-        const t = item.industrytrend || item;
-        if (!t || !t.title) return null;
-        return { id: `trend-${idx}`, title: t.title, body: cleanHtml(t.body), position: t.position || idx + 1 };
-    }).filter(Boolean);
-
-    const currentConditions = safeArray(overview.currentConditions).map((item, idx) => {
-        const c = item.industrycurrentcondition || item;
-        if (!c || !c.title) return null;
-        const bullets = [];
-        for (let i = 1; i <= 10; i++) {
-            const b = c[`bullet${i}`];
-            if (b && String(b).trim()) bullets.push(String(b).trim());
+        // 🚨 DEBUG LOGGING: Bypass the LWC Proxy wrapper to completely expose the raw JSON
+        // This will print an actual readable JSON object instead of an empty Proxy.
+        try {
+            console.log('=== [VIQ Raw JSON Payload] ===');
+            console.log(JSON.parse(JSON.stringify(root)));
+            console.log('==============================');
+        } catch(e) {
+            console.error('Failed to stringify VIQ payload', e);
         }
-        return { id: `cond-${idx}`, title: c.title, date: formatDate(c.date) || c.date, bullets, hasBullets: bullets.length > 0 };
-    }).filter(Boolean);
 
-    const quarterlyInsights = safeArray(overview.quarterlyInsights || overview.quarterlyinsights).map((item, idx) => {
-        const q = item.industryquarterlyinsight || item.quarterlyinsight || item;
-        if (!q || !q.title) return null;
-        return { id: `qi-${idx}`, title: q.title, body: cleanHtml(q.body) };
-    }).filter(Boolean);
+        const industryName = parsed.industryName || root.industryName || '';
+        const naicsCode    = parsed.naicsCode    || root.naicsCode    || '';
+        const industryId   = parsed.industryId   || root.industryId   || '';
 
-    const bankingRaw = raw.bankingProducts || overview.bankingProducts;
-    const bankingProducts = safeArray(Array.isArray(bankingRaw) ? bankingRaw : bankingRaw?.productUsage).map((item, idx) => {
-        const p = item.productusage || item;
-        if (!p || !p.name) return null;
-        return { id: `bp-${idx}`, name: p.name, usage: p.usage || p.description };
-    }).filter(Boolean);
+        const overview  = root.industryOverview || root.overview || {};
+        const forecast  = overview.forecast     || root.forecast || '';
+        const rawTrends = overview.industryTrends || root.industryTrends || [];
 
-    const keyQuestions = safeArray(raw.keyQuestions || overview.keyQuestions).map((item, idx) => {
-        const q = item.keyquestion || item;
-        const text = typeof q === 'string' ? q : (q.question || q.text || q.body);
-        return text ? { id: `kq-${idx}`, text } : null;
-    }).filter(Boolean);
+        const industryTrends = Array.isArray(rawTrends) ? rawTrends.map(function(t, i) {
+            return { id: i, title: t.title || t.trendTitle || '', description: t.detail || t.description || t.body || '' };
+        }) : [];
 
-    const insightsRaw       = raw.insights || null;
-    const insightsContent   = insightsRaw?.content;
-    const insightsGenerated = insightsRaw?.generatedAt ? formatDate(insightsRaw.generatedAt) : null;
+        const rawQuarterly = root.quarterlyInsights || root.quarterly || [];
+        const quarterlyInsights = Array.isArray(rawQuarterly) ? rawQuarterly.map(function(q, i) {
+            return { id: i, date: q.date || q.quarter || '', description: q.description || q.body || q.summary || '' };
+        }) : [];
 
-    const forecasts   = overview.forecasts || null;
-    const hasForecast = !!(forecasts?.growthrateoverall || forecasts?.relativestring);
+        const rawConditions = overview.currentConditions || root.currentConditions || root.conditions || [];
+        const currentConditions = Array.isArray(rawConditions) ? rawConditions.map(function(c, i) {
+            return { id: i, date: c.date || '', title: c.title || c.headline || '', description: c.description || c.body || c.detail || '' };
+        }) : [];
 
-    const globalTrends = safeArray(overview.globalTrends).map((item, idx) => {
-        const t = item.industrytrend || item;
-        if (!t || !t.title) return null;
-        return { id: `gt-${idx}`, title: t.title, body: cleanHtml(t.body) };
-    }).filter(Boolean);
+        const rawGlobal = root.globalTrends || root.global || [];
+        const globalTrends = Array.isArray(rawGlobal) ? rawGlobal.map(function(g, i) {
+            return { id: i, title: g.title || g.trendTitle || '', description: g.description || g.body || g.detail || '' };
+        }) : [];
 
-    const structure = overview.structure || null;
+        // ─────────────────────────────────────────────────────────────
+        // Financial & Benchmarks Mapping
+        // ─────────────────────────────────────────────────────────────
+        const financial = root.financial || root.financialBenchmarks || {};
+        
+        let benchmarkRows = [];
+        if (Array.isArray(financial.benchmarks)) {
+            benchmarkRows = financial.benchmarks;
+        } else if (Array.isArray(financial)) {
+            benchmarkRows = financial;
+        }
 
-    const derivedStatements = safeArray(overview.derivedStatements).map((item, idx) => {
-        if (!item) return null;
-        return { id: `ds-${idx}`, title: item.title || item.label, value: item.value };
-    }).filter(Boolean);
+        const benchmarks = benchmarkRows.map(function(wrapper, i) {
+            const row = wrapper.benchmark || wrapper;
+            return {
+                id:           i,
+                classLabel:   row.year ? `${row.year} ${row.comp_class || row.className || ''}`.trim() : (row.comp_class || row.className || row['class'] || `Class ${i + 1}`),
+                currentRatio: row.current_ratio || row.currentRatio || '-',
+                quickRatio:   row.quick_ratio   || row.quickRatio || '-',
+                grossMargin:  row.gross_margin_percent || row.grossMargin || row.gross_margin || '-',
+                netMargin:    row.after_tax_net_profit_percent || row.net_margin_percent || row.netMargin || row.net_margin || '-',
+                daysRecv:     row.days_receivables || row.daysRecv || row.days_recv || '-',
+                daysPayable:  row.days_payable  || row.daysPayable || '-',
+                daysInv:      row.days_inventory || row.daysInv || row.days_inv || '-',
+                debtEquity:   row.total_liabilities_net_worth || row.debt_to_equity || row.debtEquity || row.debt_equity || '-',
+                roa:          row.pre_tax_return_on_assets || row.return_on_assets || row.roa || row.ROA || '-',
+                roe:          row.pre_tax_return_on_net_worth || row.return_on_equity || row.roe || row.ROE || '-'
+            };
+        });
 
-    const terms = safeArray(raw.terms || raw.data?.terms).map((item, idx) => {
-        if (!item || !item.name) return null;
-        return { id: `term-${idx}`, name: item.name, definition: item.description || item.definition };
-    }).filter(Boolean);
+        // ─────────────────────────────────────────────────────────────
+        // Industry Metrics Mapping
+        // ─────────────────────────────────────────────────────────────
+        const metricsResult = financial.metrics || root.metrics || {};
+        const industryMetrics = {
+            employeeCount: metricsResult.employee_count || metricsResult.employees || '-',
+            revenue:       metricsResult.revenue || '-',
+            size:          metricsResult.size || metricsResult.establishments || '-',
+            failureRate:   metricsResult.fm_failure_rate ? `${metricsResult.fm_failure_rate}%` : '-'
+        };
+        const hasIndustryMetrics = (industryMetrics.employeeCount !== '-' || industryMetrics.revenue !== '-');
 
-    const benchmarks = safeArray(raw.financial?.benchmarks).map((b, idx) => ({
-        id:              `bench-${idx}`,
-        compClass:       b.compclass || `Class ${idx + 1}`,
-        currentRatio:    b.currentratio    ?? b.currentRatio    ?? '-',
-        quickRatio:      b.quickratio      ?? b.quickRatio      ?? '-',
-        grossMargin:     b.grossmarginpercent ?? b.grossmargin  ?? '-',
-        netMargin:       b.netmarginpercent   ?? b.netmargin    ?? '-',
-        daysReceivables: b.daysreceivables ?? b.daysReceivables ?? '-',
-        daysPayable:     b.dayspayable     ?? b.daysPayable     ?? '-',
-        daysInventory:   b.daysinventory   ?? b.daysInventory   ?? '-',
-        debtToEquity:    b.debttoequity    ?? b.debtToEquity    ?? '-',
-        returnOnAssets:  b.returnonassets  ?? b.returnOnAssets  ?? '-',
-        returnOnEquity:  b.returnonequity  ?? b.returnOnEquity  ?? '-',
-    }));
+        // ─────────────────────────────────────────────────────────────
+        // Operations & Working Capital Mapping 
+        // ─────────────────────────────────────────────────────────────
+        const opsData = root.operations || root.workingCapital || root.working_capital || 
+                        overview.operations || overview.workingCapital || 
+                        financial.operations || financial.workingCapital || financial || {};
+        
+        const rawProfitDrivers = opsData.profitDrivers || opsData.profit_drivers || 
+                                 root.profitDrivers || root.profit_drivers || 
+                                 overview.profitDrivers || financial.profitDrivers || financial.profit_drivers || [];
+        
+        const profitDrivers = Array.isArray(rawProfitDrivers) ? rawProfitDrivers.map(function(d, i) { 
+            return { 
+                id: i, 
+                title: d.title || d.name || d.trendTitle || d.headline || '', 
+                body: d.body || d.description || d.text || d.detail || '' 
+            }; 
+        }) : [];
 
-    const metricsRaw = raw.financial?.metrics?.industrymetric || raw.financial?.metrics || null;
-    const financialMetrics = metricsRaw ? {
-        employeeCount:      cleanHtml(String(metricsRaw.employeecount   || '')),
-        revenue:            cleanHtml(String(metricsRaw.revenue         || '')),
-        size:               cleanHtml(String(metricsRaw.size            || '')),
-        entityType:         cleanHtml(String(metricsRaw.entitytype      || '')),
-        failureRate:        cleanHtml(String(metricsRaw.fmfailurerate   || '')),
-        industryOverview:   cleanHtml(String(metricsRaw.quickviewtext   || '')),
-        profitability:      cleanHtml(String(metricsRaw.profitabilitytext    || '')),
-        capitalFinancing:   cleanHtml(String(metricsRaw.capitalfinancingtext || '')),
-        cashLiquidity:      cleanHtml(String(metricsRaw.cashliquitytext      || '')),
-        workingCapitalMgmt: cleanHtml(String(metricsRaw.workcapmgmttext      || '')),
-    } : null;
+        const rawCashChallenges = opsData.cashMgmtChallenges || opsData.cashManagementChallenges || opsData.cash_management_challenges || 
+                                  opsData.cashChallenges || root.cashMgmtChallenges || root.cash_management_challenges || 
+                                  overview.cashMgmtChallenges || financial.cashManagementChallenges || financial.cash_management_challenges || [];
+        
+        const cashMgmtChallenges = Array.isArray(rawCashChallenges) ? rawCashChallenges.map(function(c, i) { 
+            return { 
+                id: i, 
+                title: c.title || c.name || c.trendTitle || c.headline || '', 
+                body: c.body || c.description || c.text || c.detail || '' 
+            }; 
+        }) : [];
 
-    const ops = raw.operations || {};
-    const profitDrivers = safeArray(ops.profitDrivers).map((d, idx) => ({
-        id: `pd-${idx}`, title: d.title, body: cleanHtml(d.body || d.description),
-    })).filter(d => d.title);
-    const revenuePerEmployee = safeArray(ops.revenuePerEmployee).map((item, idx) => ({
-        id: `rpe-${idx}`, label: item.label || item.year, value: item.value || item.datavalue,
-    }));
-    const workingCapitalBullets = safeArray(ops.workingCapitalBullets).map((item, idx) => {
-        const text = item.body || item.bullet || (typeof item === 'string' ? item : null);
-        return text ? { id: `wcb-${idx}`, text } : null;
-    }).filter(Boolean);
-    const cashMgmtChallenges = safeArray(ops.cashMgmtChallenges).map((c, idx) => ({
-        id: `cmc-${idx}`, title: c.title, body: cleanHtml(c.body || c.description || c.content),
-    })).filter(c => c.title || c.body);
+        // ─────────────────────────────────────────────────────────────
+        // Other Mappings
+        // ─────────────────────────────────────────────────────────────
+        const rawBanking = root.bankingProducts || root.banking || root.bankProducts || [];
+        const bankingProducts = Array.isArray(rawBanking) ? rawBanking.map(function(b, i) {
+            return { id: i, name: b.name || b.productName || b.product || '', usage: b.usage || b.usageLevel || b.level || '' };
+        }) : [];
 
-    return {
-        industryName, naicsCode, industryId, apiError,
-        hasApiError: !!apiError,
-        trends, currentConditions, quarterlyInsights, bankingProducts, keyQuestions,
-        trendsCount:             trends.length,
-        currentConditionsCount:  currentConditions.length,
-        quarterlyInsightsCount:  quarterlyInsights.length,
-        bankingProductsCount:    bankingProducts.length,
-        keyQuestionsCount:       keyQuestions.length,
-        hasTrends:               trends.length > 0,
-        hasCurrentConditions:    currentConditions.length > 0,
-        hasQuarterlyInsights:    quarterlyInsights.length > 0,
-        hasBankingProducts:      bankingProducts.length > 0,
-        hasKeyQuestions:         keyQuestions.length > 0,
-        showIndustryTrends:      trends.length > 0,
-        showCurrentConditions:   currentConditions.length > 0,
-        showQuarterlyInsights:   quarterlyInsights.length > 0,
-        showBankingProducts:     bankingProducts.length > 0,
-        showKeyQuestions:        keyQuestions.length > 0,
-        hasInsights: !!insightsContent, insightsContent, insightsGenerated,
-        forecasts, hasForecast,
-        globalTrends, globalTrendsCount: globalTrends.length, hasGlobalTrends: globalTrends.length > 0, showGlobalTrends: globalTrends.length > 0,
-        structure, hasStructure: !!structure,
-        derivedStatements, hasDerivedStatements: derivedStatements.length > 0,
-        terms, hasTerms: terms.length > 0, termsCount: terms.length,
-        benchmarks, hasBenchmarks: benchmarks.length > 0,
-        financialMetrics, hasFinancialMetrics: !!financialMetrics,
-        profitDrivers, hasProfitDrivers: profitDrivers.length > 0,
-        revenuePerEmployee, hasRevenuePerEmployee: revenuePerEmployee.length > 0,
-        workingCapitalBullets, hasWorkingCapitalBullets: workingCapitalBullets.length > 0,
-        cashMgmtChallenges, hasCashMgmtChallenges: cashMgmtChallenges.length > 0,
-        hasOperations: !!(profitDrivers.length || workingCapitalBullets.length || cashMgmtChallenges.length || revenuePerEmployee.length),
-    };
-}
+        const rawTerms = root.industryTerms || root.terms || root.glossary || [];
+        const industryTerms = Array.isArray(rawTerms) ? rawTerms.map(function(t, i) {
+            return { id: i, name: t.term || t.name || '', definition: t.definition || t.description || t.detail || '' };
+        }) : [];
+
+        const rawQuestions = root.keyQuestions || root.questions || [];
+        const keyQuestions = Array.isArray(rawQuestions) ? rawQuestions.map(function(q, i) {
+            return { id: i, question: typeof q === 'string' ? q : (q.question || q.text || '') };
+        }) : [];
+
+        return {
+            industryName:           industryName,
+            naicsCode:              naicsCode,
+            industryId:             industryId,
+            forecast:               forecast,
+            industryTrends:         industryTrends,
+            quarterlyInsights:      quarterlyInsights,
+            currentConditions:      currentConditions,
+            globalTrends:           globalTrends,
+            
+            benchmarks:             benchmarks,
+            hasBenchmarks:          benchmarks.length > 0,
+            benchmarksCount:        benchmarks.length,
+            
+            industryMetrics:        industryMetrics,
+            hasIndustryMetrics:     hasIndustryMetrics,
+            
+            profitDrivers:          profitDrivers,
+            hasProfitDrivers:       profitDrivers.length > 0,
+            profitDriversCount:     profitDrivers.length,
+            
+            cashMgmtChallenges:     cashMgmtChallenges,
+            hasCashMgmtChallenges:  cashMgmtChallenges.length > 0,
+            cashMgmtChallengesCount: cashMgmtChallenges.length,
+            
+            hasOperations:          (profitDrivers.length > 0 || cashMgmtChallenges.length > 0),
+            
+            bankingProducts:        bankingProducts,
+            industryTerms:          industryTerms,
+            keyQuestions:           keyQuestions,
+            
+            industryTrendsCount:    industryTrends.length,
+            currentConditionsCount: currentConditions.length,
+            quarterlyInsightsCount: quarterlyInsights.length,
+            globalTrendsCount:      globalTrends.length,
+            industryTermsCount:     industryTerms.length,
+            keyQuestionsCount:      keyQuestions.length,
+            hasBankingProducts:     bankingProducts.length > 0,
+            hasIndustryTerms:       industryTerms.length > 0,
+            hasKeyQuestions:        keyQuestions.length > 0
+        };
+    }
+    
+
 
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -691,32 +716,42 @@ export default class CompanyDetailResearch extends LightningElement {
     }
 
 
-    // ─── Data Loading: VerticalIQ (UNCHANGED) ────────────────────────────────
+// ─── Data Loading: VerticalIQ ────────────────────────────────
 
     loadViqData(naicsCode) {
-        if (this.viqLoading) return;
-        this.viqLoading = true;
-        this.viqError   = null;
-        const code = (naicsCode !== undefined && naicsCode !== null)
-            ? String(naicsCode).trim()
-            : (this.viqNaicsCode ? this.viqNaicsCode.trim() : null);
-
-        const params = { companyId: this.companyId };
-        if (code) params.naicsCode = code;
-
-        getVerticalIqData(params)
+        this.viqLoading = true; // FIX 1: Use viqLoading, not viqIsLoading
+        this.viqError = null;
+        
+        getVerticalIqData({ companyId: this.companyId, naicsCode: naicsCode || null })
             .then(json => {
-                if (!json) { this.viqViewModel = null; this.viqError = 'No VerticalIQ data found. Try entering a NAICS code and reloading.'; return; }
-                let raw;
-                try { raw = JSON.parse(json); } catch (e) { this.viqError = 'VerticalIQ data could not be parsed.'; return; }
-                if (Array.isArray(raw)) raw = raw[0] ?? null;
-                if (!raw) { this.viqError = 'VerticalIQ returned an empty response.'; return; }
-                if (raw.naicsCode && !this.viqNaicsCode) this.viqNaicsCode = String(raw.naicsCode);
-                this.viqViewModel = buildViqViewModel(raw);
+                // Ensure the JSON response is parsed into an object before building the ViewModel
+                let parsedResult = json;
+                if (typeof json === 'string') {
+                    try {
+                        parsedResult = JSON.parse(json);
+                    } catch (e) {
+                         console.error('Failed to parse VerticalIQ JSON', e);
+                    }
+                }
+                
+                // IMPORTANT: If buildViqViewModel is a standalone function at the top of your file, 
+                // do NOT use "this." here. 
+                const vm = typeof this.buildViqViewModel === 'function'
+                    ? this.buildViqViewModel(parsedResult)
+                    : buildViqViewModel(parsedResult);
+                
+                this.viqViewModel = vm;
+                this.viqLoading = false; // FIX 1: Use viqLoading
+                this.viqLoaded = true;   // FIX 2: Added so the HTML getters evaluate to true
             })
-            .catch(err => { this.viqError = `Failed to load VerticalIQ data: ${err?.body?.message || err?.message || 'Unknown error'}`; })
-            .finally(() => { this.viqLoading = false; this.viqLoaded = true; });
+            .catch(err => {
+                this.viqError = err?.body?.message || err?.message || 'Failed to load VerticalIQ data.';
+                this.viqLoading = false; // FIX 1: Use viqLoading
+                this.viqLoaded = true;   // FIX 2: Added to stop loading cycle
+            });
     }
+
+    
 
 handleSectionClick(event) {
     this.activeSection = event.currentTarget.dataset.section;
@@ -948,6 +983,12 @@ get researchSubTabs() {
     get viqIndustryName()         { return this.viqViewModel?.industryName || 'Unknown Industry'; }
     get viqNaicsDisplay()         { return this.viqViewModel?.naicsCode || 'N/A'; }
     get viqIndustryId()           { return this.viqViewModel?.industryId || 'N/A'; }
+    get viqIndustryMeta() {
+        const vm = this.viqViewModel;
+        if (!vm?.industryName) return null;
+        return `Industry: ${vm.industryName} (NAICS: ${vm.naicsCode})`;
+    }
+    get viqIndustryIdBadgeClass() { return this.viqViewModel?.industryId ? 'viq-badge viq-badge--id' : 'viq-badge viq-badge--id viq-badge--hidden'; }
     get viqHasInsights()          { return !!this.viqViewModel?.hasInsights; }
     get viqInsightsContent()      { return this.viqViewModel?.insightsContent; }
     get viqInsightsGenerated()    { return this.viqViewModel?.insightsGenerated; }
@@ -960,8 +1001,6 @@ get researchSubTabs() {
     get viqGlobalTrendsExpanded()         { return !this.viqSectionsCollapsed.globalTrends;        }
     get viqIndustryOverviewExpanded()     { return !this.viqSectionsCollapsed.industryOverview;    }
     get viqIndustryTermsExpanded()        { return !this.viqSectionsCollapsed.industryTerms;       }
-    get viqFinancialBenchmarksExpanded()  { return !this.viqSectionsCollapsed.financialBenchmarks; }
-    get viqFinancialMetricsExpanded()     { return !this.viqSectionsCollapsed.financialMetrics;    }
     get viqOperationsExpanded()           { return !this.viqSectionsCollapsed.operations;          }
     get viqTrendsChevron()                { return this.viqTrendsExpanded             ? '▾' : '▸'; }
     get viqConditionsChevron()            { return this.viqConditionsExpanded         ? '▾' : '▸'; }
@@ -971,19 +1010,18 @@ get researchSubTabs() {
     get viqGlobalTrendsChevron()          { return this.viqGlobalTrendsExpanded       ? '▾' : '▸'; }
     get viqIndustryOverviewChevron()      { return this.viqIndustryOverviewExpanded   ? '▾' : '▸'; }
     get viqIndustryTermsChevron()         { return this.viqIndustryTermsExpanded      ? '▾' : '▸'; }
-    get viqFinancialBenchmarksChevron()   { return this.viqFinancialBenchmarksExpanded ? '▾' : '▸'; }
-    get viqFinancialMetricsChevron()      { return this.viqFinancialMetricsExpanded   ? '▾' : '▸'; }
     get viqOperationsChevron()            { return this.viqOperationsExpanded         ? '▾' : '▸'; }
     get viqShowIndustryTrends()      { return !!this.viqViewModel?.showIndustryTrends;     }
     get viqShowCurrentConditions()   { return !!this.viqViewModel?.showCurrentConditions;  }
-    get viqShowQuarterlyInsights()   { return !!this.viqViewModel?.showQuarterlyInsights;  }
+    get viqShowQuarterlyInsights() { return !!this.viqViewModel; }
     get viqShowBankingProducts()     { return !!this.viqViewModel?.showBankingProducts;    }
     get viqShowKeyQuestions()        { return !!this.viqViewModel?.showKeyQuestions;       }
     get viqShowGlobalTrends()        { return !!this.viqViewModel?.showGlobalTrends;       }
-    get viqShowIndustryOverview()    { return !!(this.viqViewModel?.hasForecast || this.viqViewModel?.hasStructure || this.viqViewModel?.hasDerivedStatements); }
-    get viqShowIndustryTerms()       { return !!this.viqViewModel?.hasTerms;               }
-    get viqShowFinancialBenchmarks() { return !!this.viqViewModel?.hasBenchmarks;          }
-    get viqShowFinancialMetrics()    { return !!this.viqViewModel?.hasFinancialMetrics;     }
+    get viqShowIndustryOverview() {
+        // Always show when VIQ data is loaded — blank sections are better than invisible ones
+        return !!this.viqViewModel;
+    }
+    get viqShowIndustryTerms() { return !!this.viqViewModel; }
     get viqShowOperations()          { return !!this.viqViewModel?.hasOperations;           }
     get viqTrends()                  { return this.viqViewModel?.trends;              }
     get viqCurrentConditions()       { return this.viqViewModel?.currentConditions;   }
@@ -993,14 +1031,11 @@ get researchSubTabs() {
     get viqGlobalTrends()            { return this.viqViewModel?.globalTrends;        }
     get viqDerivedStatements()       { return this.viqViewModel?.derivedStatements;   }
     get viqTerms()                   { return this.viqViewModel?.terms;               }
-    get viqBenchmarks()              { return this.viqViewModel?.benchmarks;          }
-    get viqFinancialMetrics()        { return this.viqViewModel?.financialMetrics || null; }
     get viqForecasts()               { return this.viqViewModel?.forecasts || null;   }
     get viqStructure()               { return this.viqViewModel?.structure || null;   }
     get viqProfitDrivers()           { return this.viqViewModel?.profitDrivers;       }
     get viqRevenuePerEmployee()      { return this.viqViewModel?.revenuePerEmployee;  }
     get viqWorkingCapitalBullets()   { return this.viqViewModel?.workingCapitalBullets; }
-    get viqCashMgmtChallenges()      { return this.viqViewModel?.cashMgmtChallenges;  }
     get viqTrendsCount()             { return this.viqViewModel?.trendsCount            || 0; }
     get viqCurrentConditionsCount()  { return this.viqViewModel?.currentConditionsCount || 0; }
     get viqQuarterlyInsightsCount()  { return this.viqViewModel?.quarterlyInsightsCount || 0; }
@@ -1009,19 +1044,37 @@ get researchSubTabs() {
     get viqGlobalTrendsCount()       { return this.viqViewModel?.globalTrendsCount      || 0; }
     get viqTermsCount()              { return this.viqViewModel?.termsCount             || 0; }
     get viqReloadDisabled()          { return !this.viqNaicsCode || !this.viqNaicsCode.trim() || this.viqLoading; }
-    get viqHasForecast()             { return !!this.viqViewModel?.hasForecast;          }
+    get viqRefreshDisabled() { return this.viqLoading; }
+    get viqIndustryOverviewText() { return this.viqViewModel?.industryOverviewText ?? ''; }
+    get viqHasIndustryOverviewText() { return !!this.viqViewModel?.industryOverviewText; }
     get viqHasStructure()            { return !!this.viqViewModel?.hasStructure;         }
     get viqHasDerivedStatements()    { return !!this.viqViewModel?.hasDerivedStatements; }
+    get viqOverviewIsEmpty() {
+        const vm = this.viqViewModel;
+        if (!vm) return false;
+        return !vm.hasIndustryOverviewText 
+            && !vm.hasForecast 
+            && !vm.hasStructure 
+            && !vm.hasDerivedStatements;
+    }
+     get viqHasQuarterlyInsights() {
+        return (this.viqViewModel?.quarterlyInsightsCount ?? 0) > 0;
+    }
+    get viqHasTrends() {
+    return (this.viqViewModel?.trendsCount ?? 0) > 0;
+    }
+    get viqHasGlobalTrends() {
+        return (this.viqViewModel?.globalTrendsCount ?? 0) > 0;
+    }
+    get viqHasCurrentConditions() {
+        return (this.viqViewModel?.currentConditionsCount ?? 0) > 0;
+    }
     get viqHasTerms()                { return !!this.viqViewModel?.hasTerms;             }
-    get viqHasBenchmarks()           { return !!this.viqViewModel?.hasBenchmarks;        }
-    get viqHasFinancialMetrics()     { return !!this.viqViewModel?.hasFinancialMetrics;  }
-    get viqHasOperations()           { return !!this.viqViewModel?.hasOperations;        }
-    get viqHasProfitDrivers()        { return !!this.viqViewModel?.hasProfitDrivers;     }
+    get viqHasOperations()           { return !!this.viqViewModel?.hasOperations; }
+    get viqHasProfitDrivers()        { return !!this.viqViewModel?.hasProfitDrivers; }
     get viqHasRevenuePerEmployee()   { return !!this.viqViewModel?.hasRevenuePerEmployee; }
     get viqHasWorkingCapitalBullets(){ return !!this.viqViewModel?.hasWorkingCapitalBullets; }
     get viqHasCashMgmtChallenges()   { return !!this.viqViewModel?.hasCashMgmtChallenges; }
-    get viqForecastGrowthRate()      { return this.viqViewModel?.forecasts?.growthrateoverall; }
-    get viqForecastRelative()        { return this.viqViewModel?.forecasts?.relativestring;    }
 
 
     // ─── Getters: Report / other tabs (UNCHANGED) ────────────────────────────
@@ -1173,15 +1226,61 @@ get leadershipShowEmptyState() {
         if (!name) return '??';
         return name.split(' ').filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');
     }
+    get rmaShowEmptyState() {
+        const isEmpty = this.viqLoaded && !this.viqLoading && !this.viqError && 
+               (!this.viqViewModel || !this.viqViewModel.hasBenchmarks);
+        
+        if (this.activeResearchSection === 'rma') {
+            console.log(`[RMA Debug] rmaShowEmptyState evaluates to: ${isEmpty}`);
+        }
+        return isEmpty;
+    }
+    
+    get rmaShowData() {
+        const showData = this.viqLoaded && !this.viqLoading && !this.viqError && 
+               this.viqViewModel && this.viqViewModel.hasBenchmarks;
+               
+        if (this.activeResearchSection === 'rma') {
+            console.log(`[RMA Debug] rmaShowData evaluates to: ${showData} (Benchmarks Count: ${this.viqBenchmarksCount})`);
+        }
+        return showData;
+    }
+    get viqHasBenchmarks() { 
+        return !!this.viqViewModel?.hasBenchmarks; 
+    }
+
+    get viqBenchmarks() {
+        return this.viqViewModel?.benchmarks || [];
+    }
+
+    get viqBenchmarksCount() {
+        return this.viqViewModel?.benchmarks?.length || 0;
+    }
+    // ─────────────────────────────────────────────────────────────
+// 2. Add these Getters to the main Class
+// ─────────────────────────────────────────────────────────────
+    get viqHasIndustryMetrics()      { return !!this.viqViewModel?.hasIndustryMetrics; }
+    get viqIndustryMetrics()         { return this.viqViewModel?.industryMetrics; }
+
+    get viqHasProfitDrivers()        { return !!this.viqViewModel?.hasProfitDrivers; }
+    get viqProfitDriversCount()      { return this.viqViewModel?.profitDriversCount || 0; }
+    get viqProfitDrivers()           { return this.viqViewModel?.profitDrivers || []; }
+    get viqHasCashMgmtChallenges()   { return !!this.viqViewModel?.hasCashMgmtChallenges; }
+    get viqCashMgmtChallengesCount() { return this.viqViewModel?.cashMgmtChallengesCount || 0; }
+    get viqCashMgmtChallenges()      { return this.viqViewModel?.cashMgmtChallenges || []; }
     // ─── Event Handlers: Navigation (UNCHANGED) ──────────────────────────────
 
-    handleSubTabChange(event) {
+handleSubTabChange(event) {
         const newTab = event.currentTarget.dataset.id;
         this.activeResearchSection = newTab;
+        
         if (newTab === 'ucc' && !this._uccLoaded && !this._uccLoading) {
             this.loadUccData();
-        } else if (newTab === 'viq' && !this.viqLoaded) {
-            this.loadViqData();
+            
+        // FIX 3: Detect if the RMA tab is clicked so it can trigger the loadViqData API!
+        } else if ((newTab === 'viq' || newTab === 'rma') && !this.viqLoaded && !this.viqLoading) {
+           this.loadViqData(this.viqNaicsCode?.trim() || null);
+           
         } else if (newTab === 'leadership' && !this._leadershipLoaded && !this._leadershipLoading) {
             this.loadLeadership();
         }
@@ -1243,10 +1342,10 @@ get leadershipShowEmptyState() {
     }
 
     handleViqRefresh() {
-        this.viqViewModel         = null;
-        this.viqLoaded            = false;
-        this.viqError             = null;
-        this.viqSectionsCollapsed = { ...VIQ_SECTIONS_DEFAULT_COLLAPSED };
+        this.viqViewModel = null;
+        this.viqLoaded = false;
+        this.viqError = null;
+        // Do NOT reset viqSectionsCollapsed on refresh — preserve user's open/closed state
         this.loadViqData(this.viqNaicsCode?.trim() || null);
     }
 }
