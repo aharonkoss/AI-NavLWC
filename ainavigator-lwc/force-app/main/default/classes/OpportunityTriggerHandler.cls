@@ -1,10 +1,9 @@
 /**
- * @description       : 
- * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
- * @group             : 
- * @last modified on  : 05-29-2026
- * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
-**/
+ * @description Handler for Opportunity triggers. Manages duplicate checks and 
+ *              syncs newly inserted Opportunities to AI Navigator Company records.
+ * @author       AI Navigator Platform
+ * @last modified on : 05-30-2026
+ */
 public with sharing class OpportunityTriggerHandler {
     
     public static void handleAfterInsert(List<Opportunity> newOpps) {
@@ -36,10 +35,31 @@ public with sharing class OpportunityTriggerHandler {
             WHERE Id IN :accountIds
         ]);
 
+        // Gather all websites to check for existing Company__c records
+        Set<String> accountWebsites = new Set<String>();
+        for (Account acc : accountMap.values()) {
+            if (String.isNotBlank(acc.Website)) {
+                accountWebsites.add(acc.Website);
+            }
+        }
+
+        // Query existing Company__c records matching these websites
+        Map<String, Company__c> existingCompaniesMap = new Map<String, Company__c>();
+        if (!accountWebsites.isEmpty()) {
+            List<Company__c> existingCompanies = [
+                SELECT Id, Website__c, Opportunity_Id__c, Account_Id__c 
+                FROM Company__c 
+                WHERE Website__c IN :accountWebsites
+            ];
+            for (Company__c comp : existingCompanies) {
+                existingCompaniesMap.put(comp.Website__c, comp);
+            }
+        }
+
         List<Company__c> companiesToUpdate = new List<Company__c>();
 
         for (Opportunity opp : newOpps) {
-            // 3. Validation: Check if the Opportunity has a related Account
+            // Check if the Opportunity has a related Account
             if (opp.AccountId == null) {
                 if (notificationTypeId != null) {
                     sendBellNotification(notificationTypeId, 'Missing Account', 'Opportunity is missing a related Account record.', UserInfo.getUserId());
@@ -54,7 +74,7 @@ public with sharing class OpportunityTriggerHandler {
                 continue;
             }
 
-            // 4. Validation: Check if Account has Name and Website
+            // Check if Account has Name and Website
             if (String.isBlank(acc.Name) || String.isBlank(acc.Website)) {
                 if (notificationTypeId != null) {
                     sendBellNotification(notificationTypeId, 'Missing Information', 'Related Account requires a Name and Website.', UserInfo.getUserId());
@@ -63,7 +83,7 @@ public with sharing class OpportunityTriggerHandler {
                 continue;
             }
 
-            // 5. URL Format Validation
+            // URL Format Validation
             String urlRegex = '^https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}.*$';
             Pattern urlPattern = Pattern.compile(urlRegex);
             if (!urlPattern.matcher(acc.Website).matches()) {
@@ -74,43 +94,56 @@ public with sharing class OpportunityTriggerHandler {
                 continue;
             }
 
-            // 6. Address Fallback Check
+            // Address Fallback Check
             String city = String.isNotBlank(acc.BillingCity) ? acc.BillingCity : 'Scottsdale';
             String state = String.isNotBlank(acc.BillingState) ? acc.BillingState : 'AZ';
 
-            try {
-                // Call input controller. We pass true to skip Lead creation inside submitCompany.
-                String jsonResponse = InputController.submitCompany(
-                    acc.Name,
-                    acc.Website,
-                    city,
-                    state,
-                    'PreCall',
-                    'Opportunity',
-                    true // isCalledFromLead = true (prevents duplicate Lead creation)
-                );
+            // Duplicate Check logic: Link if exists, submit if new
+            if (existingCompaniesMap.containsKey(acc.Website)) {
+                Company__c existingComp = existingCompaniesMap.get(acc.Website);
+                
+                // Relink lookup fields to the newest Opportunity and Account context
+                existingComp.Opportunity_Id__c = opp.Id;
+                existingComp.Account_Id__c = opp.AccountId;
+                companiesToUpdate.add(existingComp);
 
-                Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(jsonResponse);
-                if (responseMap.containsKey('companyId')) {
-                    String compId = (String) responseMap.get('companyId');
-                    
-                    // Add Company record to update list with the new lookup linkages
-                    companiesToUpdate.add(new Company__c(
-                        Id = compId,
-                        Opportunity_Id__c = opp.Id,
-                        Account_Id__c = opp.AccountId
-                    ));
-
-                    if (notificationTypeId != null) {
-                        sendBellNotification(notificationTypeId, 'AI Navigator Success', 'Opportunity/Company sync initiated.', UserInfo.getUserId());
-                    }
+                if (notificationTypeId != null) {
+                    sendBellNotification(notificationTypeId, 'Existing Match Linked', 'Opportunity linked to existing Company research record.', UserInfo.getUserId());
                 }
-            } catch (Exception e) {
-                opp.addError('AI Navigator Integration Error: ' + e.getMessage());
+            } else {
+                // Submit to AI Navigator (Async Azure Callout queue)
+                try {
+                    String jsonResponse = InputController.submitCompany(
+                        acc.Name,
+                        acc.Website,
+                        city,
+                        state,
+                        'PreCall',
+                        'Opportunity',
+                        true // isCalledFromLead = true (prevents duplicate Lead creation)
+                    );
+
+                    Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(jsonResponse);
+                    if (responseMap.containsKey('companyId')) {
+                        String compId = (String) responseMap.get('companyId');
+                        
+                        companiesToUpdate.add(new Company__c(
+                            Id = compId,
+                            Opportunity_Id__c = opp.Id,
+                            Account_Id__c = opp.AccountId
+                        ));
+
+                        if (notificationTypeId != null) {
+                            sendBellNotification(notificationTypeId, 'AI Navigator Success', 'Opportunity/Company sync initiated.', UserInfo.getUserId());
+                        }
+                    }
+                } catch (Exception e) {
+                    opp.addError('AI Navigator Integration Error: ' + e.getMessage());
+                }
             }
         }
 
-        // 7. Perform DML update to relate Lookup IDs on the newly created Company__c records
+        // Perform standard DML update on Companies list
         if (!companiesToUpdate.isEmpty()) {
             try {
                 update companiesToUpdate;
