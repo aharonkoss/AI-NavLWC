@@ -2,15 +2,14 @@
 <LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>58.0</apiVersion>
     <isExposed>true</isExposed>
-    <masterLabel>AI Navigator</masterLabel>
-    <description>Displays parsed firmographic details on Accounts, and verified bio details on Contacts.</description>
+    <masterLabel>Contact AI Navigator</masterLabel>
+    <description>Displays verified leadership bio details for a specific Contact matching their Salesforce Email address.</description>
     <targets>
         <target>lightning__RecordPage</target>
     </targets>
     <targetConfigs>
         <targetConfig targets="lightning__RecordPage">
             <objects>
-                <object>Account</object>
                 <object>Contact</object>
             </objects>
         </targetConfig>

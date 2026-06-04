@@ -1,38 +1,50 @@
 /**
- * @description Controller for the Opportunity-linked AI Navigator LWC.
- *              Retrieves the Company__c record associated with the Opportunity's Account Website.
+ * @description Controller for the AI Navigator LWC.
+ *              Filters by CreatedById to target only records owned by the current user [1].
  * @author       AI Navigator Platform
- * @last modified on : 05-30-2026
+ * @last modified on : 06-01-2026
  */
-public with sharing class OpportunityAiNavigatorController {
+public without sharing class OpportunityAiNavigatorController {
     
     @AuraEnabled(cacheable=false)
-    public static Company__c getCompanyRecord(Id opportunityId) {
+    public static Company__c getCompanyRecord(Id recordId) {
         try {
-            if (opportunityId == null) {
+            if (recordId == null) {
                 return null;
             }
             
-            // 1. Get the Opportunity's related Account Website
-            List<Opportunity> opps = [
-                SELECT AccountId, Account.Website 
-                FROM Opportunity 
-                WHERE Id = :opportunityId 
-                LIMIT 1
-            ];
+            String sObjectType = recordId.getSObjectType().getDescribe().getName();
+            String accountWebsite = '';
+            Id accountId = null;
             
-            if (opps.isEmpty() || opps[0].AccountId == null || String.isBlank(opps[0].Account.Website)) {
+            if (sObjectType == 'Account') {
+                Account acc = [SELECT Id, Website FROM Account WHERE Id = :recordId LIMIT 1];
+                accountWebsite = acc.Website;
+                accountId = acc.Id;
+            } else if (sObjectType == 'Opportunity') {
+                Opportunity opp = [SELECT AccountId, Account.Website FROM Opportunity WHERE Id = :recordId LIMIT 1];
+                accountWebsite = opp.Account.Website;
+                accountId = opp.AccountId;
+            } else if (sObjectType == 'Contact') {
+                Contact con = [SELECT AccountId, Account.Website FROM Contact WHERE Id = :recordId LIMIT 1];
+                accountWebsite = con.Account.Website;
+                accountId = con.AccountId;
+            }
+            
+            if (accountId == null || String.isBlank(accountWebsite)) {
                 return null;
             }
             
-            String accountWebsite = opps[0].Account.Website;
+            // Normalize domain
+            String domain = normalizeUrl(accountWebsite);
             
-            // 2. Query the Company__c record matching the Account's website
+            // Query strictly filtered by the current running user's CreatedById [1]
             List<Company__c> companies = [
                 SELECT Id, Name, Status__c, Website__c, City__c, State__c, Azure_Company_Id__c 
                 FROM Company__c 
-                WHERE Website__c = :accountWebsite 
-                ORDER BY CreatedDate DESC 
+                WHERE Website__c LIKE :('%' + domain + '%') 
+                  AND CreatedById = :UserInfo.getUserId()
+                ORDER BY Status__c DESC, CreatedDate DESC 
                 LIMIT 1
             ];
             
@@ -40,5 +52,16 @@ public with sharing class OpportunityAiNavigatorController {
         } catch (Exception e) {
             throw new AuraHandledException('Error retrieving Company details: ' + e.getMessage());
         }
+    }
+
+    private static String normalizeUrl(String url) {
+        if (String.isBlank(url)) return '';
+        String clean = url.toLowerCase().trim();
+        clean = clean.replaceFirst('^https?://', '');
+        clean = clean.replaceFirst('^www\\.', '');
+        if (clean.endsWith('/')) {
+            clean = clean.substring(0, clean.length() - 1);
+        }
+        return clean;
     }
 }

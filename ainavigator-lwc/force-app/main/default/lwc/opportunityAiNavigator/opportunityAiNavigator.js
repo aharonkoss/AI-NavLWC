@@ -3,7 +3,16 @@ import getCompanyRecord from '@salesforce/apex/OpportunityAiNavigatorController.
 import getAiNavigatorReport from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
 import getUccFilings from '@salesforce/apex/CompanyDetailController.getUccFilings';
 
-// Utility helper to clean markdown symbols
+// Strips out brackets, citation numbers, and tildes [1]
+function cleanDisplayData(str) {
+    if (!str || typeof str !== 'string') return str;
+    return str
+        .replace(/\[\d+\]/g, '') // Removes [1], [2], [12], etc.
+        .replace(/~/g, '')       // Removes tildes (~)
+        .replace(/\s+/g, ' ')    // Condenses multiple whitespaces
+        .trim();
+}
+
 function stripInlineMd(text) {
     if (!text) return '';
     return text
@@ -13,7 +22,6 @@ function stripInlineMd(text) {
         .trim();
 }
 
-// Parses Markdown tables into standard JSON lists for iteration
 function parseContentToRows(text) {
     if (!text) return [];
     const lines = text.split('\n');
@@ -96,13 +104,16 @@ function formatDate(d) {
 
 export default class OpportunityAiNavigator extends LightningElement {
     @api recordId;
+    @api objectApiName;
 
     @track isLoading = true;
     @track error = null;
 
     @track companyRecord = null;
     @track parsedSections = [];
-    @track activeUccBankRelationships = 'None identified';
+    
+    // Updated to track an array of objects instead of a joined string [1]
+    @track activeUccBankRelationships = [];
 
     // Summary Metric Variables
     @track summaryEmployees = 'N/A';
@@ -122,7 +133,7 @@ export default class OpportunityAiNavigator extends LightningElement {
         this.error = null;
         this.companyRecord = null;
         this.parsedSections = [];
-        this.activeUccBankRelationships = 'None identified';
+        this.activeUccBankRelationships = [];
         
         this.summaryEmployees = 'N/A';
         this.summaryRevenue = 'N/A';
@@ -131,8 +142,8 @@ export default class OpportunityAiNavigator extends LightningElement {
         this.leadershipExecutives = [];
 
         try {
-            // 1. Fetch Company__c using new Account Website match logic
-            const company = await getCompanyRecord({ opportunityId: this.recordId });
+            // 1. Fetch Company__c using universally adaptive controller
+            const company = await getCompanyRecord({ recordId: this.recordId });
             this.companyRecord = company;
 
             if (company && company.Status__c && company.Status__c.toLowerCase() === 'completed') {
@@ -177,17 +188,21 @@ export default class OpportunityAiNavigator extends LightningElement {
                             securedParties.forEach(sp => {
                                 const name = sp.name ?? sp.orgName ?? '';
                                 if (name && !activeBanks.includes(name)) {
-                                    activeBanks.push(name);
+                                    activeBanks.push(cleanDisplayData(name));
                                 }
                             });
                             if (f.securedPartyName && !activeBanks.includes(f.securedPartyName)) {
-                                activeBanks.push(f.securedPartyName);
+                                activeBanks.push(cleanDisplayData(f.securedPartyName));
                             }
                         }
                     });
 
+                    // Format banks into uniquely keyed list objects [1]
                     if (activeBanks.length > 0) {
-                        this.activeUccBankRelationships = activeBanks.join(', ');
+                        this.activeUccBankRelationships = activeBanks.map((bank, index) => ({
+                            id: `bank-${index}`,
+                            name: bank
+                        }));
                     }
                 }
             }
@@ -245,7 +260,7 @@ export default class OpportunityAiNavigator extends LightningElement {
 
     /**
      * Scans the Company Overview parsed tables using word-boundary RegEx tests
-     * to safely extract Employees, Revenue, SIC, and NAICS values.
+     * to safely extract and clean Employees, Revenue, SIC, and NAICS values [1].
      */
     extractSummaryMetrics() {
         const overview = this.overviewSection;
@@ -262,13 +277,13 @@ export default class OpportunityAiNavigator extends LightningElement {
                         
                         // Strict word-boundary checks prevent false matching on substrings like 'physicians'
                         if (/\bemployees?\b/.test(lowerAttr)) {
-                            this.summaryEmployees = detail;
+                            this.summaryEmployees = cleanDisplayData(detail);
                         } else if (/\brevenue\b/.test(lowerAttr)) {
-                            this.summaryRevenue = detail;
+                            this.summaryRevenue = cleanDisplayData(detail);
                         } else if (/\bsic\b/.test(lowerAttr)) {
-                            this.sicCodeRaw = detail;
+                            this.sicCodeRaw = cleanDisplayData(detail);
                         } else if (/\bnaics\b/.test(lowerAttr)) {
-                            this.naicsCodeRaw = detail;
+                            this.naicsCodeRaw = cleanDisplayData(detail);
                         }
                     }
                 });
@@ -286,7 +301,7 @@ export default class OpportunityAiNavigator extends LightningElement {
         }
 
         this.leadershipExecutives = leaders.map((l, index) => {
-            const name = l.fullName ?? l.name ?? '';
+            const name = cleanDisplayData(l.fullName ?? l.name ?? '');
             
             const initials = name
                 .split(' ')
@@ -302,22 +317,22 @@ export default class OpportunityAiNavigator extends LightningElement {
             const conf = sourceMap[l.source] ?? { label: 'Unverified', cls: 'ldr-badge ldr-badge--low' };
 
             const emails = (l.emails ?? []).map(e => ({
-                email: e.email,
+                email: cleanDisplayData(e.email),
                 type: e.email_type ?? e.type ?? 'professional',
                 grade: e.grade ?? '',
             }));
             const recommendedEmail = emails.find(e => e.grade === 'A' || e.grade === 'A-') ?? emails[0] ?? null;
 
             const phones = (l.phones ?? []).map(p => ({
-                number: p.number ?? p.phone ?? '',
+                number: cleanDisplayData(p.number ?? p.phone ?? ''),
                 type: p.type ?? '',
                 recommended: !!p.recommended,
             }));
 
             const jobHistory = (l.jobHistory ?? []).map((j, jIdx) => ({
                 key: `jh-${index}-${jIdx}`,
-                title: j.title ?? '',
-                company: j.company ?? '',
+                title: cleanDisplayData(j.title ?? ''),
+                company: cleanDisplayData(j.company ?? ''),
                 startDate: formatDate(j.startDate),
                 endDate: j.isCurrent ? 'Present' : formatDate(j.endDate),
                 isCurrent: !!j.isCurrent,
@@ -326,9 +341,9 @@ export default class OpportunityAiNavigator extends LightningElement {
 
             const education = (l.education ?? []).map((e, eIdx) => ({
                 key: `edu-${index}-${eIdx}`,
-                school: e.school ?? '',
-                degree: e.degree ?? '',
-                major: e.major ?? '',
+                school: cleanDisplayData(e.school ?? ''),
+                degree: cleanDisplayData(e.degree ?? ''),
+                major: cleanDisplayData(e.major ?? ''),
             }));
 
             const linkedInUrl = l.linkedInUrl ?? l.links?.linkedin ?? null;
@@ -337,9 +352,9 @@ export default class OpportunityAiNavigator extends LightningElement {
             return {
                 id: String(l.rocketReachId ?? name ?? index),
                 fullName: name,
-                designation: l.designation ?? l.title ?? '',
+                designation: cleanDisplayData(l.designation ?? l.title ?? ''),
                 initials,
-                location: l.location ?? [l.city, l.state, l.country].filter(Boolean).join(', ') ?? '',
+                location: cleanDisplayData(l.location ?? [l.city, l.state, l.country].filter(Boolean).join(', ') ?? ''),
                 profilePicUrl: l.profilePicUrl ?? null,
                 hasProfilePic: !!l.profilePicUrl,
                 confidenceLabel: conf.label,
@@ -374,6 +389,18 @@ export default class OpportunityAiNavigator extends LightningElement {
     // UI Getters
     // ─────────────────────────────────────────────────────────────
 
+    get subTitleHeader() {
+        return 'Account-level Firmographic Insights & Contacts';
+    }
+
+    get isAccountContext() {
+        return true;
+    }
+
+    get isContactContext() {
+        return false;
+    }
+
     get showNoRecordState() {
         return !this.isLoading && !this.companyRecord;
     }
@@ -393,6 +420,10 @@ export default class OpportunityAiNavigator extends LightningElement {
 
     get companyStatus() {
         return this.companyRecord ? this.companyRecord.Status__c : '';
+    }
+
+    get hasBankingRelationships() {
+        return this.activeUccBankRelationships && this.activeUccBankRelationships.length > 0;
     }
 
     get currentBankingRelationship() {

@@ -1,13 +1,13 @@
 /**
- * @description Handler for Opportunity triggers. Manages duplicate checks and 
- *              syncs newly inserted Opportunities to AI Navigator Company records.
+ * @description Handler for Opportunity triggers. Normalizes URLs and checks CreatedById 
+ *              to prevent cross-user duplicate sync issues.
+ *              Updated: If a match is found, it unhides the record and resets status to pending.
  * @author       AI Navigator Platform
- * @last modified on : 05-30-2026
+ * @last modified on : 06-03-2026
  */
-public with sharing class OpportunityTriggerHandler {
+public without sharing class OpportunityTriggerHandler {
     
     public static void handleAfterInsert(List<Opportunity> newOpps) {
-        // 1. Retrieve the Custom Notification Type
         Id notificationTypeId = null;
         try {
             CustomNotificationType notificationType = [
@@ -20,7 +20,6 @@ public with sharing class OpportunityTriggerHandler {
             System.debug(LoggingLevel.WARN, 'AI_Navigator_Notification CustomNotificationType not found: ' + e.getMessage());
         }
 
-        // 2. Gather Account IDs to fetch details in bulk
         Set<Id> accountIds = new Set<Id>();
         for (Opportunity opp : newOpps) {
             if (opp.AccountId != null) {
@@ -28,42 +27,22 @@ public with sharing class OpportunityTriggerHandler {
             }
         }
 
-        // Query the Accounts with Billing addresses
         Map<Id, Account> accountMap = new Map<Id, Account>([
             SELECT Id, Name, Website, BillingCity, BillingState 
             FROM Account 
             WHERE Id IN :accountIds
         ]);
 
-        // Gather all websites to check for existing Company__c records
-        Set<String> accountWebsites = new Set<String>();
-        for (Account acc : accountMap.values()) {
-            if (String.isNotBlank(acc.Website)) {
-                accountWebsites.add(acc.Website);
-            }
-        }
-
-        // Query existing Company__c records matching these websites
-        Map<String, Company__c> existingCompaniesMap = new Map<String, Company__c>();
-        if (!accountWebsites.isEmpty()) {
-            List<Company__c> existingCompanies = [
-                SELECT Id, Website__c, Opportunity_Id__c, Account_Id__c 
-                FROM Company__c 
-                WHERE Website__c IN :accountWebsites
-            ];
-            for (Company__c comp : existingCompanies) {
-                existingCompaniesMap.put(comp.Website__c, comp);
-            }
-        }
-
         List<Company__c> companiesToUpdate = new List<Company__c>();
+        List<Id> syncedCompanyIds = new List<Id>();
 
         for (Opportunity opp : newOpps) {
-            // Check if the Opportunity has a related Account
             if (opp.AccountId == null) {
                 if (notificationTypeId != null) {
                     sendBellNotification(notificationTypeId, 'Missing Account', 'Opportunity is missing a related Account record.', UserInfo.getUserId());
                 }
+                // Note: after insert triggers cannot use addError to block UI save as effectively as before triggers,
+                // but it will still roll back the transaction.
                 opp.addError('An Account is required for AI Navigator tracking on Opportunities.');
                 continue;
             }
@@ -74,7 +53,7 @@ public with sharing class OpportunityTriggerHandler {
                 continue;
             }
 
-            // Check if Account has Name and Website
+            // 1. Validation
             if (String.isBlank(acc.Name) || String.isBlank(acc.Website)) {
                 if (notificationTypeId != null) {
                     sendBellNotification(notificationTypeId, 'Missing Information', 'Related Account requires a Name and Website.', UserInfo.getUserId());
@@ -83,7 +62,7 @@ public with sharing class OpportunityTriggerHandler {
                 continue;
             }
 
-            // URL Format Validation
+            // 2. URL Validation
             String urlRegex = '^https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}.*$';
             Pattern urlPattern = Pattern.compile(urlRegex);
             if (!urlPattern.matcher(acc.Website).matches()) {
@@ -94,24 +73,40 @@ public with sharing class OpportunityTriggerHandler {
                 continue;
             }
 
-            // Address Fallback Check
             String city = String.isNotBlank(acc.BillingCity) ? acc.BillingCity : 'Scottsdale';
             String state = String.isNotBlank(acc.BillingState) ? acc.BillingState : 'AZ';
 
-            // Duplicate Check logic: Link if exists, submit if new
-            if (existingCompaniesMap.containsKey(acc.Website)) {
-                Company__c existingComp = existingCompaniesMap.get(acc.Website);
+            String domain = normalizeUrl(acc.Website);
+
+            // 3. Duplicate Check: Match existing Company record created by the current user
+            List<Company__c> existingCompList = [
+                SELECT Id, Website__c, Opportunity_Id__c, Account_Id__c, Is_Hidden__c, Status__c
+                FROM Company__c 
+                WHERE Website__c LIKE :('%' + domain + '%') 
+                  AND CreatedById = :UserInfo.getUserId()
+                ORDER BY CreatedDate DESC
+                LIMIT 1
+            ];
+
+            if (!existingCompList.isEmpty()) {
+                Company__c existingComp = existingCompList[0];
                 
-                // Relink lookup fields to the newest Opportunity and Account context
+                // NEW LOGIC: Unhide the record and reset status
+                existingComp.Is_Hidden__c = false;
+                existingComp.Status__c    = 'pending';
+                
+                // Link to this Opportunity and Account
                 existingComp.Opportunity_Id__c = opp.Id;
                 existingComp.Account_Id__c = opp.AccountId;
+                
                 companiesToUpdate.add(existingComp);
+                syncedCompanyIds.add(existingComp.Id);
 
                 if (notificationTypeId != null) {
-                    sendBellNotification(notificationTypeId, 'Existing Match Linked', 'Opportunity linked to existing Company research record.', UserInfo.getUserId());
+                    sendBellNotification(notificationTypeId, 'Existing Match Linked', 'Opportunity linked to existing record and unhidden.', UserInfo.getUserId());
                 }
             } else {
-                // Submit to AI Navigator (Async Azure Callout queue)
+                // 4. No Match: Create new via InputController
                 try {
                     String jsonResponse = InputController.submitCompany(
                         acc.Name,
@@ -127,14 +122,16 @@ public with sharing class OpportunityTriggerHandler {
                     if (responseMap.containsKey('companyId')) {
                         String compId = (String) responseMap.get('companyId');
                         
+                        // Create update record to link the newly created company back to Opp/Acc
                         companiesToUpdate.add(new Company__c(
                             Id = compId,
                             Opportunity_Id__c = opp.Id,
                             Account_Id__c = opp.AccountId
                         ));
+                        syncedCompanyIds.add(compId);
 
                         if (notificationTypeId != null) {
-                            sendBellNotification(notificationTypeId, 'AI Navigator Success', 'Opportunity/Company sync initiated.', UserInfo.getUserId());
+                            sendBellNotification(notificationTypeId, 'AI Navigator Success', 'Opportunity research initiated.', UserInfo.getUserId());
                         }
                     }
                 } catch (Exception e) {
@@ -143,12 +140,57 @@ public with sharing class OpportunityTriggerHandler {
             }
         }
 
-        // Perform standard DML update on Companies list
+        // 5. Bulk DML and Sharing
         if (!companiesToUpdate.isEmpty()) {
             try {
                 update companiesToUpdate;
+                shareCompaniesWithAllInternalUsers(syncedCompanyIds);
             } catch (Exception e) {
-                System.debug(LoggingLevel.ERROR, 'Failed to update Company relationship lookups: ' + e.getMessage());
+                System.debug(LoggingLevel.ERROR, 'Failed to update Company relationships: ' + e.getMessage());
+            }
+        }
+    }
+
+    private static String normalizeUrl(String url) {
+        if (String.isBlank(url)) return '';
+        String clean = url.toLowerCase().trim();
+        clean = clean.replaceFirst('^https?://', '');
+        clean = clean.replaceFirst('^www\\.', '');
+        if (clean.endsWith('/')) {
+            clean = clean.substring(0, clean.length() - 1);
+        }
+        return clean;
+    }
+
+    private static void shareCompaniesWithAllInternalUsers(List<Id> companyIds) {
+        if (companyIds == null || companyIds.isEmpty()) return;
+        
+        Group internalGroup;
+        try {
+            internalGroup = [SELECT Id FROM Group WHERE DeveloperName = 'AllInternalUsers' LIMIT 1];
+        } catch (Exception e) {
+            System.debug(LoggingLevel.WARN, 'AllInternalUsers group not found: ' + e.getMessage());
+            return;
+        }
+        
+        List<SObject> sharesToInsert = new List<SObject>();
+        for (Id compId : companyIds) {
+            Schema.SObjectType shareType = Schema.getGlobalDescribe().get('Company__Share');
+            if (shareType != null) {
+                SObject share = shareType.newSObject();
+                share.put('ParentId', compId);
+                share.put('UserOrGroupId', internalGroup.Id);
+                share.put('AccessLevel', 'Read');
+                share.put('RowCause', 'Manual');
+                sharesToInsert.add(share);
+            }
+        }
+        
+        if (!sharesToInsert.isEmpty()) {
+            try {
+                Database.insert(sharesToInsert, false);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.WARN, 'Sharing insertion skipped: ' + e.getMessage());
             }
         }
     }

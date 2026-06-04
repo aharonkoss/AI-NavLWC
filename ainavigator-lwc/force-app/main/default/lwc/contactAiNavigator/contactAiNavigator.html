@@ -1,0 +1,291 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 05-31-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <div class="opp-navigator-wrapper">
+    
+    <!-- Header/Action Bar -->
+    <div class="slds-page-header slds-page-header_joined slds-p-around_small opp-navigator-header">
+      <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+        <div class="slds-media slds-no-space slds-grow">
+          <div class="slds-media__figure">
+            <span class="slds-icon_container slds-icon-standard-contact" title="Contact AI Navigator">
+              <lightning-icon icon-name="standard:contact" size="small"></lightning-icon>
+            </span>
+          </div>
+          <div class="slds-media__body">
+            <h1 class="slds-page-header__title slds-truncate slds-align-middle" title="AI Navigator Contact Details">AI Navigator</h1>
+            <p class="slds-text-body_small slds-line-height_reset">Verified Contact Insights</p>
+          </div>
+        </div>
+        <div>
+          <lightning-button-icon 
+            icon-name="utility:refresh" 
+            variant="border-filled" 
+            alternative-text="Refresh Data" 
+            onclick={handleRefresh}
+            disabled={isLoading}>
+          </lightning-button-icon>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="slds-box slds-box_xs slds-theme_default opp-navigator-body">
+      
+      <!-- 1. Spinner/Loading -->
+      <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_large state-container">
+          <lightning-spinner alternative-text="Loading AI Navigator details" size="medium"></lightning-spinner>
+          <span class="slds-m-left_medium">Fetching contact details...</span>
+        </div>
+      </template>
+
+      <!-- 2. Error Message Block -->
+      <template if:false={isLoading}>
+        <template if:true={error}>
+          <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+            <lightning-icon icon-name="utility:error" size="x-small" variant="inverse" class="slds-m-right_x-small"></lightning-icon>
+            <h2>{error}</h2>
+          </div>
+        </template>
+      </template>
+
+      <!-- 3. Dynamic States when loaded -->
+      <template if:false={isLoading}>
+        <template if:false={error}>
+          
+          <!-- State A: No Company record found for the Opportunity -->
+          <template if:true={showNoRecordState}>
+            <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
+              <lightning-icon icon-name="utility:info_alt" size="large" variant="warning"></lightning-icon>
+              <p class="slds-text-heading_small slds-m-top_medium font-semibold text-center">No AI Navigator record found for this Account.</p>
+              <p class="slds-text-color_weak slds-m-top_x-small text-center">Verify that the associated Account contains a valid Website.</p>
+            </div>
+          </template>
+
+          <!-- State B: Record found but not yet Completed -->
+          <template if:true={showProcessingState}>
+            <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
+              <div class="spinner-sonar slds-m-bottom_medium"></div>
+              <p class="slds-text-heading_small font-semibold text-center">AI Navigator is still researching...</p>
+              <p class="slds-text-color_weak slds-m-top_x-small text-center">Please check back later to view contact details.</p>
+              <span class="slds-badge slds-m-top_medium status-badge-pending">Status: {companyStatus}</span>
+            </div>
+          </template>
+
+          <!-- State C: Ready / Completed -->
+          <template if:true={showCompletedState}>
+            <div class="ldr-outer-card">
+              
+              <!-- Card Header -->
+              <div class="ldr-card-header">
+                <div class="ldr-card-header-left">
+                  <span class="ldr-header-icon-wrap" aria-hidden="true">
+                    <svg class="ldr-header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </span>
+                  <span class="ldr-header-title">Leadership Profile</span>
+                </div>
+              </div>
+
+              <!-- Matched Contact Block -->
+              <div class="ldr-card-body">
+                <template if:true={matchedExecutive}>
+                  <div class="ldr-exec-card">
+
+                    <!-- Hero Block -->
+                    <div class="ldr-exec-hero">
+                      <div class="ldr-avatar-wrap">
+                        <template if:true={matchedExecutive.hasProfilePic}>
+                          <img class="ldr-avatar-img" src={matchedExecutive.profilePicUrl} alt={matchedExecutive.fullName} />
+                        </template>
+                        <template if:false={matchedExecutive.hasProfilePic}>
+                          <div class="ldr-avatar">{matchedExecutive.initials}</div>
+                        </template>
+                      </div>
+                      <div class="ldr-exec-hero-info">
+                        <div class="ldr-exec-name">{matchedExecutive.fullName}</div>
+                        <template if:true={matchedExecutive.designation}>
+                          <div class="ldr-exec-designation">{matchedExecutive.designation}</div>
+                        </template>
+                        <template if:true={matchedExecutive.location}>
+                          <div class="ldr-exec-location">
+                            <svg class="ldr-loc-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                              <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"></path>
+                              <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            {matchedExecutive.location}
+                          </div>
+                        </template>
+                      </div>
+                      <span class={matchedExecutive.confidenceClass}>{matchedExecutive.confidenceLabel}</span>
+                    </div>
+
+                    <!-- Contact Details Grid -->
+                    <div class="ldr-contact-grid">
+                      
+                      <!-- Emails -->
+                      <div class="ldr-section">
+                        <div class="ldr-section-header">
+                          <svg class="ldr-section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                          </svg>
+                          <span class="ldr-section-title">Email ({matchedExecutive.emailCount})</span>
+                        </div>
+                        <div class="ldr-section-body">
+                          <template for:each={matchedExecutive.emails} for:item="em">
+                            <div key={em.email} class="ldr-contact-row">
+                              <span class="ldr-contact-value">{em.email}</span>
+                              <span class="ldr-type-badge">{em.type}</span>
+                              <template if:true={em.grade}>
+                                <span class="ldr-grade-badge">{em.grade}</span>
+                              </template>
+                            </div>
+                          </template>
+                          <template if:true={matchedExecutive.recommendedEmail}>
+                            <div class="ldr-recommended-note">
+                              Recommended: {matchedExecutive.recommendedEmail.email}
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+
+                      <!-- Phones -->
+                      <div class="ldr-section">
+                        <div class="ldr-section-header">
+                          <svg class="ldr-section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.59 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                          </svg>
+                          <span class="ldr-section-title">Phone ({matchedExecutive.phoneCount})</span>
+                        </div>
+                        <div class="ldr-section-body">
+                          <template for:each={matchedExecutive.phones} for:item="ph">
+                            <div key={ph.number} class="ldr-contact-row">
+                              <span class="ldr-contact-value">{ph.number}</span>
+                              <template if:true={ph.recommended}>
+                                <span class="ldr-recommended-badge">Rec</span>
+                              </template>
+                              <template if:true={ph.type}>
+                                <span class="ldr-type-badge">{ph.type}</span>
+                              </template>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+
+                      <!-- Social Profiles -->
+                      <div class="ldr-section">
+                        <div class="ldr-section-header">
+                          <svg class="ldr-section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                          </svg>
+                          <span class="ldr-section-title">Social Profiles</span>
+                        </div>
+                        <div class="ldr-section-body ldr-social-body">
+                          <template if:true={matchedExecutive.hasLinkedIn}>
+                            <a class="ldr-social-btn" href={matchedExecutive.linkedInUrl} target="_blank" rel="noopener noreferrer">
+                              <svg class="ldr-social-icon ldr-social-icon--linkedin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
+                                <rect x="2" y="9" width="4" height="12"></rect>
+                                <circle cx="4" cy="4" r="2"></circle>
+                              </svg>
+                              LinkedIn
+                            </a>
+                          </template>
+                          <template if:true={matchedExecutive.hasTwitter}>
+                            <a class="ldr-social-btn" href={matchedExecutive.twitterUrl} target="_blank" rel="noopener noreferrer">
+                              <svg class="ldr-social-icon ldr-social-icon--twitter" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23 3a10.9 10.9 0 0 1-3.14 1.53A4.48 4.48 0 0 0 22.43.36a9 9 0 0 1-2.88 1.1A4.52 4.52 0 0 0 16.11 0c-2.5 0-4.52 2-4.52 4.52 0 .35.04.7.11 1.03C7.69 5.4 4.07 3.58 1.64.9a4.5 4.5 0 0 0-.61 2.27c0 1.57.8 2.95 2.01 3.76a4.5 4.5 0 0 1-2.05-.56v.06c0 2.19 1.56 4.02 3.63 4.43a4.5 4.5 0 0 1-2.04.08 4.53 4.53 0 0 0 4.22 3.14A9.06 9.06 0 0 1 0 19.54a12.8 12.8 0 0 0 6.92 2.03c8.3 0 12.85-6.88 12.85-12.85 0-.2 0-.39-.01-.58A9.18 9.18 0 0 0 23 3z"></path>
+                              </svg>
+                              Twitter
+                            </a>
+                          </template>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <!-- Employment -->
+                    <template if:true={matchedExecutive.hasJobHistory}>
+                      <div class="ldr-section slds-m-top_x-small">
+                        <div class="ldr-section-header">
+                          <svg class="ldr-section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                          </svg>
+                          <span class="ldr-section-title">Employment History ({matchedExecutive.jobHistoryCount})</span>
+                        </div>
+                        <div class="ldr-section-body">
+                          <template for:each={matchedExecutive.jobHistory} for:item="job">
+                            <div key={job.key} class={job.rowClass}>
+                              <div class="ldr-job-title">
+                                {job.title}
+                                <template if:true={job.isCurrent}>
+                                  <span class="ldr-current-badge">Current</span>
+                                </template>
+                              </div>
+                              <div class="ldr-job-company">{job.company}</div>
+                              <div class="ldr-job-dates">{job.startDate} - {job.endDate}</div>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+
+                    <!-- Education -->
+                    <template if:true={matchedExecutive.hasEducation}>
+                      <div class="ldr-section slds-m-top_x-small">
+                        <div class="ldr-section-header">
+                          <svg class="ldr-section-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+                          </svg>
+                          <span class="ldr-section-title">Education ({matchedExecutive.educationCount})</span>
+                        </div>
+                        <div class="ldr-section-body">
+                          <template for:each={matchedExecutive.education} for:item="edu">
+                            <div key={edu.key} class="ldr-edu-row">
+                              <div class="ldr-edu-school">{edu.school}</div>
+                              <template if:true={edu.degree}>
+                                <div class="ldr-edu-degree">{edu.degree}</div>
+                              </template>
+                              <template if:true={matchedExecutive.major}>
+                                <div class="ldr-edu-major">Field: {edu.major}</div>
+                              </template>
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+
+                  </div>
+                </template>
+
+                <!-- Updated strict "No contact in AI Navigator" fallback warning [1] -->
+                <template if:false={matchedExecutive}>
+                  <div class="ldr-empty-contacts">
+                    <lightning-icon icon-name="utility:user" size="medium" variant="weak"></lightning-icon>
+                    <p class="slds-m-top_small slds-text-heading_small font-semibold text-center">No contact in AI Navigator</p>
+                    <p class="slds-text-color_weak slds-m-top_xx-small text-center">Please verify that this Salesforce Contact's email address is correctly matches the profile information in the company's AI database.</p>
+                  </div>
+                </template>
+
+              </div>
+            </div>
+          </template>
+
+        </template>
+      </template>
+
+    </div>
+  </div>
+</template>

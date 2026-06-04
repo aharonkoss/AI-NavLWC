@@ -1,5 +1,6 @@
-import { LightningElement, track, wire } from 'lwc'; // Added 'wire' here
+import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { updateRecord } from 'lightning/uiRecordApi'; // Best Practice Import
 import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
 import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
 import getSignals from '@salesforce/apex/DashboardController.getSignals';
@@ -33,14 +34,106 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track currentUnshareCompanyName = '';
     @track sharedWithUsersList = [];
 
+    // --- Simulation Tracking ---
+    @track simulatingCompanyIds = new Set();
+    activeTimeouts = [];
+
     // Fetch teammates (users in same profile)
     @wire(getTeammates)
     teammates;
 
     connectedCallback() {
+        console.log('[Dashboard Log] ConnectedCallback fired');
         this.loadStats();
         this.loadCompanies();
+        window.addEventListener('companysubmitted', this.handleCompanySubmitted);
     }
+
+    disconnectedCallback() {
+        window.removeEventListener('companysubmitted', this.handleCompanySubmitted);
+        this.activeTimeouts.forEach(clearTimeout);
+    }
+
+    // --- Simulation & UI Record Update Loop ---
+    startPendingSimulation(companyId) {
+        if (this.simulatingCompanyIds.has(companyId)) {
+            console.log('[Dashboard Log] Already simulating ID:', companyId);
+            return;
+        }
+
+        console.log('[Dashboard Log] STARTING 30-second simulation for company ID:', companyId);
+        this.simulatingCompanyIds.add(companyId);
+
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        const timeoutId = setTimeout(() => {
+            this.completeCompany(companyId);
+        }, 30000);
+
+        this.activeTimeouts.push(timeoutId);
+    }
+
+    completeCompany(companyId) {
+        console.log('[Dashboard Log] 30 seconds are up. Calling standard updateRecord for ID:', companyId);
+        
+        const recordInput = {
+            fields: {
+                Id: companyId,
+                Status__c: 'completed'
+            }
+        };
+
+        updateRecord(recordInput)
+            .then(() => {
+                console.log('[Dashboard Log] uiRecordApi update returned SUCCESS for ID:', companyId);
+                
+                this.simulatingCompanyIds.delete(companyId);
+                this._companies = this._companies.map(c => {
+                    if (c.companyId === companyId) {
+                        return this.mapCompany({
+                            ...c,
+                            status: 'completed'
+                        });
+                    }
+                    return c;
+                });
+                this._companies = [...this._companies];
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] uiRecordApi update FAILED for ID:', companyId, error);
+                this.simulatingCompanyIds.delete(companyId);
+                this._companies = [...this._companies];
+            });
+    }
+
+    // Custom Event Handler for Real-Time Submissions from InputForm
+    handleCompanySubmitted = (event) => {
+        const payload = event.detail;
+        if (!payload || !payload.companyId) return;
+
+        console.log('[Dashboard Log] Event "companysubmitted" received for:', payload.name);
+        this.startPendingSimulation(payload.companyId);
+
+        const submittedCompany = this.mapCompany({
+            companyId: payload.companyId,
+            correlationId: payload.correlationId,
+            name: payload.name,
+            city: payload.city,
+            state: payload.state,
+            stage: payload.stage,
+            clientType: payload.clientType,
+            status: 'pending',
+            createdAt: payload.createdAt || new Date().toISOString()
+        });
+
+        const index = this._companies.findIndex(c => c.companyId === submittedCompany.companyId);
+        if (index !== -1) {
+            this._companies[index] = submittedCompany;
+        } else {
+            this._companies = [submittedCompany, ...this._companies];
+        }
+
+        this._companies = [...this._companies];
+    };
 
     loadStats() {
         getDashboardStats()
@@ -52,8 +145,18 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         getCompanies()
             .then(result => {
                 const raw = JSON.parse(result);
+                
+                // 1. Map raw companies to UI models
                 this._companies = raw.map(c => this.mapCompany(c));
-                this._companies.forEach(c => this.loadSignalsForCompany(c.companyId));
+
+                // 2. SAFE & SELF-HEALING: Scan the raw DB records for any non-completed statuses on load
+                raw.forEach(c => {
+                    if (c.status !== 'completed') {
+                        console.log('[Dashboard Log] Self-healing found incomplete record:', c.name, 'Status:', c.status);
+                        this.startPendingSimulation(c.companyId);
+                    }
+                    this.loadSignalsForCompany(c.companyId);
+                });
             })
             .catch(error => console.error('Error loading companies:', error));
     }
@@ -71,28 +174,31 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .catch(error => console.error('Error loading signals for', companyId, error));
     }
 
-    // Single consolidated mapCompany method
+    // Consolidated mapCompany method
     mapCompany(c, signals) {
+        // Any record in simulation OR whose actual database status is not 'completed' is forced to 'processing'
+        const isSimulating = this.simulatingCompanyIds.has(c.companyId) || c.status !== 'completed';
+        const displayStatus = isSimulating ? 'processing' : c.status;
+
         const companySignals = signals || this._companySignals[c.companyId] || [];
-        const signalSummary = this.getSignalSummary(companySignals, c.status);
+        const signalSummary = this.getSignalSummary(companySignals, displayStatus);
         
         return {
             ...c,
+            status: displayStatus,
             locationDisplay: [c.city, c.state].filter(Boolean).join(', '),
             createdAtDisplay: c.createdAt
                 ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
                 : '-',
-            statusClass: this.getStatusClass(c.status),
-            statusLabel: c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : 'Unknown',
+            statusClass: this.getStatusClass(displayStatus),
+            statusLabel: displayStatus ? displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) : 'Unknown',
             
             // --- Sharing UI Logic ---
             isSelected: this.selectedCompanyIds.has(c.companyId),
             hasSharedLabel: !!c.sharedByName, 
             sharedByLabel: `Shared by ${c.sharedByName}`,
-            // Show Unshare if shared with others AND we own it (no sharedByName)
             showUnshareButton: c.isShared && !c.sharedByName,
-            // Show Share only if completed, not shared yet, and we own it
-            showShareButton: !c.isShared && !c.sharedByName && c.status === 'completed',
+            showShareButton: !c.isShared && !c.sharedByName && displayStatus === 'completed',
             
             stageIsPreCall:        (c.stage || 'PreCall') === 'PreCall',
             stageIsAppointmentSet: c.stage === 'Appointment Set',
@@ -114,23 +220,21 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     // --- Selection Handlers ---
 
     handleRowSelect(event) {
-    event.stopPropagation(); // Double protection
-    // Use 'companyid' (all lowercase) to match the HTML data-companyid
-    const companyId = event.target.dataset.companyid; 
-    
-    if (this.selectedCompanyIds.has(companyId)) {
-        this.selectedCompanyIds.delete(companyId);
-    } else {
-        this.selectedCompanyIds.add(companyId);
+        event.stopPropagation(); 
+        const companyId = event.target.dataset.companyid; 
+        
+        if (this.selectedCompanyIds.has(companyId)) {
+            this.selectedCompanyIds.delete(companyId);
+        } else {
+            this.selectedCompanyIds.add(companyId);
+        }
+        this._updateSelectionState();
     }
-    this._updateSelectionState();
-}
 
     handleSelectAll(event) {
         const checked = event.target.checked;
         if (checked) {
             this.paginatedCompanies.forEach(c => {
-                // Only select rows we are allowed to share (Owner + Completed)
                 if (c.status === 'completed' && !c.sharedByName) {
                     this.selectedCompanyIds.add(c.companyId);
                 }
@@ -142,12 +246,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     _updateSelectionState() {
-        // Force refresh mapping to update 'isSelected' reactive state
         this._companies = this._companies.map(c => ({
             ...c,
             isSelected: this.selectedCompanyIds.has(c.companyId)
         }));
-        // Logic to trigger re-render of the 'Select All' checkbox if needed
         this.selectedCompanyIds = new Set(this.selectedCompanyIds);
     }
 
@@ -169,7 +271,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             this.showCustomToast('Companies shared successfully', 'success');
             this.selectedCompanyIds.clear();
             this.shareTargetUserId = '';
-            this.loadCompanies(); // Refresh the list
+            this.loadCompanies(); 
             this.loadStats();
         })
         .catch(error => {
@@ -186,11 +288,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         this._updateSelectionState();
     }
 
-    // --- Unsharing Logic ---
-    // 1. Add this method to prevent the row click from firing when clicking the checkbox
     stopPropagation(event) {
         event.stopPropagation();
     }
+
     handleOpenUnshareModal(event) {
         event.stopPropagation();
         const companyId = event.currentTarget.dataset.companyid;
@@ -217,7 +318,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         unshareCompany({ sharedCompanyRecordId: sharedRecordId })
             .then(() => {
                 this.showCustomToast('Access removed', 'success');
-                // Refresh local list of users in modal
                 this.sharedWithUsersList = this.sharedWithUsersList.filter(u => u.id !== sharedRecordId);
                 if (this.sharedWithUsersList.length === 0) {
                     this.handleCloseUnshareModal();
@@ -255,7 +355,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return !this.shareTargetUserId || this.isSharing;
     }
 
-    // --- Existing Helper Logic ---
+    // --- Helper Logic ---
 
     getSignalSummary(signals, status) {
         if (!signals || signals.length === 0) return null;
@@ -298,11 +398,25 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return map[status] || 'status-badge status-pending';
     }
 
-    // --- Stats & Pagination Getters ---
-    get totalCompanies() { return this.stats.totalCompanies || 0; }
-    get processing()     { return this.stats.processing || 0; }
-    get completed()      { return this.stats.completed || 0; }
-    get opened()         { return this.stats.opened || 0; }
+    // --- Dynamic KPI Stats Getters ---
+    get totalCompanies() { 
+        return this._companies.length > 0 ? this._companies.length : (this.stats.totalCompanies || 0); 
+    }
+    get processing() { 
+        return this._companies.length > 0 
+            ? this._companies.filter(c => c.status === 'processing' || c.status === 'pending').length 
+            : (this.stats.processing || 0); 
+    }
+    get completed() { 
+        return this._companies.length > 0 
+            ? this._companies.filter(c => c.status === 'completed').length 
+            : (this.stats.completed || 0); 
+    }
+    get opened() { 
+        return this._companies.length > 0 
+            ? this._companies.filter(c => c.status === 'opened').length 
+            : (this.stats.opened || 0); 
+    }
 
     get filterOptions() {
         return [
@@ -433,10 +547,13 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     handleCompanyClick(event) {
-        // Look for the ID on the currentTarget (the row)
         const companyId = event.currentTarget.dataset.companyid; 
+        console.log('Row clicked, Company ID:', companyId);
         
-        if (!companyId) return; // Prevent navigation if ID is missing
+        if (!companyId) {
+            console.error('Navigation aborted: companyid is missing from HTML attributes');
+            return;
+        }
 
         const company = this._companies.find(c => c.companyId === companyId);
         

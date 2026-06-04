@@ -1,8 +1,9 @@
 <!--
-  @description       : 
+  @description       : LWC interface displaying Company metrics, Contact listings, 
+                       and a Pre-Call Planning placeholder on Account layouts [1].
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 05-30-2026
+  @last modified on  : 06-02-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -19,7 +20,7 @@
           </div>
           <div class="slds-media__body">
             <h1 class="slds-page-header__title slds-truncate slds-align-middle" title="AI Navigator Research">AI Navigator</h1>
-            <p class="slds-text-body_small slds-line-height_reset">Account-level Research &amp; Contacts</p>
+            <p class="slds-text-body_small slds-line-height_reset">{subTitleHeader}</p>
           </div>
         </div>
         <div>
@@ -59,11 +60,11 @@
       <template if:false={isLoading}>
         <template if:false={error}>
           
-          <!-- State A: No Company record found for the Opportunity -->
+          <!-- State A: No Company record found -->
           <template if:true={showNoRecordState}>
             <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
               <lightning-icon icon-name="utility:info_alt" size="large" variant="warning"></lightning-icon>
-              <p class="slds-text-heading_small slds-m-top_medium font-semibold text-center">No AI Navigator record found for this Account.</p>
+              <p class="slds-text-heading_small slds-m-top_medium font-semibold text-center">No AI Navigator record found.</p>
               <p class="slds-text-color_weak slds-m-top_x-small text-center">Verify that the associated Account contains a valid Website URL.</p>
             </div>
           </template>
@@ -73,7 +74,7 @@
             <div class="slds-align_absolute-center slds-flex-column slds-p-around_large state-container">
               <div class="spinner-sonar slds-m-bottom_medium"></div>
               <p class="slds-text-heading_small font-semibold text-center">AI Navigator is still researching...</p>
-              <p class="slds-text-color_weak slds-m-top_x-small text-center">Please check back later to view the compiled industry and contact details.</p>
+              <p class="slds-text-color_weak slds-m-top_x-small text-center">Please check back later to view the compiled details.</p>
               <span class="slds-badge slds-m-top_medium status-badge-pending">Status: {companyStatus}</span>
             </div>
           </template>
@@ -84,36 +85,48 @@
               
               <!-- ──────────────── TAB 1: COMPANY ──────────────── -->
               <lightning-tab label="Company" value="company">
-                
-                <!-- Symmetrical 4-Column Summary Metrics Grid -->
-                <div class="slds-grid slds-wrap slds-gutters slds-m-bottom_small metrics-grid">
+                <div class="slds-grid slds-wrap slds-gutters metrics-grid slds-p-around_xx-small">
                   
-                  <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                  <!-- Row 1: Balanced 3-Column Metrics (4-of-12 columns each) [1] -->
+                  <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-m-bottom_small">
                     <div class="metric-card">
                       <div class="metric-label">Employees</div>
-                      <div class="metric-value">{summaryEmployees}</div>
+                      <div class="metric-value" title={summaryEmployees}>{summaryEmployees}</div>
                     </div>
                   </div>
 
-                  <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                  <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-m-bottom_small">
                     <div class="metric-card">
                       <div class="metric-label">Revenue</div>
                       <div class="metric-value slds-truncate" title={summaryRevenue}>{summaryRevenue}</div>
                     </div>
                   </div>
 
-                  <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                  <div class="slds-col slds-size_1-of-1 slds-medium-size_4-of-12 slds-m-bottom_small">
                     <div class="metric-card">
                       <div class="metric-label">SIC Code / NAICS Code</div>
-                      <div class="metric-value">{summarySicNaics}</div>
+                      <div class="metric-value" title={summarySicNaics}>{summarySicNaics}</div>
                     </div>
                   </div>
 
-                  <div class="slds-col slds-size_1-of-1 slds-medium-size_3-of-12">
+                  <!-- Row 2: Full-Width UCC Banking Card (12-of-12 columns) [1] -->
+                  <div class="slds-col slds-size_1-of-1 slds-medium-size_12-of-12">
                     <div class="metric-card metric-card-indigo">
                       <div class="metric-label metric-label-indigo">Current Banking Relationship (UCC)</div>
-                      <div class="metric-value metric-value-indigo slds-truncate" title={currentBankingRelationship}>
-                        {currentBankingRelationship}
+                      <div class="metric-value metric-value-indigo">
+                        
+                        <template if:true={hasBankingRelationships}>
+                          <div class="ucc-bank-list scrollbar-styled">
+                            <template for:each={activeUccBankRelationships} for:item="bank">
+                              <div key={bank.id} class="ucc-bank-item" title={bank.name}>{bank.name}</div>
+                            </template>
+                          </div>
+                        </template>
+
+                        <template if:false={hasBankingRelationships}>
+                          None identified
+                        </template>
+
                       </div>
                     </div>
                   </div>
@@ -125,7 +138,6 @@
               <lightning-tab label="Contacts" value="contacts">
                 <div class="ldr-outer-card">
                   
-                  <!-- Card Header -->
                   <div class="ldr-card-header">
                     <div class="ldr-card-header-left">
                       <span class="ldr-header-icon-wrap" aria-hidden="true">
@@ -139,7 +151,6 @@
                     </div>
                   </div>
 
-                  <!-- Executive Cards List -->
                   <div class="ldr-card-body">
                     <template if:true={leadershipHasExecutives}>
                       <template for:each={leadershipExecutives} for:item="exec">
@@ -173,7 +184,7 @@
                             <span class={exec.confidenceClass}>{exec.confidenceLabel}</span>
                           </div>
 
-                          <!-- 3-Column Contact Row -->
+                          <!-- Contact Details Grid -->
                           <div class="ldr-contact-grid">
                             
                             <!-- Emails -->
@@ -259,7 +270,7 @@
 
                           </div>
 
-                          <!-- Employment Block -->
+                          <!-- Employment History -->
                           <template if:true={exec.hasJobHistory}>
                             <div class="ldr-section slds-m-top_x-small">
                               <div class="ldr-section-header">
@@ -286,7 +297,7 @@
                             </div>
                           </template>
 
-                          <!-- Education Block -->
+                          <!-- Education -->
                           <template if:true={exec.hasEducation}>
                             <div class="ldr-section slds-m-top_x-small">
                               <div class="ldr-section-header">
@@ -316,15 +327,23 @@
                       </template>
                     </template>
 
-                    <!-- Leadership Empty State -->
+                    <!-- Leadership Empty Fallback -->
                     <template if:false={leadershipHasExecutives}>
                       <div class="ldr-empty-contacts">
                         <lightning-icon icon-name="utility:user" size="medium" variant="weak"></lightning-icon>
                         <p class="slds-m-top_small slds-text-color_weak">No contact or leadership details available in report.</p>
                       </div>
                     </template>
-
                   </div>
+
+                </div>
+              </lightning-tab>
+
+              <!-- ──────────────── TAB 3: PRE CALL PLANNING GUIDE ──────────────── -->
+              <lightning-tab label="Pre Call Planning Guide" value="precall">
+                <div class="slds-align_absolute-center slds-flex-column state-container">
+                  <lightning-icon icon-name="utility:info" size="large" variant="info" class="precall-icon"></lightning-icon>
+                  <h2 class="slds-text-heading_medium font-semibold slds-m-top_medium">Coming Soon</h2>
                 </div>
               </lightning-tab>
 

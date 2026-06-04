@@ -9,7 +9,7 @@
 }
 
 .opp-navigator-body {
-    min-height: 200px;
+    min-height: 180px;
     position: relative;
     border: none;
     padding: 0.75rem !important;
@@ -48,94 +48,8 @@
     font-size: 0.75rem;
 }
 
-/* Symmetrical 4-Column Card Grid */
-.metrics-grid {
-    margin: 0 -0.5rem;
-}
-
-.metric-card {
-    background-color: #ffffff;
-    border: 1px solid #e0e4ea;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 84px; /* Dynamic flexbox container */
-    margin-bottom: 0.5rem;
-    height: auto;
-}
-
-.metric-label {
-    font-size: 0.6875rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #5a6272;
-    margin-bottom: 4px;
-}
-
-.metric-value {
-    font-size: 0.9375rem;
-    font-weight: normal !important; 
-    color: #1a1d23;
-}
-
-/* Accent Card for Banking relationship */
-.metric-card-indigo {
-    background-color: #faf5ff !important;
-    border-color: #e9d5ff !important;
-}
-
-.metric-label-indigo {
-    color: #7e22ce !important;
-}
-
-.metric-value-indigo {
-    color: #581c87 !important;
-    font-size: 0.9375rem !important;
-    font-weight: normal !important;
-}
-
-/* UCC Multi-line List Formatting & Dynamic Auto-Scrolling [1] */
-.ucc-bank-list {
-    max-height: 110px;       /* Beautifully constrains the vertical card footprint [1] */
-    overflow-y: auto;        /* Adds vertical scrolling when active bank count is high [1] */
-    padding-right: 4px;
-}
-
-.ucc-bank-item {
-    font-size: 0.75rem !important;
-    line-height: 1.4;
-    padding: 3px 0;
-    border-bottom: 1px dashed #e9d5ff; /* Soft purple list separators */
-    color: #581c87;
-    white-space: normal !important;     /* Instructs each listed bank name to wrap correctly [1] */
-    word-break: break-word;
-}
-
-.ucc-bank-item:last-child {
-    border-bottom: none;
-}
-
-/* Custom Scrollbar Styles for the UCC Card Container [1] */
-.scrollbar-styled::-webkit-scrollbar {
-    width: 4px;
-}
-.scrollbar-styled::-webkit-scrollbar-track {
-    background: #faf5ff;
-}
-.scrollbar-styled::-webkit-scrollbar-thumb {
-    background: #d8b4fe;
-    border-radius: 4px;
-}
-.scrollbar-styled::-webkit-scrollbar-thumb:hover {
-    background: #c084fc;
-}
-
 /* ─────────────────────────────────────────────────────────────
-   LEADERSHIP / CONTACTS TAB STYLING
+   LEADERSHIP CARD STYLING
    ───────────────────────────────────────────────────────────── */
 .ldr-outer-card {
     background: #ffffff !important;
