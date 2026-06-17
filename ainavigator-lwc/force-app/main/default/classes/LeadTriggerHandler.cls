@@ -1,45 +1,45 @@
 /**
- * @description Updated Handler for LeadTrigger. 
- *              When a Lead is inserted, it checks for a matching Company__c by Website.
- *              If found: Unhides the company, sets status to pending, and links it.
- *              If not found: Calls InputController to create a new Company and Azure request.
+ * @description FIXED: Handler for LeadTrigger. 
+ *              1. Uses 'without sharing' to ensure hidden records can be found/updated.
+ *              2. Filters by OwnerId to ensure we only unhide YOUR records.
  */
-public with sharing class LeadTriggerHandler {
+public without sharing class LeadTriggerHandler {
     
     public static void handleBeforeInsert(List<Lead> newLeads) {
+        Id currentUserId = UserInfo.getUserId();
+        
         CustomNotificationType notificationType = [
             SELECT Id FROM CustomNotificationType 
             WHERE DeveloperName = 'AI_Navigator_Notification' 
             LIMIT 1
         ];
 
-        // List to hold Companies that need to be "unhidden"
         List<Company__c> companiesToUpdate = new List<Company__c>();
 
         for (Lead myLead : newLeads) {
-            // 1. Validation: Company and Website Presence
+            // 1. Validation: Presence check
             if (String.isBlank(myLead.Company) || String.isBlank(myLead.Website)) {
-                sendBellNotification(notificationType.Id, 'Missing Information', 'Lead requires Company Name and Website.', UserInfo.getUserId());
-                myLead.addError('Company Name and Website are required for AI Navigator.');
+                sendBellNotification(notificationType.Id, 'Missing Information', 'Lead requires Company Name and Website.', currentUserId);
+                myLead.addError('Company Name and Website are required.');
                 continue;
             }
 
-            // 2. Validation: URL Format (e.g., https://google.com)
+            // 2. URL Validation
             String urlRegex = '^https?://[a-zA-Z0-9\\-\\.]+\\.[a-zA-Z]{2,}.*$';
             Pattern urlPattern = Pattern.compile(urlRegex);
-            Matcher urlMatcher = urlPattern.matcher(myLead.Website);
-            
-            if (!urlMatcher.matches()) {
-                sendBellNotification(notificationType.Id, 'Invalid URL', 'The Website format is incorrect. Use https://example.com', UserInfo.getUserId());
+            if (!urlPattern.matcher(myLead.Website).matches()) {
+                sendBellNotification(notificationType.Id, 'Invalid URL', 'Format must be https://example.com', currentUserId);
                 myLead.addError('The Website must be a valid URL starting with http:// or https://');
                 continue;
             }
 
-            // 3. Duplicate Check: Look for existing Company__c by Website
+            // 3. Duplicate Check: ONLY look for Company__c owned by the CURRENT USER
             List<Company__c> existingCompanies = [
                 SELECT Id, Is_Hidden__c, Status__c 
                 FROM Company__c 
                 WHERE Website__c = :myLead.Website 
+                AND OwnerId = :currentUserId 
+                ORDER BY CreatedDate DESC 
                 LIMIT 1
             ];
 
@@ -49,20 +49,18 @@ public with sharing class LeadTriggerHandler {
                 // Link the Lead to the existing Company ID
                 myLead.AIN_Id__c = matchedComp.Id;
 
-                // NEW LOGIC: Unhide the record and set status to pending
+                // Update the matched record to unhide it
                 matchedComp.Is_Hidden__c = false;
                 matchedComp.Status__c    = 'pending';
                 companiesToUpdate.add(matchedComp);
 
-                sendBellNotification(notificationType.Id, 'Match Found', 'Lead linked to existing Company record and unhidden.', UserInfo.getUserId());
+                sendBellNotification(notificationType.Id, 'Match Found', 'Lead linked to your existing record and unhidden.', currentUserId);
             } else {
-                // No match: Process new submission via InputController
+                // No match for this user: Create new via InputController
                 try {
-                    // Set default logic for AI Navigator
                     String city = String.isNotBlank(myLead.City) ? myLead.City : 'Scottsdale';
                     String state = String.isNotBlank(myLead.State) ? myLead.State : 'AZ';
                     
-                    // Call InputController - passing 'true' to skip duplicate Lead creation within the controller
                     String jsonResponse = InputController.submitCompany(
                         myLead.Company,
                         myLead.Website,
@@ -73,11 +71,10 @@ public with sharing class LeadTriggerHandler {
                         true 
                     );
 
-                    // Parse the response from InputController
                     Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(jsonResponse);
                     if (responseMap.containsKey('companyId')) {
                         myLead.AIN_Id__c = (String) responseMap.get('companyId');
-                        sendBellNotification(notificationType.Id, 'AI Navigator Success', 'Lead sent to Azure AI Navigator successfully.', UserInfo.getUserId());
+                        sendBellNotification(notificationType.Id, 'AI Navigator Success', 'Lead sent to Azure.', currentUserId);
                     }
                 } catch (Exception e) {
                     myLead.addError('AI Navigator Integration Error: ' + e.getMessage());
@@ -85,12 +82,12 @@ public with sharing class LeadTriggerHandler {
             }
         }
 
-        // Perform bulk update on Companies that were matched
+        // Perform bulk update on matched companies
         if (!companiesToUpdate.isEmpty()) {
             try {
                 update companiesToUpdate;
-            } catch (DmlException de) {
-                System.debug('LeadTriggerHandler: Failed to update matching companies: ' + de.getMessage());
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'LeadTriggerHandler Update Failed: ' + e.getMessage());
             }
         }
     }
@@ -102,7 +99,7 @@ public with sharing class LeadTriggerHandler {
         notification.setBody(body);
         notification.setTargetId(targetId);
         try {
-            notification.send(new Set<String>{UserInfo.getUserId()});
+            notification.send(new Set<String>{targetId});
         } catch (Exception e) {
             System.debug('Notification failed: ' + e.getMessage());
         }

@@ -4,7 +4,7 @@
  *               stored on Company__c after RESEARCH_DONE platform event fires.
  * @author       AI Navigator Platform
  * @group        AI Navigator Integration
- * @last modified on  : 05-21-2026
+ * @last modified on  : 06-16-2026
 **/
 public with sharing class CompanyDetailController {
 
@@ -36,12 +36,13 @@ public with sharing class CompanyDetailController {
     // ─────────────────────────────────────────────────────────────────────────
     // Company header data
     // ─────────────────────────────────────────────────────────────────────────
-    @AuraEnabled
+     @AuraEnabled
     public static String getCompany(String companyId) {
         if (String.isBlank(companyId)) {
             throw new AuraHandledException('companyId is required.');
         }
         try {
+            // Added OwnerId filter to ensure we don't grab a different user's duplicate record
             Company__c c = [
                 SELECT Id, Name, City__c, State__c,
                        Website__c, Status__c, Stage__c,
@@ -51,9 +52,11 @@ public with sharing class CompanyDetailController {
                        Prospect_Score__c, PDF_Report_URL__c,
                        Error_Message__c, Industry__c
                 FROM   Company__c
-                WHERE  Id = :companyId
+                WHERE  Id = :companyId 
+                AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
             ];
+            
             Map<String, Object> result = new Map<String, Object>{
                 'id'             => c.Id,
                 'companyId'      => c.Id,
@@ -76,14 +79,15 @@ public with sharing class CompanyDetailController {
             };
             return JSON.serialize(result);
         } catch (QueryException e) {
-            throw new AuraHandledException('Company not found: ' + companyId);
+            // Throw a more specific error if the record exists but belongs to someone else
+            throw new AuraHandledException('Research record not found or assigned to another user.');
         }
     }
 
 
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // All companies for dashboard navigation
+   // ─────────────────────────────────────────────────────────────────────────
+    // All companies — Now filters by OwnerId
     // ─────────────────────────────────────────────────────────────────────────
     @AuraEnabled
     public static String getAllCompanies() {
@@ -96,6 +100,7 @@ public with sharing class CompanyDetailController {
                    Industry__c, Is_Hidden__c
             FROM   Company__c
             WHERE  Is_Hidden__c = false
+            AND    OwnerId = :UserInfo.getUserId()
             ORDER BY Research_Completed_At__c DESC NULLS LAST
             LIMIT  200
         ]) {
@@ -119,6 +124,7 @@ public with sharing class CompanyDetailController {
         }
         return JSON.serialize(result);
     }
+
 
 
 
