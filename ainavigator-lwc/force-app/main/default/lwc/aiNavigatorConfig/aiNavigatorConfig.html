@@ -1,0 +1,47 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 08-16-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <lightning-card title="AI Navigator Setup Wizard" icon-name="custom:custom58">
+        <div class="slds-p-around_medium">
+            <template if:true={isLoading}>
+                <div class="slds-align_absolute-center slds-m-vertical_medium">
+                    <lightning-spinner alt-text="Loading configuration..." size="medium"></lightning-spinner>
+                </div>
+            </template>
+            
+            <template if:false={isLoading}>
+                <p class="slds-m-bottom_medium">Please configure your tenant credentials and Azure endpoints. These values will be securely saved to your Custom Metadata.</p>
+                
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <!-- Column 1 -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-input label="Client ID" value={clientId} onchange={handleFieldChange} data-field="clientId" class="slds-m-bottom_small" required></lightning-input>
+                        <!-- FIXED: Setting type to url enforces correct URL formatting natively -->
+                        <lightning-input label="Azure APIM Base URL" value={azureUrl} onchange={handleFieldChange} data-field="azureUrl" class="slds-m-bottom_small" type="url" required></lightning-input>
+                        <!-- FIXED: Changed type to text to show clear text -->
+                        <lightning-input label="APIM Subscription Key" value={subscriptionKey} onchange={handleFieldChange} data-field="subscriptionKey" class="slds-m-bottom_small" type="text" required></lightning-input>
+                        <lightning-input label="Named Credential Name" value={credentialName} onchange={handleFieldChange} data-field="credentialName" class="slds-m-bottom_small" required></lightning-input>
+                    </div>
+                    
+                    <!-- Column 2 -->
+                    <div class="slds-col slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <lightning-input label="Callout Timeout (ms)" value={timeout} onchange={handleFieldChange} data-field="timeout" class="slds-m-bottom_small" type="number" required></lightning-input>
+                        <lightning-input label="Environment" value={environment} onchange={handleFieldChange} data-field="environment" class="slds-m-bottom_small" required></lightning-input>
+                        <lightning-input label="Event Schema Version" value={schemaVersion} onchange={handleFieldChange} data-field="schemaVersion" class="slds-m-bottom_small" required></lightning-input>
+                        <lightning-input label="Max Retry Attempts" value={retryAttempts} onchange={handleFieldChange} data-field="retryAttempts" class="slds-m-bottom_small" type="number" required></lightning-input>
+                        <lightning-input label="Is Active" checked={isActive} onchange={handleFieldChange} data-field="isActive" class="slds-m-bottom_small" type="checkbox"></lightning-input>
+                    </div>
+                </div>
+
+                <div class="slds-m-top_medium">
+                    <lightning-button label="Save Configuration" variant="brand" onclick={handleSave} disabled={isSaving}></lightning-button>
+                </div>
+            </template>
+        </div>
+    </lightning-card>
+</template>

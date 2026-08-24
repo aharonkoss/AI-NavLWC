@@ -170,7 +170,7 @@ global without sharing class AzureInboundEventService {
         res.headers.put('X-Correlation-Id', correlationId);
     }
 
-    // ── Private: log to Azure_Request_Log__c ─────────────────────────────────
+    // ── Private: log to AI_Navigator_Request_Log__c ─────────────────────────────────
     private static void logRequest(
         String correlationId,
         String eventType,
@@ -178,7 +178,7 @@ global without sharing class AzureInboundEventService {
         Integer statusCode
     ) {
         try {
-            insert new Azure_Request_Log__c(
+            insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c    = 'POST',
                 Endpoint_Name__c  = 'AzureInboundEventService',
                 Request_Body__c   = requestBody,

@@ -13,7 +13,7 @@
  */
 public without sharing class AzureHttpService {
 
-    private static final Integer DEFAULT_TIMEOUT_MS = 30000;
+    private static final Integer DEFAULT_TIMEOUT_MS = 60000;
 
     /**
      * Build a ready-to-send HttpRequest with all required Azure headers.
@@ -35,7 +35,7 @@ public without sharing class AzureHttpService {
 
         HttpRequest req = new HttpRequest();
 
-        // Named Credential handles Authorization: Bearer <JWT> automatically
+        // FIXED: Reverted back to the original simple structure — reads the configured Named Credential directly
         req.setEndpoint('callout:' + config.Named_Credential_Name__c + path);
         req.setMethod(method);
         req.setTimeout(
@@ -78,16 +78,23 @@ public without sharing class AzureHttpService {
     // ── Private ──────────────────────────────────────────────────────────────
 
     private static AI_Navigator_Config__mdt loadConfig() {
+        // Query unmanaged record first, fall back to packaged record if empty
         List<AI_Navigator_Config__mdt> configs = [
-            SELECT Named_Credential_Name__c,
-                   ApimSubscriptionKey__c,
-                   Client_Id__c,
-                   Callout_Timeout_Ms__c,
-                   Is_Active__c
+            SELECT Named_Credential_Name__c, ApimSubscriptionKey__c, Client_Id__c, Callout_Timeout_Ms__c, Is_Active__c
             FROM   AI_Navigator_Config__mdt
             WHERE  DeveloperName = 'Dev'
+            AND    NamespacePrefix = null
             LIMIT  1
         ];
+
+        if (configs.isEmpty()) {
+            configs = [
+                SELECT Named_Credential_Name__c, ApimSubscriptionKey__c, Client_Id__c, Callout_Timeout_Ms__c, Is_Active__c
+                FROM   AI_Navigator_Config__mdt
+                WHERE  DeveloperName = 'Dev'
+                LIMIT  1
+            ];
+        }
 
         if (configs.isEmpty() || configs[0].Named_Credential_Name__c == null) {
             throw new AzureHttpServiceException(

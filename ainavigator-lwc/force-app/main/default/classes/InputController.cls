@@ -2,7 +2,7 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 06-03-2026
+ * @last modified on  : 06-26-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 **/
 public with sharing class InputController {
@@ -22,15 +22,15 @@ public with sharing class InputController {
 
             // 1. Check if a company with the same Website already exists OWNED by the current user
             // Changed filter from CreatedById to OwnerId for better accuracy
-            List<Company__c> existingCompanies = [
+            List<AI_Navigator_Company__c> existingCompanies = [
                 SELECT Id, Name, Website__c, City__c, State__c, Stage__c, Client_Type__c, Status__c, Correlation_Id__c, CreatedDate, Is_Hidden__c
-                FROM Company__c
+                FROM AI_Navigator_Company__c
                 WHERE OwnerId = :currentUserId AND Website__c = :website
                 LIMIT 1
             ];
 
             if (!existingCompanies.isEmpty()) {
-                Company__c existingCompany = existingCompanies[0];
+                AI_Navigator_Company__c existingCompany = existingCompanies[0];
                 
                 // Unhide and refresh properties
                 existingCompany.Is_Hidden__c = false;
@@ -85,7 +85,7 @@ public with sharing class InputController {
             // 2. Standard creation process (No existing record found)
             String correlationId = AI_Navigator_Event_Publisher.generateCorrelationId();
 
-            Company__c company = new Company__c(
+            AI_Navigator_Company__c company = new AI_Navigator_Company__c(
                 Name             = companyName,
                 Website__c       = website,
                 City__c          = city,

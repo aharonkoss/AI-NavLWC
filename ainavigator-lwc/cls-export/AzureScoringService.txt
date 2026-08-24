@@ -15,9 +15,9 @@ public without sharing class AzureScoringService {
     }
 
     public static void requestScoring(String companyId, String criteriaId) {
-        List<Company__c> companies = [
+        List<AI_Navigator_Company__c> companies = [
             SELECT Id, Name
-            FROM Company__c
+            FROM AI_Navigator_Company__c
             WHERE Id = :companyId
             LIMIT 1
         ];

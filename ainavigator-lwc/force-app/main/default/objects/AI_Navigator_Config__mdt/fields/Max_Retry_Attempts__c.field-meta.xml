@@ -6,4 +6,5 @@
     <precision>2</precision>
     <scale>0</scale>
     <description>Maximum number of retry attempts for failed Azure callouts before marking as error.</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
 </CustomField>

@@ -36,22 +36,22 @@ public without sharing class SignalAlertProcessor {
 
         // Step 2 — verify companies exist
         Set<Id> validCompanyIds = new Set<Id>();
-        for (Company__c c : [
-            SELECT Id FROM Company__c
+        for (AI_Navigator_Company__c c : [
+            SELECT Id FROM AI_Navigator_Company__c
             WHERE Id IN :companyIdToSignals.keySet()
         ]) {
             validCompanyIds.add(c.Id);
         }
 
         // Step 3 — build Signal__c records
-        List<Signal__c> toInsert = new List<Signal__c>();
+        List<AI_Navigator_Signals__c> toInsert = new List<AI_Navigator_Signals__c>();
 
         for (String companyId : companyIdToSignals.keySet()) {
             if (!validCompanyIds.contains((Id) companyId)) continue;
 
             for (Map<String, Object> s : companyIdToSignals.get(companyId)) {
-                toInsert.add(new Signal__c(
-                    Company__c    = (Id) companyId,
+                toInsert.add(new AI_Navigator_Signals__c(
+                    AI_Navigator_Company__c    = (Id) companyId,
                     Signal_Type__c = (String)  s.get('signalType'),
                     Headline__c   = (String)  s.get('headline'),
                     Impact__c     = (String)  s.get('impact'),

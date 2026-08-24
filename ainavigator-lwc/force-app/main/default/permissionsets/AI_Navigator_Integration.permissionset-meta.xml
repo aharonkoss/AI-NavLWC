@@ -41,47 +41,47 @@
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Company__c — read + edit only (no create/delete) ─────── -->
+    <!-- ── AI_Navigator_Company__c — read + edit only (no create/delete) (FIXED) ── -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Company__c</object>
+        <object>AI_Navigator_Company__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Submission__c — read + edit only ─────────────────────── -->
+    <!-- ── AI_Navigator_Submission__c — read + edit only (FIXED) ─────────────────── -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Submission__c</object>
+        <object>AI_Navigator_Submission__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Signal__c — create + read (Azure writes signals) ─────── -->
+    <!-- ── AI_Navigator_Signals__c — create + read (Azure writes signals) (FIXED) ── -->
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Signal__c</object>
+        <object>AI_Navigator_Signals__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Azure_Request_Log__c — create + read (for logging) ───── -->
+    <!-- ── AI_Navigator_Request_Log__c — create + read (for logging) (FIXED) ───── -->
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>false</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Azure_Request_Log__c</object>
+        <object>AI_Navigator_Request_Log__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 

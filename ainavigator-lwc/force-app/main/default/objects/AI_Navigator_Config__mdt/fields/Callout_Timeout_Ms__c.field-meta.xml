@@ -6,4 +6,5 @@
     <precision>6</precision>
     <scale>0</scale>
     <description>HTTP callout timeout in milliseconds. Salesforce max is 120000 (120s).</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
 </CustomField>

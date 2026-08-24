@@ -2,7 +2,7 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 04-22-2026
+ * @last modified on  : 06-26-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
  * @description   Provides Submission__c data to the submissions LWC.
  *                Step 3 — replaced mock data with real SOQL.
@@ -30,7 +30,7 @@ public with sharing class SubmissionsController {
     @AuraEnabled(cacheable=true)
     public static String getSubmissions() {
         try {
-            List<Submission__c> records = [
+            List<AI_Navigator_Submission__c> records = [
                 SELECT  Id,
                         Submission_Id__c,
                         File_Name__c,
@@ -41,7 +41,7 @@ public with sharing class SubmissionsController {
                         Submitted_At__c,
                         Completed_At__c,
                         Submitted_By__c
-                FROM    Submission__c
+                FROM    AI_Navigator_Submission__c
                 WHERE   Submitted_By__c = :UserInfo.getUserId()
                 ORDER BY Submitted_At__c DESC
                 LIMIT   200
@@ -49,7 +49,7 @@ public with sharing class SubmissionsController {
 
             List<Map<String, Object>> result = new List<Map<String, Object>>();
 
-            for (Submission__c s : records) {
+            for (AI_Navigator_Submission__c s : records) {
                 // Derive source: a file name means it came from the Upload LWC.
                 String source = String.isNotBlank(s.File_Name__c) ? 'Upload' : 'Input';
 

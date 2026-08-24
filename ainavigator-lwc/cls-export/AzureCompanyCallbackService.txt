@@ -63,11 +63,11 @@ global without sharing class AzureCompanyCallbackService {
             }
 
             // ── 4. Fetch company ─────────────────────────────────────────────
-            List<Company__c> companies = [
+            List<AI_Navigator_Company__c> companies = [
                 SELECT Id, Status__c, Prospect_Score__c, Scored_At__c,
                        PDF_Report_URL__c, Research_Completed_At__c,
                        Correlation_Id__c
-                FROM Company__c
+                FROM AI_Navigator_Company__c
                 WHERE Id = :companyId
                 LIMIT 1
             ];
@@ -78,7 +78,7 @@ global without sharing class AzureCompanyCallbackService {
                 return;
             }
 
-            Company__c company = companies[0];
+            AI_Navigator_Company__c company = companies[0];
 
             // ── 5. Apply updates from payload ────────────────────────────────
             String newStatus = (String) body.get('status');
@@ -153,7 +153,7 @@ global without sharing class AzureCompanyCallbackService {
         Integer statusCode
     ) {
         try {
-            insert new Azure_Request_Log__c(
+            insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c      = 'POST',
                 Endpoint_Name__c    = 'AzureCompanyCallbackService',
                 Request_Body__c     = requestBody,

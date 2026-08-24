@@ -5,4 +5,5 @@
     <type>Text</type>
     <length>36</length>
     <description>Tenant UUID sent in every Platform Event and API call to Azure.</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
 </CustomField>

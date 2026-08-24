@@ -5,4 +5,5 @@
     <type>Text</type>
     <length>255</length>
     <description>Base URL of the Azure API Management gateway. e.g. https://ain-dev-dev01-apim.azure-api.net/api</description>
-</CustomField>
+    <fieldManageability>SubscriberControlled</fieldManageability>
+ </CustomField>

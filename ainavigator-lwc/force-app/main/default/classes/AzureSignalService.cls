@@ -10,9 +10,9 @@
 public without sharing class AzureSignalService {
 
     public static void requestSignalAnalysis(String companyId, String recencyFilter) {
-        List<Company__c> companies = [
+        List<AI_Navigator_Company__c> companies = [
             SELECT Id, Name, Website__c, Industry__c, Client_Type__c
-            FROM Company__c
+            FROM AI_Navigator_Company__c
             WHERE Id = :companyId
             LIMIT 1
         ];
@@ -23,7 +23,7 @@ public without sharing class AzureSignalService {
             return;
         }
 
-        Company__c company = companies[0];
+        AI_Navigator_Company__c company = companies[0];
 
         // Default recency filter to month if not provided
         String filter = String.isBlank(recencyFilter) ? 'month' : recencyFilter;

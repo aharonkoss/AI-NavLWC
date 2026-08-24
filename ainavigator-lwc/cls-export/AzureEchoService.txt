@@ -3,7 +3,7 @@
  *
  * Secure Apex REST endpoint for testing Azure → Salesforce connectivity.
  * Accepts any JSON POST body and returns it verbatim.
- * Logs every request (success and failure) to Azure_Request_Log__c.
+ * Logs every request (success and failure) to AI_Navigator_Request_Log__c.
  *
  * Endpoint : /services/apexrest/ainavigator/v1/echo
  * Method   : POST
@@ -156,7 +156,7 @@ global with sharing class AzureEchoService {
     }
 
 
-    // ── Private: write to Azure_Request_Log__c (synchronous DML) ────────────
+    // ── Private: write to AI_Navigator_Request_Log__c (synchronous DML) ────────────
     // ✅ Removed @future — DML now executes in the same transaction as the
     //    REST call, guaranteeing the record is always inserted. Using @future
     //    caused the insert to be silently dropped when the async job failed
@@ -173,7 +173,7 @@ global with sharing class AzureEchoService {
         Integer bodyBytes
     ) {
         try {
-            Azure_Request_Log__c logRecord = new Azure_Request_Log__c(
+            AI_Navigator_Request_Log__c logRecord = new AI_Navigator_Request_Log__c(
                 Request_Timestamp__c  = DateTime.now(),
                 HTTP_Method__c        = httpMethod,
                 Endpoint_Name__c      = ENDPOINT_NAME,

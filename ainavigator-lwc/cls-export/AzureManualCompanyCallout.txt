@@ -1,7 +1,7 @@
 /**
  * AzureManualCompanyCallout
  * Queueable + AllowsCallouts — fires the HTTP POST to Azure after 
- * InputController creates the Company__c record synchronously.
+ * InputController creates the AI_Navigator_Company__c record synchronously.
  *
  * Request body matches Postman exactly:
  * { name, website, city, state, stage, clientType, salesforceId }
@@ -66,7 +66,7 @@ public class AzureManualCompanyCallout implements Queueable, Database.AllowsCall
 
         // ── LOG THE OUTBOUND REQUEST ──────────────────────────────────────────
         try {
-            insert new Azure_Request_Log__c(
+            insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c    = 'POST',
                 Endpoint_Name__c  = 'AzureManualCompanyCallout',
                 Request_Body__c   = requestBody,          // exactly what we sent
@@ -87,14 +87,14 @@ public class AzureManualCompanyCallout implements Queueable, Database.AllowsCall
                 (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
             String azureCompanyId = (String) responseBody.get('companyId');
 
-            update new Company__c(
+            update new AI_Navigator_Company__c(
                 Id                  = recordId,
                 Azure_Company_Id__c = azureCompanyId,
                 Correlation_Id__c   = correlationId,
                 Status__c           = 'processing'
             );
         } else {
-            update new Company__c(
+            update new AI_Navigator_Company__c(
                 Id        = recordId,
                 Status__c = 'failed'
             );

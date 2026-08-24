@@ -27,9 +27,9 @@ public with sharing class CompanyDetailInsightsController {
 
         try {
             // 1. Get the Azure UUID stored on the Company__c record
-            List<Company__c> companies = [
+            List<AI_Navigator_Company__c> companies = [
                 SELECT Id, Azure_Company_Id__c
-                FROM Company__c
+                FROM AI_Navigator_Company__c
                 WHERE Id = :companyId
                 LIMIT 1
             ];
@@ -59,7 +59,7 @@ public with sharing class CompanyDetailInsightsController {
 
             // 3. Log the callout
             try {
-                insert new Azure_Request_Log__c(
+                insert new AI_Navigator_Request_Log__c(
                     HTTP_Method__c      = 'GET',
                     Endpoint_Name__c    = 'CompanyDetailInsightsController.getInsights',
                     Response_Body__c    = body,

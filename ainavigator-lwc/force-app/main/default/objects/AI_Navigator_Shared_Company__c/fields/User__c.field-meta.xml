@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>User__c</fullName>
+    <label>AI Navigator Company User</label>
+    <referenceTo>User</referenceTo>
+    <relationshipName>AI_Navigator_Shared_Companies</relationshipName>
+    <type>Lookup</type>
+</CustomField>

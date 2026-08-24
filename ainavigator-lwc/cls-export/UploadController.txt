@@ -36,18 +36,18 @@ public with sharing class UploadController {
     @AuraEnabled(cacheable=true)
     public static String getPreviousSubmissions() {
         try {
-            List<Submission__c> subs = [
+            List<AI_Navigator_Submission__c> subs = [
                 SELECT Id, Submission_Id__c, File_Name__c, Status__c,
                        Submitted_At__c, Submitted_By__c, Total_Companies__c,
                        Processed_Companies__c, Failed_Companies__c
-                FROM Submission__c
+                FROM AI_Navigator_Submission__c
                 WHERE Submitted_By__c = :UserInfo.getUserId()
                 ORDER BY Submitted_At__c DESC
                 LIMIT 50
             ];
 
             List<Map<String, Object>> result = new List<Map<String, Object>>();
-            for (Submission__c s : subs) {
+            for (AI_Navigator_Submission__c s : subs) {
                 result.add(new Map<String, Object>{
                     'submissionId' => s.Submission_Id__c,
                     'recordId'     => s.Id,
@@ -93,7 +93,7 @@ public with sharing class UploadController {
             Integer fileSize = (Integer)(base64Data.length() * 0.75);
 
             // ── 3. Create Submission__c record ──────────────────────────────
-            Submission__c sub = new Submission__c(
+            AI_Navigator_Submission__c sub = new AI_Navigator_Submission__c(
                 Submission_Id__c = submissionId,
                 File_Name__c     = fileName,
                 Status__c        = 'processing',
@@ -102,11 +102,11 @@ public with sharing class UploadController {
             );
             insert sub;
         // ── 3b. Parse CSV and pre-create Company__c records ─────────────────
-        List<Company__c> companiesToInsert = new List<Company__c>();
+        List<AI_Navigator_Company__c> companiesToInsert = new List<AI_Navigator_Company__c>();
         List<Map<String, String>> parsedRows = parseCsv(base64Data);
 
         for (Map<String, String> row : parsedRows) {
-            companiesToInsert.add(new Company__c(
+            companiesToInsert.add(new AI_Navigator_Company__c(
                 Name             = row.get('Name'),
                 Website__c       = row.get('Website'),
                 City__c          = row.get('City'),
@@ -124,7 +124,7 @@ public with sharing class UploadController {
 
         // ── 3c. Build company list WITH real SF IDs for the payload ──────────
         List<Map<String, Object>> companyList = new List<Map<String, Object>>();
-        for (Company__c c : companiesToInsert) {
+        for (AI_Navigator_Company__c c : companiesToInsert) {
             companyList.add(new Map<String, Object>{
                 'salesforceId' => c.Id,          // ← Azure echoes this back in callbacks
                 'name'         => c.Name,
@@ -225,7 +225,7 @@ public with sharing class UploadController {
                 requestBody = requestBody.substring(0, 32000) + '...[TRUNCATED]';
             }
 
-            insert new Azure_Request_Log__c(
+            insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c      = httpMethod,
                 Endpoint_Name__c    = endpointName,
                 Request_Body__c     = requestBody,
@@ -238,7 +238,7 @@ public with sharing class UploadController {
 
         } catch (Exception logEx) {
             try {
-                insert new Azure_Request_Log__c(
+                insert new AI_Navigator_Request_Log__c(
                     HTTP_Method__c      = httpMethod,
                     Endpoint_Name__c    = endpointName,
                     Status__c           = 'Failed',
@@ -249,7 +249,7 @@ public with sharing class UploadController {
                 );
             } catch (Exception fallbackEx) {
                 // Last resort — only two fields, nothing that can fail
-    insert new Azure_Request_Log__c(
+    insert new AI_Navigator_Request_Log__c(
         Status__c        = 'Failed',
         Error_Message__c = 'writeLog ALL inserts failed.'
                             + ' Final: '    + fallbackEx.getMessage()
@@ -271,7 +271,7 @@ public with sharing class UploadController {
             DateTime startOfDay = DateTime.newInstance(Date.today(), Time.newInstance(0, 0, 0, 0));
             return [
                 SELECT COUNT()
-                FROM Submission__c
+                FROM AI_Navigator_Submission__c
                 WHERE Submitted_By__c = :UserInfo.getUserId()
                 AND   Submitted_At__c >= :startOfDay
             ];

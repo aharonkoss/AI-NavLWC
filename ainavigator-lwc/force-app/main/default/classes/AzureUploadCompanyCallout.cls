@@ -39,7 +39,7 @@ public class AzureUploadCompanyCallout implements Queueable, Database.AllowsCall
 
         // ── LOG THE OUTBOUND REQUEST ─────────────────────────────────────────
         try {
-            insert new Azure_Request_Log__c(
+            insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c      = 'POST',
                 Endpoint_Name__c    = 'AzureUploadCompanyCallout',
                 Response_Body__c    = res.getBody(),
@@ -57,12 +57,12 @@ public class AzureUploadCompanyCallout implements Queueable, Database.AllowsCall
         // ────────────────────────────────────────────────────────────────────
 
         if (res.getStatusCode() == 200 || res.getStatusCode() == 202) {
-            update new Submission__c(
+            update new AI_Navigator_Submission__c(
                 Id        = submissionRecordId,
                 Status__c = 'submitted'
             );
         } else {
-            update new Submission__c(
+            update new AI_Navigator_Submission__c(
                 Id        = submissionRecordId,
                 Status__c = 'failed'
             );

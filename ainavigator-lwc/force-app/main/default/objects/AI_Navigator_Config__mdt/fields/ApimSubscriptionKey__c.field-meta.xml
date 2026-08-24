@@ -3,6 +3,6 @@
     <fullName>ApimSubscriptionKey__c</fullName>
     <label>APIM Subscription Key</label>
     <length>255</length>
-    <fieldManageability>DeveloperControlled</fieldManageability>
+    <fieldManageability>SubscriberControlled</fieldManageability>
     <type>Text</type>
 </CustomField>

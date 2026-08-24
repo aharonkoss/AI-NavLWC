@@ -1,10 +1,41 @@
 /**
  * @description DashboardController — Updated to show ONLY hidden records.
+ *              Uses new custom objects: AI_Navigator_Company__c, 
+ *              AI_Navigator_Request_Log__c, and AI_Navigator_Shared_Company__c.
  * @group AI Navigator - Apex
  */
 public with sharing class DashboardController {
 
-    private static final String NAMED_CRED  = 'callout:AI_Navigator_Azure';
+    // ── CONFIG — loaded once from AI_Navigator_Config__mdt
+    // FIXED: Static initializer queries the local, unmanaged Dev record, falls back to packaged record if empty
+    private static final AI_Navigator_Config__mdt CONFIG;
+    
+    static {
+        List<AI_Navigator_Config__mdt> configs = [
+            SELECT Named_Credential_Name__c, Callout_Timeout_Ms__c
+            FROM   AI_Navigator_Config__mdt
+            WHERE  DeveloperName = 'Dev'
+            AND    NamespacePrefix = null
+            LIMIT  1
+        ];
+        
+        if (configs.isEmpty()) {
+            configs = [
+                SELECT Named_Credential_Name__c, Callout_Timeout_Ms__c
+                FROM   AI_Navigator_Config__mdt
+                WHERE  DeveloperName = 'Dev'
+                LIMIT  1
+            ];
+        }
+        CONFIG = configs.isEmpty() ? null : configs[0];
+    }
+
+    // FIXED: Reverted back to the original simple structure — defaults directly to the namespaced credential name
+    private static final String NAMED_CRED =
+        'callout:' + (CONFIG?.Named_Credential_Name__c != null
+                      ? CONFIG.Named_Credential_Name__c
+                      : 'ainavigator__Azure_APIM_Dev');
+
     private static final Integer TIMEOUT_MS = 30000;
 
     // -------------------------------------------------------------------------
@@ -15,9 +46,9 @@ public with sharing class DashboardController {
         try {
             AggregateResult[] rows = [
                 SELECT Status__c status, COUNT(Id) cnt
-                FROM   Company__c
+                FROM   AI_Navigator_Company__c
                 WHERE  OwnerId = :UserInfo.getUserId()
-                AND    Is_Hidden__c = false // Filter set to TRUE
+                AND    Is_Hidden__c = false
                 GROUP BY Status__c
             ];
 
@@ -51,20 +82,20 @@ public with sharing class DashboardController {
     @AuraEnabled(cacheable=false)
     public static String getCompanies() {
         try {
-            List<Company__c> records = [
+            List<AI_Navigator_Company__c> records = [
                 SELECT Id, Name, City__c, State__c, Website__c,
                        Status__c, Stage__c, Client_Type__c,
                        Azure_Company_Id__c, CreatedDate, Shared_By_Name__c,
-                       (SELECT Id FROM Shared_With_Users__r) 
-                FROM   Company__c
+                       (SELECT Id FROM AI_Navigator_Shared_With_Users__r) 
+                FROM   AI_Navigator_Company__c
                 WHERE  OwnerId = :UserInfo.getUserId()
-                AND    Is_Hidden__c = false // Filter set to TRUE
+                AND    Is_Hidden__c = false
                 ORDER BY CreatedDate DESC
                 LIMIT  500
             ];
 
             List<Map<String, Object>> companies = new List<Map<String, Object>>();
-            for (Company__c c : records) {
+            for (AI_Navigator_Company__c c : records) {
                 companies.add(new Map<String, Object>{
                     'id'             => c.Id,
                     'companyId'      => c.Id,
@@ -78,7 +109,7 @@ public with sharing class DashboardController {
                     'clientType'     => c.Client_Type__c,
                     'createdAt'      => c.CreatedDate,
                     'sharedByName'   => c.Shared_By_Name__c,
-                    'isShared'       => !c.Shared_With_Users__r.isEmpty()
+                    'isShared'       => !c.AI_Navigator_Shared_With_Users__r.isEmpty()
                 });
             }
             return JSON.serialize(companies);
@@ -100,15 +131,15 @@ public with sharing class DashboardController {
     @AuraEnabled
     public static String shareCompanies(List<String> companyIds, String targetUserId) {
         try {
-            List<Company__c> originalRecords = [
+            List<AI_Navigator_Company__c> originalRecords = [
                 SELECT Id, Name, City__c, State__c, Website__c, Status__c, Stage__c, 
                     Client_Type__c, Azure_Company_Id__c 
-                FROM Company__c WHERE Id IN :companyIds
+                FROM AI_Navigator_Company__c WHERE Id IN :companyIds
             ];
             
-            List<Company__c> clones = new List<Company__c>();
-            for (Company__c original : originalRecords) {
-                Company__c clone = original.clone(false, true, false, false);
+            List<AI_Navigator_Company__c> clones = new List<AI_Navigator_Company__c>();
+            for (AI_Navigator_Company__c original : originalRecords) {
+                AI_Navigator_Company__c clone = original.clone(false, true, false, false);
                 clone.OwnerId = targetUserId;
                 clone.Assigned_User__c = targetUserId;
                 clone.Shared_By_Name__c = UserInfo.getName();
@@ -117,9 +148,9 @@ public with sharing class DashboardController {
             
             insert clones;
             
-            List<Shared_Company__c> junctions = new List<Shared_Company__c>();
+            List<AI_Navigator_Shared_Company__c> junctions = new List<AI_Navigator_Shared_Company__c>();
             for (Integer i = 0; i < originalRecords.size(); i++) {
-                junctions.add(new Shared_Company__c(
+                junctions.add(new AI_Navigator_Shared_Company__c(
                     Source_Company__c = originalRecords[i].Id,
                     Target_Company__c = clones[i].Id,
                     User__c = targetUserId
@@ -136,7 +167,7 @@ public with sharing class DashboardController {
     @AuraEnabled(cacheable=false)
     public static List<Map<String, String>> getSharedUsers(String companyId) {
         List<Map<String, String>> sharedUsers = new List<Map<String, String>>();
-        for (Shared_Company__c sc : [SELECT Id, User__r.Name, User__c FROM Shared_Company__c WHERE Source_Company__c = :companyId]) {
+        for (AI_Navigator_Shared_Company__c sc : [SELECT Id, User__r.Name, User__c FROM AI_Navigator_Shared_Company__c WHERE Source_Company__c = :companyId]) {
             sharedUsers.add(new Map<String, String>{ 'id' => sc.Id, 'name' => sc.User__r.Name });
         }
         return sharedUsers;
@@ -145,8 +176,8 @@ public with sharing class DashboardController {
     @AuraEnabled
     public static void unshareCompany(String sharedCompanyRecordId) {
         try {
-            Shared_Company__c sc = [SELECT Id, Source_Company__r.Azure_Company_Id__c, Target_Company__c, User__c 
-                                    FROM Shared_Company__c WHERE Id = :sharedCompanyRecordId LIMIT 1];
+            AI_Navigator_Shared_Company__c sc = [SELECT Id, Source_Company__r.Azure_Company_Id__c, Target_Company__c, User__c 
+                                    FROM AI_Navigator_Shared_Company__c WHERE Id = :sharedCompanyRecordId LIMIT 1];
             
             HttpRequest req = AzureHttpService.buildRequest('POST', '/v1/user/companies/unshare', 'UNSHARE-' + DateTime.now().getTime(), UserInfo.getUserId());
             req.setBody(JSON.serialize(new Map<String, Object>{
@@ -155,7 +186,7 @@ public with sharing class DashboardController {
             }));
             
             new Http().send(req);
-            delete new Company__c(Id = sc.Target_Company__c);
+            delete new AI_Navigator_Company__c(Id = sc.Target_Company__c);
             delete sc;
         } catch (Exception e) {
             throw new AuraHandledException(e.getMessage());
@@ -168,18 +199,18 @@ public with sharing class DashboardController {
             throw new AuraHandledException('companyId is required');
         }
         try {
-            List<Signal__c> rows = [
+            List<AI_Navigator_Signals__c> rows = [
                 SELECT Id, Name, Signal_Type__c, Headline__c,
                        Priority__c, Impact__c, Source__c,
                        Is_New__c, Detected_At__c
-                FROM   Signal__c
-                WHERE  Company__c = :companyId
+                FROM   AI_Navigator_Signals__c
+                WHERE  AI_Navigator_Company__c = :companyId
                 ORDER BY Detected_At__c DESC NULLS LAST
                 LIMIT  200
             ];
 
             List<Map<String, Object>> signals = new List<Map<String, Object>>();
-            for (Signal__c s : rows) {
+            for (AI_Navigator_Signals__c s : rows) {
                 signals.add(new Map<String, Object>{
                     'id'         => s.Id,
                     'signalName' => s.Name,
@@ -207,9 +238,9 @@ public with sharing class DashboardController {
             throw new AuraHandledException('companyId is required');
         }
         try {
-            Company__c company = [
+            AI_Navigator_Company__c company = [
                 SELECT Id, Azure_Company_Id__c, Stage__c, Client_Type__c
-                FROM   Company__c
+                FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
                 AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
@@ -257,22 +288,13 @@ public with sharing class DashboardController {
             throw new AuraHandledException('companyId is required');
         }
         try {
-            Company__c company = [
-                SELECT Id, Azure_Company_Id__c, Is_Hidden__c
-                FROM   Company__c
+            AI_Navigator_Company__c company = [
+                SELECT Id, Is_Hidden__c
+                FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
                 AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
             ];
-
-            if (String.isNotBlank(company.Azure_Company_Id__c)) {
-                HttpResponse res = azureCallout(
-                    'POST',
-                    '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8') + '/hide',
-                    new Map<String, Object>(), TIMEOUT_MS
-                );
-                handleCalloutResponse(res, 'deleteCompany', company.Azure_Company_Id__c);
-            }
 
             company.Is_Hidden__c = true;
             update company;
@@ -294,9 +316,9 @@ public with sharing class DashboardController {
             throw new AuraHandledException('companyId is required');
         }
         try {
-            Company__c company = [
+            AI_Navigator_Company__c company = [
                 SELECT Id, Azure_Company_Id__c, Status__c
-                FROM   Company__c
+                FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
                 AND    OwnerId = :UserInfo.getUserId()
                 LIMIT  1
@@ -335,11 +357,11 @@ public with sharing class DashboardController {
             throw new AuraHandledException('companyId is required');
         }
         try {
-            Company__c c = [
+            AI_Navigator_Company__c c = [
                 SELECT Id, Name, City__c, State__c, Website__c,
                        Status__c, Stage__c, Client_Type__c,
                        Azure_Company_Id__c, CreatedDate
-                FROM   Company__c
+                FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
                 LIMIT  1
             ];
@@ -384,7 +406,50 @@ public with sharing class DashboardController {
     private static void handleCalloutResponse(HttpResponse res, String operation, String azureId) {
         Integer statusCode = res.getStatusCode();
         if (statusCode >= 200 && statusCode < 300) { return; }
-        // ... (remaining error handling remains identical)
+
+        String correlationId = res.getHeader('X-Correlation-Id');
+        String errorMsg;
+
+        if (statusCode == 400) { 
+            errorMsg = operation + ': Validation error (400). Azure Id: ' + azureId; 
+        } else if (statusCode == 401) { 
+            errorMsg = operation + ': Authentication failed (401). Check Named Credential token.'; 
+        } else if (statusCode == 403) { 
+            errorMsg = operation + ': Forbidden (403).'; 
+        } else if (statusCode == 404) { 
+            errorMsg = operation + ': Company not found on Azure (404). Azure Id: ' + azureId; 
+        } else if (statusCode == 409) { 
+            errorMsg = operation + ': Conflict (409). ' + res.getBody(); 
+        } else if (statusCode == 429) { 
+            errorMsg = operation + ': Rate limited (429). Retry-After: ' + res.getHeader('Retry-After'); 
+        } else if (statusCode == 500) { 
+            errorMsg = operation + ': Azure internal error (500). CorrelationId: ' + correlationId; 
+        } else if (statusCode == 502 || statusCode == 503) { 
+            errorMsg = operation + ': Upstream unavailable (' + statusCode + ').'; 
+        } else if (statusCode == 504) { 
+            errorMsg = operation + ': Gateway timeout (504). Verify state before retrying.'; 
+        } else { 
+            errorMsg = operation + ': Unexpected status (' + statusCode + '). CorrelationId: ' + correlationId; 
+        }
+
+        System.debug(LoggingLevel.ERROR, 'DashboardController.' + errorMsg);
+
+        try {
+            insert new AI_Navigator_Request_Log__c(
+                HTTP_Method__c      = operation,
+                Endpoint_Name__c    = 'DashboardController.' + operation,
+                Status__c           = 'Error',
+                HTTP_Status_Code__c = statusCode,
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = errorMsg
+            );
+        } catch (DmlException de) {
+            System.debug(LoggingLevel.WARN, 'DashboardController: failed to write request log: ' + de.getMessage());
+        }
+
+        if (statusCode != 404) {
+            throw new AuraHandledException(errorMsg);
+        }
     }
 
     private static String generateCorrelationId() {

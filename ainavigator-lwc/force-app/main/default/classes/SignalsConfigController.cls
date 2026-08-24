@@ -2,8 +2,9 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 05-16-2026
+ * @last modified on  : 07-10-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+ *                      Updated to use unified request logging object: AI_Navigator_Request_Log__c.
 **/
 public with sharing class SignalsConfigController {
 
@@ -402,7 +403,8 @@ public with sharing class SignalsConfigController {
     ) {
         try {
             Boolean success = res.getStatusCode() >= 200 && res.getStatusCode() < 300;
-            Azure_Request_Log__c logRecord = new Azure_Request_Log__c();
+            // FIXED: Instantiating correct custom object API name
+            AI_Navigator_Request_Log__c logRecord = new AI_Navigator_Request_Log__c();
             logRecord.HTTP_Method__c      = method;
             logRecord.Endpoint_Name__c    = 'SignalsConfigController.' + method;
             logRecord.Request_Body__c     = requestBody;

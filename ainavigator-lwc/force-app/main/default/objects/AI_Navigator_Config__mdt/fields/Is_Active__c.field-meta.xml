@@ -5,4 +5,5 @@
     <type>Checkbox</type>
     <defaultValue>true</defaultValue>
     <description>Master kill switch. When false, all outbound callouts and event publishing are disabled without touching code.</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
 </CustomField>

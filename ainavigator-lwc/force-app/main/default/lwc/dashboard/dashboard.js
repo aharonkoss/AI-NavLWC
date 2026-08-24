@@ -33,6 +33,11 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track currentUnshareCompanyId = '';
     @track currentUnshareCompanyName = '';
     @track sharedWithUsersList = [];
+    
+    // ─── ADD THESE THREE LINES HERE FOR REACTIVITY ───
+    @track isDeleteModalOpen = false;
+    @track companyToDeleteId = '';
+    @track companyToDeleteName = '';
 
     // --- Simulation Tracking ---
     @track simulatingCompanyIds = new Set();
@@ -536,16 +541,83 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     handleDelete(event) {
-        const companyId = event.currentTarget.dataset.companyid;
-        const company = this._companies.find(c => c.companyId === companyId);
-        if (!company) return;
-        this._companies = this._companies.filter(c => c.companyId !== companyId);
-        deleteCompany({ companyId }).catch(error => {
-            console.error(error);
-            this._companies = [...this._companies, company];
-        });
-    }
+        console.log('[Delete Troubleshooting] ---> handleDelete() event triggered!');
+        event.stopPropagation(); // Prevent row click navigation
 
+        // Log the target and currentTarget to ensure we are listening to the correct element
+        console.log('[Delete Troubleshooting] Event Target:', event.target);
+        console.log('[Delete Troubleshooting] Event CurrentTarget:', event.currentTarget);
+
+        const companyId = event.currentTarget ? event.currentTarget.dataset.companyid : null;
+        console.log('[Delete Troubleshooting] Extracted dataset companyId:', companyId);
+
+        // Print a snapshot of active companies currently in the UI list to confirm ID alignment
+        console.log(
+            '[Delete Troubleshooting] Active companies in list:', 
+            JSON.stringify(this._companies.map(c => ({ id: c.companyId, name: c.name })))
+        );
+
+        const company = this._companies.find(c => c.companyId === companyId);
+        console.log('[Delete Troubleshooting] Matching company record found:', JSON.stringify(company));
+
+        if (!company) {
+            console.error(
+                '[Delete Troubleshooting] Aborting operation: No company record matched the extracted ID:', 
+                companyId
+            );
+            return;
+        }
+
+        // Apply state updates to trigger HTML re-render
+        this.companyToDeleteId = companyId;
+        this.companyToDeleteName = company.name;
+        this.isDeleteModalOpen = true;
+
+        console.log(
+            '[Delete Troubleshooting] State successfully updated. Modal is now set to open:',
+            {
+                isDeleteModalOpen: this.isDeleteModalOpen,
+                companyToDeleteId: this.companyToDeleteId,
+                companyToDeleteName: this.companyToDeleteName
+            }
+        );
+    }
+handleConfirmDelete() {
+        console.log('[Delete Troubleshooting] ---> handleConfirmDelete() triggered.');
+        const companyId = this.companyToDeleteId;
+        console.log('[Delete Troubleshooting] Target delete ID from state:', companyId);
+
+        const company = this._companies.find(c => c.companyId === companyId);
+        if (!company) {
+            console.warn('[Delete Troubleshooting] No company record found in state list. Closing modal.');
+            this.handleCloseDeleteModal();
+            return;
+        }
+
+        // Apply optimistic UI delete
+        console.log('[Delete Troubleshooting] Executing optimistic UI delete for:', company.name);
+        this._companies = this._companies.filter(c => c.companyId !== companyId);
+        this.handleCloseDeleteModal();
+
+        deleteCompany({ companyId })
+            .then(() => {
+                console.log('[Delete Troubleshooting] Backend delete action returned SUCCESS.');
+                this.showCustomToast('Company deleted successfully', 'success');
+                this.loadStats();
+            })
+            .catch(error => {
+                console.error('[Delete Troubleshooting] Backend delete action returned FAILURE:', error);
+                this.showCustomToast('Failed to delete company', 'error');
+                // Restore state in case of failure
+                this._companies = [...this._companies, company];
+            });
+    }
+    handleCloseDeleteModal() {
+        console.log('[Delete Troubleshooting] ---> handleCloseDeleteModal() triggered. Resetting states.');
+        this.isDeleteModalOpen = false;
+        this.companyToDeleteId = '';
+        this.companyToDeleteName = '';
+    }
     handleCompanyClick(event) {
         const companyId = event.currentTarget.dataset.companyid; 
         console.log('Row clicked, Company ID:', companyId);

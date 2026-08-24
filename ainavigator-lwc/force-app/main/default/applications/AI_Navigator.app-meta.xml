@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomApplication xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>AI Navigator Lightning Web Application.</description>
+    <formFactors>Large</formFactors>
+    <label>AI Navigator</label>
+    <navType>Standard</navType>
+    <!-- Packaged Tabs: Admin will see both the main LWC tab and the Setup Wizard tab -->
+    <tabs>AI_Navigator</tabs>
+    <tabs>aiNavigatorConfigTab</tabs>
+    <uiType>Lightning</uiType>
+</CustomApplication>

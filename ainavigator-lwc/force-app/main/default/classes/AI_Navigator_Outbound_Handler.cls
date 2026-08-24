@@ -44,7 +44,7 @@ public with sharing class AI_Navigator_Outbound_Handler {
         private void writeLog(HttpResponse res, String corrId) {
             String status  = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed';
             try {
-                insert new Azure_Request_Log__c(
+                insert new AI_Navigator_Request_Log__c(
                     HTTP_Method__c      = 'POST',
                     Endpoint_Name__c    = 'AI_Navigator_Outbound_Handler.UploadCalloutJob',
                     Response_Body__c    = res.getBody(),

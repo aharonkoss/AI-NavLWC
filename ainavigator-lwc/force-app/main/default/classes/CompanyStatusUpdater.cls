@@ -25,11 +25,11 @@ public without sharing class CompanyStatusUpdater {
         Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
         if (corrIdToEvent.isEmpty()) return;
 
-        List<Company__c> toUpdate = new List<Company__c>();
-        for (Company__c company : [
+        List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        for (AI_Navigator_Company__c company : [
             SELECT Id, Status__c, Research_Completed_At__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
-            FROM   Company__c
+            FROM   AI_Navigator_Company__c
             WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
             AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
@@ -57,11 +57,11 @@ public without sharing class CompanyStatusUpdater {
         Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
         if (corrIdToEvent.isEmpty()) return;
 
-        List<Company__c> toUpdate = new List<Company__c>();
-        for (Company__c company : [
+        List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        for (AI_Navigator_Company__c company : [
             SELECT Id, Prospect_Score__c, Scored_At__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
-            FROM   Company__c
+            FROM   AI_Navigator_Company__c
             WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
             AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
@@ -88,11 +88,11 @@ public without sharing class CompanyStatusUpdater {
         Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
         if (corrIdToEvent.isEmpty()) return;
 
-        List<Company__c> toUpdate = new List<Company__c>();
-        for (Company__c company : [
+        List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        for (AI_Navigator_Company__c company : [
             SELECT Id, Status__c, PDF_Report_URL__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
-            FROM   Company__c
+            FROM   AI_Navigator_Company__c
             WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
             AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
@@ -123,11 +123,11 @@ public without sharing class CompanyStatusUpdater {
         Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
         if (corrIdToEvent.isEmpty()) return;
 
-        List<Company__c> toUpdate = new List<Company__c>();
-        for (Company__c company : [
+        List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        for (AI_Navigator_Company__c company : [
             SELECT Id, Status__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
-            FROM   Company__c
+            FROM   AI_Navigator_Company__c
             WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
             AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
@@ -184,7 +184,7 @@ public without sharing class CompanyStatusUpdater {
         }
     }
 
-    private static void updateRecords(List<Company__c> records, String context) {
+    private static void updateRecords(List<AI_Navigator_Company__c> records, String context) {
         if (records.isEmpty()) return;
         try {
             update records;

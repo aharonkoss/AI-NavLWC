@@ -24,6 +24,16 @@
         <apexClass>AI_Navigator_Event_Publisher</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+<!-- ── Packaged Apex Controller Access ── -->
+    <classAccesses>
+        <apexClass>AI_Navigator_SetupController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!-- ── Custom Metadata — read only ──────────────────────────── -->
+    <customMetadataTypeAccesses>
+        <enabled>true</enabled>
+        <name>AI_Navigator_Config__mdt</name>
+    </customMetadataTypeAccesses>
 
     <!-- ── Platform Events — subscribe only ─────────────────────── -->
     <objectPermissions>
@@ -45,64 +55,56 @@
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Company__c — full CRUD ───────────────────────────────── -->
+    <!-- ── AI_Navigator_Company__c — full CRUD ────────────────── -->
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Company__c</object>
+        <object>AI_Navigator_Company__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Submission__c — full CRUD ────────────────────────────── -->
+    <!-- ── AI_Navigator_Submission__c — full CRUD ─────────────── -->
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
         <allowEdit>true</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Submission__c</object>
+        <object>AI_Navigator_Submission__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Signal__c — read only (Azure writes, users read) ─────── -->
+    <!-- ── AI_Navigator_Signals__c — read only ────────────────── -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>false</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Signal__c</object>
+        <object>AI_Navigator_Signals__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
 
-    <!-- ── Azure_Request_Log__c — read only (audit trail) ───────── -->
+    <!-- ── AI_Navigator_Request_Log__c — read only ────────────── -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
         <allowEdit>false</allowEdit>
         <allowRead>true</allowRead>
         <modifyAllRecords>false</modifyAllRecords>
-        <object>Azure_Request_Log__c</object>
+        <object>AI_Navigator_Request_Log__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
-
-    <!-- ── Custom Metadata — read only ──────────────────────────── -->
-    <customMetadataTypeAccesses>
-        <enabled>true</enabled>
-        <name>AI_Navigator_Config__mdt</name>
-    </customMetadataTypeAccesses>
-
     <!-- ── System Permissions ───────────────────────────────────── -->
     <userPermissions>
         <enabled>true</enabled>
         <name>ApiEnabled</name>
     </userPermissions>
-    <!-- ── External Credential Principal Access (Azure APIM callouts) ── -->
-    <externalCredentialPrincipalAccesses>
-        <enabled>true</enabled>
-        <externalCredentialPrincipal>Azure_APIM_Dev-AzureAPIMDev</externalCredentialPrincipal>
-    </externalCredentialPrincipalAccesses>
+    <tabSettings>
+        <tab>AI_Navigator</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
 </PermissionSet>

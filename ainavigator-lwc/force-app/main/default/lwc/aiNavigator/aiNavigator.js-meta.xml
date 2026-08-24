@@ -5,6 +5,7 @@
     <masterLabel>AI Navigator Workspace</masterLabel>
     <description>Enterprise growth tracking intelligence workspace displaying automated target crawling triggers and insights</description>
     <targets>
+        <target>lightning__Tab</target>
         <target>lightning__AppPage</target>
         <target>lightning__RecordPage</target>
         <target>lightning__HomePage</target>

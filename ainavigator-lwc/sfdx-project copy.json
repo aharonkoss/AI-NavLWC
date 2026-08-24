@@ -1,0 +1,27 @@
+{
+  "packageDirectories": [
+    {
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "path": "force-app",
+      "package": "AI_Navigator_LWC_v2",
+      "versionDescription": "",
+      "default": true
+    },
+    {
+      "path": "dev-config",
+      "default": false
+    }
+  ],
+  "namespace": "ainavigator",
+  "sfdcLoginUrl": "https://login.salesforce.com",
+  "sourceApiVersion": "60.0",
+  "packageAliases": {
+    "AI_Navigator_LWC_v2": "0HogK0000003M2PSAU",
+    "AI_Navigator_LWC_v2@0.1.0-1": "04tgK000000EDbhQAG",
+    "AI_Navigator_LWC_v2@0.1.0-2": "04tgK000000EHXFQA4",
+    "AI_Navigator_LWC_v2@0.1.0-3": "04tgK000000EK5JQAW",
+    "AI_Navigator_LWC_v2@0.1.0-4": "04tgK000000EMWvQAO",
+    "AI_Navigator_LWC_v2@0.1.0-5": "04tgK000000EMYXQA4"
+  }
+}

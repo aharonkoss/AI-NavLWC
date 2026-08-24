@@ -3,204 +3,214 @@
     <label>AI Navigator Field Access</label>
     <description>Grants field-level read and write access to all AI Navigator custom object fields. Assign to any user who needs to view or interact with AI Navigator data including System Administrators.</description>
 
-    <!-- Company__c Fields -->
+    <!--AI_Navigator_Company__c Fields -->
     <fieldPermissions>
-        <field>Company__c.Status__c</field>
+        <field>AI_Navigator_Company__c.Status__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Prospect_Score__c</field>
+        <field>AI_Navigator_Company__c.Prospect_Score__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Scored_At__c</field>
+        <field>AI_Navigator_Company__c.Scored_At__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Website__c</field>
+        <field>AI_Navigator_Company__c.Website__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.City__c</field>
+        <field>AI_Navigator_Company__c.City__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.State__c</field>
+        <field>AI_Navigator_Company__c.State__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Industry__c</field>
+        <field>AI_Navigator_Company__c.Industry__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.PDF_Report_URL__c</field>
+        <field>AI_Navigator_Company__c.PDF_Report_URL__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Stage__c</field>
+        <field>AI_Navigator_Company__c.Stage__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Client_Type__c</field>
+        <field>AI_Navigator_Company__c.Client_Type__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Client_Id__c</field>
+        <field>AI_Navigator_Company__c.Client_Id__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Correlation_Id__c</field>
+        <field>AI_Navigator_Company__c.Correlation_Id__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Is_Hidden__c</field>
+        <field>AI_Navigator_Company__c.Is_Hidden__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Company__c.Assigned_User__c</field>
+        <field>AI_Navigator_Company__c.Assigned_User__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
-    <!-- Signal__c Fields -->
+    <!-- AI_Navigator_Signals__c Fields -->
     <fieldPermissions>
-        <field>Signal__c.Signal_Type__c</field>
-        <editable>true</editable>
-        <readable>true</readable>
-    </fieldPermissions>
-    <fieldPermissions>
-        <field>Signal__c.Headline__c</field>
+        <field>AI_Navigator_Signals__c.Signal_Type__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Signal__c.Impact__c</field>
+        <field>AI_Navigator_Signals__c.Headline__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Signal__c.Priority__c</field>
+        <field>AI_Navigator_Signals__c.Impact__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Signal__c.Source__c</field>
+        <field>AI_Navigator_Signals__c.Priority__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Signal__c.Detected_At__c</field>
+        <field>AI_Navigator_Signals__c.Source__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Signal__c.Is_New__c</field>
-        <editable>true</editable>
-        <readable>true</readable>
-    </fieldPermissions>
-    <!-- Submission__c Fields -->
-    <fieldPermissions>
-        <field>Submission__c.Submission_Id__c</field>
+        <field>AI_Navigator_Signals__c.Detected_At__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.File_Name__c</field>
+        <field>AI_Navigator_Signals__c.Is_New__c</field>
+        <editable>true</editable>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- AI_Navigator_Submission__c Fields (FIXED) -->
+    <fieldPermissions>
+        <field>AI_Navigator_Submission__c.Submission_Id__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Blob_Path__c</field>
+        <field>AI_Navigator_Submission__c.File_Name__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Status__c</field>
+        <field>AI_Navigator_Submission__c.Blob_Path__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Total_Companies__c</field>
+        <field>AI_Navigator_Submission__c.Status__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Processed_Companies__c</field>
+        <field>AI_Navigator_Submission__c.Total_Companies__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Failed_Companies__c</field>
+        <field>AI_Navigator_Submission__c.Processed_Companies__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Submitted_At__c</field>
+        <field>AI_Navigator_Submission__c.Failed_Companies__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Submitted_By__c</field>
+        <field>AI_Navigator_Submission__c.Submitted_At__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Submission__c.Completed_At__c</field>
+        <field>AI_Navigator_Submission__c.Submitted_By__c</field>
+        <editable>true</editable>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <field>AI_Navigator_Submission__c.Completed_At__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
 
-    <!-- Azure_Request_Log__c Fields -->
+    <!-- AI_Navigator_Request_Log__c Fields (FIXED) -->
     <fieldPermissions>
-        <field>Azure_Request_Log__c.HTTP_Method__c</field>
+        <field>AI_Navigator_Request_Log__c.HTTP_Method__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.Endpoint_Name__c</field>
+        <field>AI_Navigator_Request_Log__c.Endpoint_Name__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.Request_Body__c</field>
+        <field>AI_Navigator_Request_Log__c.Request_Body__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.Response_Body__c</field>
+        <field>AI_Navigator_Request_Log__c.Response_Body__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.Status__c</field>
+        <field>AI_Navigator_Request_Log__c.Status__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.HTTP_Status_Code__c</field>
+        <field>AI_Navigator_Request_Log__c.HTTP_Status_Code__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.Correlation_ID__c</field>
+        <field>AI_Navigator_Request_Log__c.Correlation_ID__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
-        <field>Azure_Request_Log__c.Error_Message__c</field>
+        <field>AI_Navigator_Request_Log__c.Error_Message__c</field>
         <editable>true</editable>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- Grant access to the standard User External Credential object -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>UserExternalCredential</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
 </PermissionSet>

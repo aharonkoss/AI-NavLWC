@@ -22,9 +22,9 @@ public with sharing class CompanySignalsController {
             }
 
             // ── 2. Look up Azure_Company_Id__c on Company__c ────────────────────
-            List<Company__c> companies = [
+            List<AI_Navigator_Company__c> companies = [
                 SELECT Id, Azure_Company_Id__c,Correlation_Id__c
-                FROM Company__c
+                FROM AI_Navigator_Company__c
                 WHERE Id = :salesforceCompanyId
                 LIMIT 1
             ];
@@ -55,7 +55,7 @@ public with sharing class CompanySignalsController {
 
             // ── 4. Log the callout (Optional, kept for observability) ───────────
             try {
-                insert new Azure_Request_Log__c(
+                insert new AI_Navigator_Request_Log__c(
                     HTTP_Method__c      = 'GET',
                     Endpoint_Name__c    = 'CompanySignalsController.getSignals',
                     Response_Body__c    = res.getBody(),

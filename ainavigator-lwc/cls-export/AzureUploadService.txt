@@ -17,8 +17,8 @@ public without sharing class AzureUploadService {
         String stage,
         String clientType
     ) {
-        // Create the Submission__c tracking record
-        Submission__c sub = new Submission__c(
+        // Create the AI_Navigator_Submission__c tracking record
+        AI_Navigator_Submission__c sub = new AI_Navigator_Submission__c(
             Submission_Id__c   = submissionId,
             File_Name__c       = fileName,
             Blob_Path__c       = blobPath,

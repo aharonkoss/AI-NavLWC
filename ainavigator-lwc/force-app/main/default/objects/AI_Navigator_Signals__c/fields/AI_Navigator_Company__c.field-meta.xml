@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>AI_Navigator_Company__c</fullName>
+    <label>Company</label>
+    <type>MasterDetail</type>
+    <referenceTo>AI_Navigator_Company__c</referenceTo>
+    <relationshipName>AI_Navigator_Signals</relationshipName>
+    <relationshipLabel>AI Navigator Signals</relationshipLabel>
+    <relationshipOrder>0</relationshipOrder>
+    <reparentableMasterDetail>false</reparentableMasterDetail>
+    <writeRequiresMasterRead>false</writeRequiresMasterRead>
+</CustomField>

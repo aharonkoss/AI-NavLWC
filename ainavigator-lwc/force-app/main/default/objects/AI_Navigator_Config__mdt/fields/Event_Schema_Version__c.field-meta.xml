@@ -5,4 +5,5 @@
     <type>Text</type>
     <length>10</length>
     <description>Current active schema version for Platform Event payloads. e.g. v1. Bump when payload schemas change.</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
 </CustomField>

@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 05-28-2026
+  @last modified on  : 06-30-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -195,8 +195,8 @@
 
         <!-- Unshare Management Modal -->
         <template if:true={isUnshareModalOpen}>
-            <div class="modal-backdrop">
-                <div class="modal-content">
+            <div class="modal-backdrop" onclick={handleCloseUnshareModal}>
+                <div class="modal-content" onclick={stopPropagation}>
                     <div class="modal-header">
                         <h3>Manage Access: {currentUnshareCompanyName}</h3>
                     </div>
@@ -213,6 +213,24 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn-modal-close" onclick={handleCloseUnshareModal}>Close</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Confirm Delete Modal -->
+        <template if:true={isDeleteModalOpen}>
+            <div class="modal-backdrop" onclick={handleCloseDeleteModal}>
+                <div class="modal-content" onclick={stopPropagation}>
+                    <div class="modal-header">
+                        <h3>Delete Company</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p class="modal-instruction">Are you sure you want to delete company "<strong>{companyToDeleteName}</strong>"? This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-modal-close" onclick={handleCloseDeleteModal}>Cancel</button>
+                        <button class="btn-confirm-delete" onclick={handleConfirmDelete}>Ok</button>
                     </div>
                 </div>
             </div>

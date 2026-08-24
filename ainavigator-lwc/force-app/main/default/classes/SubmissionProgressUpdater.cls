@@ -12,13 +12,13 @@ public without sharing class SubmissionProgressUpdater {
         Map<String, AI_Navigator_Inbound__e> subIdToEvent = mapBySubmissionId(events);
         if (subIdToEvent.isEmpty()) return;
 
-        List<Submission__c> toUpdate = new List<Submission__c>();
+        List<AI_Navigator_Submission__c> toUpdate = new List<AI_Navigator_Submission__c>();
 
-        for (Submission__c sub : [
+        for (AI_Navigator_Submission__c sub : [
             SELECT Id, Submission_Id__c, Status__c,
                    Total_Companies__c, Processed_Companies__c,
                    Failed_Companies__c, Completed_At__c
-            FROM Submission__c
+            FROM AI_Navigator_Submission__c
             WHERE Submission_Id__c IN :subIdToEvent.keySet()
         ]) {
             AI_Navigator_Inbound__e evt = subIdToEvent.get(sub.Submission_Id__c);
@@ -53,13 +53,13 @@ public without sharing class SubmissionProgressUpdater {
         Map<String, AI_Navigator_Inbound__e> subIdToEvent = mapBySubmissionId(events);
         if (subIdToEvent.isEmpty()) return;
 
-        List<Submission__c> toUpdate = new List<Submission__c>();
+        List<AI_Navigator_Submission__c> toUpdate = new List<AI_Navigator_Submission__c>();
 
-        for (Submission__c sub : [
+        for (AI_Navigator_Submission__c sub : [
             SELECT Id, Submission_Id__c, Status__c,
                    Total_Companies__c, Processed_Companies__c,
                    Failed_Companies__c
-            FROM Submission__c
+            FROM AI_Navigator_Submission__c
             WHERE Submission_Id__c IN :subIdToEvent.keySet()
         ]) {
             AI_Navigator_Inbound__e evt = subIdToEvent.get(sub.Submission_Id__c);
@@ -106,7 +106,7 @@ public without sharing class SubmissionProgressUpdater {
         return Integer.valueOf(String.valueOf(val));
     }
 
-    private static void updateRecords(List<Submission__c> records, String context) {
+    private static void updateRecords(List<AI_Navigator_Submission__c> records, String context) {
         if (records.isEmpty()) return;
         try {
             update records;

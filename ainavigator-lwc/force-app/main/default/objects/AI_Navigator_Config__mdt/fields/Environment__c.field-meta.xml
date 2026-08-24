@@ -5,4 +5,5 @@
     <type>Text</type>
     <length>20</length>
     <description>Deployment environment. Values: dev, staging, prod</description>
+    <fieldManageability>SubscriberControlled</fieldManageability>
 </CustomField>

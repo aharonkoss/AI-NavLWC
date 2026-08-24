@@ -80,10 +80,10 @@ public without sharing class AI_Navigator_Inbound_Handler {
         }
     }
 
-    // ── Private: log every event to Azure_Request_Log__c ────────────────────
+    // ── Private: log every event to AI_Navigator_Request_Log__c ────────────────────
     private static void logEvent(AI_Navigator_Inbound__e evt) {
         try {
-            Azure_Request_Log__c log = new Azure_Request_Log__c(
+            AI_Navigator_Request_Log__c log = new AI_Navigator_Request_Log__c(
                 HTTP_Method__c      = 'PLATFORM_EVENT',
                 Endpoint_Name__c    = 'AI_Navigator_Inbound__e',
                 Request_Body__c     = evt.Payload__c,
