@@ -2,7 +2,7 @@
   @description       : Parent LWC Shell Component
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 05-29-2026
+  @last modified on  : 08-21-2026
 -->
 <template>
     <!-- Parent LWC Shell Component (Clean Orchestrator for Production Org) -->
@@ -60,8 +60,13 @@
                     company-id={selectedCompanyId}
                 ></c-company-detail-research>
             </template>
-
-            <!-- 6. ACTIVE SIGNALS LIST -->
+            <!-- 6. Enhanced Signal Guide -->
+            <template if:true={isEnhancedDigestTab}>
+                <c-enhanced-signal-digest 
+                    company-id={selectedCompanyId}
+                ></c-enhanced-signal-digest>
+            </template>
+            <!-- 7. ACTIVE SIGNALS LIST -->
             <template if:true={isSignalsTab}>
                 <c-company-detail-signals 
                     signals-data={signalsData}
@@ -69,14 +74,14 @@
                 ></c-company-detail-signals>
             </template>
 
-            <!-- 7. INSIGHTS SUMMARY -->
+            <!-- 8. INSIGHTS SUMMARY -->
             <template if:true={isInsightsTab}>
                 <c-company-detail-insights 
                     company-id={selectedCompanyId}
                 ></c-company-detail-insights>
             </template>
 
-            <!-- 8. DISCOVERY CALL PLAN -->
+            <!-- 9. DISCOVERY CALL PLAN -->
             <template if:true={isCallPlanTab}>
                 <c-company-detail-call-plan 
                     company-id={selectedCompanyId}
@@ -84,7 +89,7 @@
                 ></c-company-detail-call-plan>
             </template>
 
-            <!-- 9. COACHING COMPONENT -->
+            <!-- 10. COACHING COMPONENT -->
             <template if:true={isCoachTab}>
                 <c-company-detail-coach 
                     company={company}
@@ -95,7 +100,7 @@
                 ></c-company-detail-coach>
             </template>
 
-            <!-- 10. DISCOVERY SIMULATOR -->
+            <!-- 11. DISCOVERY SIMULATOR -->
             <template if:true={isSimulatorTab}>
                 <c-company-detail-simulator 
                     company={company}

@@ -1,0 +1,372 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 08-25-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <div class="cdr-subtab-content">
+    <!-- Loading -->
+    <template if:true={leadershipIsLoading}>
+      <div class="cdr-loading">
+        <div class="cdr-spinner"></div>
+        <span>Loading leadership data...</span>
+      </div>
+    </template>
+
+    <!-- Error -->
+    <template if:true={leadershipHasError}>
+      <div class="cdr-error">
+        <span class="cdr-error-icon">&#9888;</span>
+        <span>{leadershipError}</span>
+      </div>
+    </template>
+
+    <!-- Data View -->
+    <template if:true={leadershipHasExecutives}>
+      <div class="ldr-outer-card">
+        <!-- Card Header -->
+        <div class="ldr-card-header">
+          <div class="ldr-card-header-left">
+            <span class="ldr-header-icon-wrap" aria-hidden="true">
+              <svg
+                class="ldr-header-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </span>
+            <span class="ldr-header-title">Leadership</span>
+            <span class="ldr-count-badge">{leadershipCountLabel}</span>
+          </div>
+          <div class="ldr-card-header-right">
+            <button
+              class="ldr-refresh-btn"
+              title="Refresh leadership data"
+              onclick={handleLeadershipRefresh}
+            >
+              &#8635;
+            </button>
+          </div>
+        </div>
+
+        <!-- Executive Cards -->
+        <div class="ldr-card-body">
+          <template for:each={leadershipExecutives} for:item="exec">
+            <div key={exec.id} class="ldr-exec-card">
+              <!-- Hero Row -->
+              <div class="ldr-exec-hero">
+                <div class="ldr-avatar-wrap">
+                  <template if:true={exec.hasProfilePic}>
+                    <img
+                      class="ldr-avatar-img"
+                      src={exec.profilePicUrl}
+                      alt={exec.fullName}
+                    />
+                  </template>
+                  <template if:false={exec.hasProfilePic}>
+                    <div class="ldr-avatar">{exec.initials}</div>
+                  </template>
+                </div>
+                <div class="ldr-exec-hero-info">
+                  <div class="ldr-exec-name">{exec.fullName}</div>
+                  <template if:true={exec.designation}>
+                    <div class="ldr-exec-designation">{exec.designation}</div>
+                  </template>
+                  <template if:true={exec.location}>
+                    <div class="ldr-exec-location">
+                      <svg
+                        class="ldr-loc-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"
+                        />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      {exec.location}
+                    </div>
+                  </template>
+                </div>
+                <template if:true={exec.confidenceLabel}>
+                  <span class={exec.confidenceClass}>{exec.confidenceLabel}</span>
+                </template>
+              </div>
+
+              <!-- Contact Grid (Email, Phone, Social) -->
+              <div class="ldr-contact-grid">
+                <!-- Email Section -->
+                <template if:true={exec.hasEmails}>
+                  <div class="ldr-section">
+                    <div class="ldr-section-header">
+                      <svg
+                        class="ldr-section-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                        />
+                        <polyline points="22,6 12,13 2,6" />
+                      </svg>
+                      <span class="ldr-section-title">Email ({exec.emailCount})</span>
+                    </div>
+                    <div class="ldr-section-body">
+                      <template for:each={exec.emails} for:item="em">
+                        <div key={em.email} class="ldr-contact-row">
+                          <span class="ldr-contact-value">{em.email}</span>
+                          <span class="ldr-type-badge">{em.type}</span>
+                          <template if:true={em.grade}>
+                            <span class="ldr-grade-badge">{em.grade}</span>
+                          </template>
+                        </div>
+                      </template>
+                      <template if:true={exec.recommendedEmail}>
+                        <div class="ldr-recommended-note">
+                          Recommended: {exec.recommendedEmail.email}
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Phone Section -->
+                <template if:true={exec.hasPhones}>
+                  <div class="ldr-section">
+                    <div class="ldr-section-header">
+                      <svg
+                        class="ldr-section-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.59 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"
+                        />
+                      </svg>
+                      <span class="ldr-section-title">Phone ({exec.phoneCount})</span>
+                    </div>
+                    <div class="ldr-section-body">
+                      <template for:each={exec.phones} for:item="ph">
+                        <div key={ph.number} class="ldr-contact-row">
+                          <span class="ldr-contact-value">{ph.number}</span>
+                          <template if:true={ph.recommended}>
+                            <span class="ldr-recommended-badge">Recommended</span>
+                          </template>
+                          <template if:true={ph.type}>
+                            <span class="ldr-type-badge">{ph.type}</span>
+                          </template>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Social Profiles -->
+                <template if:true={exec.hasLinkedIn}>
+                  <div class="ldr-section">
+                    <div class="ldr-section-header">
+                      <svg
+                        class="ldr-section-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path
+                          d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"
+                        />
+                        <path
+                          d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"
+                        />
+                      </svg>
+                      <span class="ldr-section-title">Social Profiles</span>
+                    </div>
+                    <div class="ldr-section-body ldr-social-body">
+                      <a
+                        class="ldr-social-btn"
+                        href={exec.linkedInUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <svg
+                          class="ldr-social-icon ldr-social-icon--linkedin"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                        >
+                          <path
+                            d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"
+                          />
+                          <rect x="2" y="9" width="4" height="12" />
+                          <circle cx="4" cy="4" r="2" />
+                        </svg>
+                        LinkedIn Profile
+                      </a>
+                      <template if:true={exec.hasTwitter}>
+                        <a
+                          class="ldr-social-btn"
+                          href={exec.twitterUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <svg
+                            class="ldr-social-icon ldr-social-icon--twitter"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path
+                              d="M23 3a10.9 10.9 0 0 1-3.14 1.53A4.48 4.48 0 0 0 22.43.36a9 9 0 0 1-2.88 1.1A4.52 4.52 0 0 0 16.11 0c-2.5 0-4.52 2-4.52 4.52 0 .35.04.7.11 1.03C7.69 5.4 4.07 3.58 1.64.9a4.5 4.5 0 0 0-.61 2.27c0 1.57.8 2.95 2.01 3.76a4.5 4.5 0 0 1-2.05-.56v.06c0 2.19 1.56 4.02 3.63 4.43a4.5 4.5 0 0 1-2.04.08 4.53 4.53 0 0 0 4.22 3.14A9.06 9.06 0 0 1 0 19.54a12.8 12.8 0 0 0 6.92 2.03c8.3 0 12.85-6.88 12.85-12.85 0-.2 0-.39-.01-.58A9.18 9.18 0 0 0 23 3z"
+                            />
+                          </svg>
+                          Twitter
+                        </a>
+                      </template>
+                    </div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Employment History -->
+              <template if:true={exec.hasJobHistory}>
+                <div class="ldr-section">
+                  <div class="ldr-section-header">
+                    <svg
+                      class="ldr-section-icon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    </svg>
+                    <span class="ldr-section-title">
+                      Employment History ({exec.jobHistoryCount})
+                    </span>
+                  </div>
+                  <div class="ldr-section-body">
+                    <template for:each={exec.jobHistory} for:item="job">
+                      <div key={job.key} class={job.rowClass}>
+                        <div class="ldr-job-title">
+                          {job.title}
+                          <template if:true={job.isCurrent}>
+                            <span class="ldr-current-badge">Current</span>
+                          </template>
+                        </div>
+                        <div class="ldr-job-company">{job.company}</div>
+                        <div class="ldr-job-dates">{job.startDate} - {job.endDate}</div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Education -->
+              <template if:true={exec.hasEducation}>
+                <div class="ldr-section">
+                  <div class="ldr-section-header">
+                    <svg
+                      class="ldr-section-icon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                      <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                    </svg>
+                    <span class="ldr-section-title">
+                      Education ({exec.educationCount})
+                    </span>
+                  </div>
+                  <div class="ldr-section-body">
+                    <template for:each={exec.education} for:item="edu">
+                      <div key={edu.key} class="ldr-edu-row">
+                        <div class="ldr-edu-school">{edu.school}</div>
+                        <template if:true={edu.degree}>
+                          <div class="ldr-edu-degree">{edu.degree}</div>
+                        </template>
+                        <template if:true={edu.major}>
+                          <div class="ldr-edu-major">Field: {edu.major}</div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Skills -->
+              <template if:true={exec.hasSkills}>
+                <div class="ldr-section">
+                  <div class="ldr-section-header">
+                    <svg
+                      class="ldr-section-icon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <circle cx="12" cy="8" r="6" />
+                      <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" />
+                    </svg>
+                    <span class="ldr-section-title">Skills ({exec.skillCount})</span>
+                  </div>
+                  <div class="ldr-section-body ldr-skills-body">
+                    <template for:each={exec.skills} for:item="skill">
+                      <span key={skill} class="ldr-skill-pill">{skill}</span>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+
+    <!-- Empty State -->
+    <template if:true={leadershipShowEmptyState}>
+      <div class="cdr-empty">
+        <span class="cdr-empty-icon">&#128100;</span>
+        <p>No leadership data found for this company.</p>
+      </div>
+    </template>
+  </div>
+</template>

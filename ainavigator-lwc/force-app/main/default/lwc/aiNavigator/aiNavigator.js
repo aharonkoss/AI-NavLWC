@@ -41,7 +41,8 @@ export default class AiNavigator extends LightningElement {
     get isCallPlanTab() { return this.activeTab === 'call-plan'; }
     get isCoachTab() { return this.activeTab === 'coach'; }
     get isSimulatorTab() { return this.activeTab === 'simulator'; }
-
+    get isEnhancedDigestTab() { return this.activeTab === 'enhanced-signals'; }
+    
     get companySelected() {
         return this.selectedCompanyId !== null;
     }

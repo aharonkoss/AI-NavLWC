@@ -1,0 +1,149 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 08-24-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <div class="cdr-tab-body">
+    <!-- Loading Spinner -->
+    <template if:true={isLoading}>
+      <div class="cdr-loading">
+        <div class="cdr-spinner"></div>
+        <span>Loading AI Navigator Report...</span>
+      </div>
+    </template>
+
+    <!-- Error Banner -->
+    <template if:true={error}>
+      <div class="cdr-error">
+        <span class="cdr-error-icon">&#9888;</span>
+        <span>{error}</span>
+      </div>
+    </template>
+
+    <!-- Report Accordion View -->
+    <template if:false={isLoading}>
+      <template if:true={hasSections}>
+        <div class="cdr-report-card">
+          <div class="cdr-report-header">
+            <div class="cdr-report-header-left">
+              <span class="cdr-report-icon">&#128196;</span>
+              <span class="cdr-report-title">AI Navigator Report</span>
+            </div>
+            <div class="cdr-report-header-right">
+              <button class="cdr-link-btn" onclick={handleExpandAll}>Expand All</button>
+              <span class="cdr-divider">|</span>
+              <button class="cdr-link-btn" onclick={handleCollapseAll}>Collapse All</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cdr-accordion">
+          <template for:each={parsedSections} for:item="sec">
+            <div key={sec.id} class="cdr-accordion-item">
+              <button
+                class="cdr-accordion-header"
+                data-id={sec.id}
+                onclick={handleToggle}
+                aria-expanded={sec.ariaExpanded}
+              >
+                <div class="cdr-accordion-header-left">
+                  <span class={sec.chevron}></span>
+                  <span class="cdr-accordion-title">{sec.title}</span>
+                </div>
+                <template if:true={sec.isExpanded}>
+                  <span class="cdr-collapse-hint">Click to collapse</span>
+                </template>
+                <template if:false={sec.isExpanded}>
+                  <span class="cdr-collapse-hint">Click to expand</span>
+                </template>
+              </button>
+
+              <template if:true={sec.isExpanded}>
+                <div class="cdr-accordion-body">
+                  <template for:each={sec.renderedRows} for:item="row">
+                    <template if:true={row.isTable}>
+                      <div key={row.id} class="cdr-table-wrapper">
+                        <table class="cdr-table">
+                          <thead>
+                            <tr>
+                              <template for:each={row.headerCells} for:item="cell">
+                                <th key={cell.text} class="cdr-th">{cell.text}</th>
+                              </template>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <template for:each={row.bodyRows} for:item="brow">
+                              <tr key={brow.id}>
+                                <template for:each={brow.cells} for:item="cell">
+                                  <td key={cell.text} class="cdr-td">{cell.text}</td>
+                                </template>
+                              </tr>
+                            </template>
+                          </tbody>
+                        </table>
+                      </div>
+                    </template>
+
+                    <template if:true={row.isBullet}>
+                      <div key={row.id} class="cdr-bullet-row">
+                        <span class="cdr-bullet-dot">&#8226;</span>
+                        <span class="cdr-bullet-text">{row.html}</span>
+                      </div>
+                    </template>
+
+                    <template if:true={row.isHeading}>
+                      <template if:true={row.isH3}>
+                        <h3 key={row.id} class="cdr-subheading cdr-subheading--h3">{row.text}</h3>
+                      </template>
+                      <template if:false={row.isH3}>
+                        <h4 key={row.id} class="cdr-subheading cdr-subheading--h4">{row.text}</h4>
+                      </template>
+                    </template>
+
+                    <template if:true={row.isText}>
+                      <p key={row.id} class="cdr-para">{row.html}</p>
+                    </template>
+
+                    <template if:true={row.isSpacer}>
+                      <div key={row.id} class="cdr-spacer"></div>
+                    </template>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <!-- Empty State -->
+      <template if:false={hasSections}>
+        <template if:false={error}>
+          <div class="cdr-empty">
+            <span class="cdr-empty-icon">&#128196;</span>
+            <p>Research report not yet available for this company.</p>
+          </div>
+        </template>
+      </template>
+
+      <!-- Sources Panel -->
+      <template if:true={hasSources}>
+        <div class="cdr-sources-panel">
+          <div class="cdr-sources-header">Sources</div>
+          <ul class="cdr-sources-list">
+            <template for:each={sources} for:item="src">
+              <li key={src.idx} class="cdr-source-item">
+                <span class="cdr-source-num">[{src.idx}]</span>
+                <a class="cdr-source-link" href={src.url} target="_blank" rel="noopener noreferrer">
+                  {src.label}
+                </a>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </template>
+    </template>
+  </div>
+</template>

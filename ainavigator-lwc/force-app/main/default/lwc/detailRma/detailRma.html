@@ -1,0 +1,280 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 08-24-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <div class="cdr-subtab-content">
+    <!-- Loading -->
+    <template if:true={isLoading}>
+      <div class="cdr-loading">
+        <div class="cdr-spinner" style="border-top-color: #9333ea;"></div>
+        <span>Loading RMA data...</span>
+      </div>
+    </template>
+
+    <!-- Error -->
+    <template if:true={hasError}>
+      <div class="rma-error-card">
+        <div class="rma-error-text">
+          <p class="rma-error-title">Error loading RMA data</p>
+          <p class="rma-error-msg">{error}</p>
+        </div>
+        <div class="rma-retry-section">
+          <label class="rma-retry-label">Enter NAICS Code to load data:</label>
+          <div class="rma-retry-row">
+            <input
+              type="text"
+              class="rma-naics-input"
+              value={naicsCode}
+              oninput={handleNaicsChange}
+              placeholder="e.g. 485310"
+              maxlength="10"
+            />
+            <button
+              class="rma-reload-btn"
+              onclick={handleReload}
+              disabled={reloadDisabled}
+            >
+              Load Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Empty State -->
+    <template if:true={showEmptyState}>
+      <div class="rma-empty-card">
+        <div class="rma-empty-icon">
+          <svg class="rma-chart-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+        </div>
+        <p class="rma-empty-title">No RMA Data Available</p>
+        <p class="rma-empty-sub">A NAICS code is required to load financial benchmarks.</p>
+        <div class="rma-retry-section">
+          <label class="rma-retry-label">Enter NAICS Code:</label>
+          <div class="rma-retry-row">
+            <input
+              type="text"
+              class="rma-naics-input"
+              value={naicsCode}
+              oninput={handleNaicsChange}
+              placeholder="e.g. 485310"
+              maxlength="10"
+            />
+            <button
+              class="rma-reload-btn"
+              onclick={handleReload}
+              disabled={reloadDisabled}
+            >
+              Load Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Data View -->
+    <template if:true={showData}>
+      <div class="rma-container">
+        <!-- Header Card -->
+        <div class="rma-header-card">
+          <div class="rma-header-top">
+            <div class="rma-header-title-group">
+              <h2 class="rma-title">RMA Financial Analysis</h2>
+              <p class="rma-subtitle">
+                Industry: <strong>{industryName}</strong>
+                <template if:true={naicsDisplay}>
+                  <span> (NAICS: {naicsDisplay})</span>
+                </template>
+              </p>
+            </div>
+            <template if:true={industryId}>
+              <span class="rma-id-badge">ID: {industryId}</span>
+            </template>
+          </div>
+          <div class="rma-naics-row">
+            <label class="rma-naics-label">Change NAICS Code:</label>
+            <input
+              type="text"
+              class="rma-naics-input-small"
+              value={naicsCode}
+              oninput={handleNaicsChange}
+              onkeydown={handleNaicsKeydown}
+              placeholder="Enter NAICS"
+              maxlength="10"
+            />
+            <button
+              class="rma-reload-btn-small"
+              onclick={handleReload}
+              disabled={reloadDisabled}
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+
+        <!-- Financial Benchmarks Table -->
+        <template if:true={hasBenchmarks}>
+          <div class="rma-table-card">
+            <div class="rma-table-header">
+              <h3 class="rma-table-title">
+                Financial Benchmarks ({benchmarksCount} classes)
+              </h3>
+            </div>
+            <div class="rma-table-wrapper">
+              <table class="rma-table">
+                <thead>
+                  <tr>
+                    <th class="rma-th-left">Metric</th>
+                    <template for:each={benchmarks} for:item="bench">
+                      <th key={bench.id} class="rma-th-center">{bench.classLabel}</th>
+                    </template>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="rma-td-left">Current Ratio</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.currentRatio}</td>
+                    </template>
+                  </tr>
+                  <tr class="rma-tr-alt">
+                    <td class="rma-td-left">Quick Ratio</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.quickRatio}</td>
+                    </template>
+                  </tr>
+                  <tr>
+                    <td class="rma-td-left">Gross Margin %</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.grossMargin}</td>
+                    </template>
+                  </tr>
+                  <tr class="rma-tr-alt">
+                    <td class="rma-td-left">Net Margin %</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.netMargin}</td>
+                    </template>
+                  </tr>
+                  <tr>
+                    <td class="rma-td-left">Days Receivable</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.daysRecv}</td>
+                    </template>
+                  </tr>
+                  <tr class="rma-tr-alt">
+                    <td class="rma-td-left">Days Payable</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.daysPayable}</td>
+                    </template>
+                  </tr>
+                  <tr>
+                    <td class="rma-td-left">Days Inventory</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.daysInv}</td>
+                    </template>
+                  </tr>
+                  <tr class="rma-tr-alt">
+                    <td class="rma-td-left">Debt to Equity</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.debtEquity}</td>
+                    </template>
+                  </tr>
+                  <tr>
+                    <td class="rma-td-left">Return on Assets</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.roa}</td>
+                    </template>
+                  </tr>
+                  <tr class="rma-tr-alt">
+                    <td class="rma-td-left">Return on Equity</td>
+                    <template for:each={benchmarks} for:item="bench">
+                      <td key={bench.id} class="rma-td-center">{bench.roe}</td>
+                    </template>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </template>
+
+        <!-- Industry Metrics Grid -->
+        <template if:true={hasIndustryMetrics}>
+          <div class="rma-metrics-box">
+            <div class="rma-metrics-header">
+              <h3 class="rma-metrics-header-title">Industry Metrics</h3>
+            </div>
+            <div class="rma-metrics-grid">
+              <div class="rma-metric-tile">
+                <div class="rma-metric-val">{industryMetrics.employeeCount}</div>
+                <div class="rma-metric-lbl">Employees</div>
+              </div>
+              <div class="rma-metric-tile">
+                <div class="rma-metric-val">{industryMetrics.revenue}</div>
+                <div class="rma-metric-lbl">Industry Revenue</div>
+              </div>
+              <div class="rma-metric-tile">
+                <div class="rma-metric-val">{industryMetrics.size}</div>
+                <div class="rma-metric-lbl">Establishments</div>
+              </div>
+              <div class="rma-metric-tile rma-metric-tile--danger">
+                <div class="rma-metric-val rma-metric-val--danger">
+                  {industryMetrics.failureRate}
+                </div>
+                <div class="rma-metric-lbl rma-metric-lbl--danger">Failure Rate</div>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- Operations & Working Capital -->
+        <template if:true={hasOperations}>
+          <div class="rma-ops-box">
+            <div class="rma-ops-header">
+              <h3 class="rma-ops-header-title">Operations &amp; Working Capital</h3>
+            </div>
+            <div class="rma-ops-body">
+              <!-- Profit Drivers -->
+              <template if:true={hasProfitDrivers}>
+                <div class="rma-ops-section">
+                  <h4 class="rma-ops-subtitle">Profit Drivers ({profitDriversCount})</h4>
+                  <template for:each={profitDrivers} for:item="driver">
+                    <div key={driver.id} class="rma-ops-item">
+                      <div class="rma-ops-item-title">{driver.title}</div>
+                      <div class="rma-ops-item-body">{driver.body}</div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+
+              <!-- Cash Management Challenges -->
+              <template if:true={hasCashMgmtChallenges}>
+                <div class="rma-ops-section">
+                  <h4 class="rma-ops-subtitle">
+                    Cash Management Challenges ({cashMgmtChallengesCount})
+                  </h4>
+                  <template for:each={cashMgmtChallenges} for:item="challenge">
+                    <div key={challenge.id} class="rma-ops-item">
+                      <div class="rma-ops-item-title">{challenge.title}</div>
+                      <div class="rma-ops-item-body">{challenge.body}</div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </template>
+  </div>
+</template>

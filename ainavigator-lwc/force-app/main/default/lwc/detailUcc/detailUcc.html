@@ -1,0 +1,179 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 08-25-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <div class="cdr-subtab-content">
+    <!-- Loading Spinner -->
+    <template if:true={isLoading}>
+      <div class="cdr-loading">
+        <div class="cdr-spinner"></div>
+        <span>Loading UCC lien data...</span>
+      </div>
+    </template>
+
+    <!-- Error Banner -->
+    <template if:true={hasError}>
+      <div class="cdr-error">
+        <span class="cdr-error-icon">&#9888;</span>
+        <span>{error}</span>
+      </div>
+    </template>
+
+    <!-- Filings View -->
+    <template if:true={showFilings}>
+      <div class="ucc-outer-card">
+        <!-- Card Header -->
+        <div class="ucc-card-header">
+          <div class="ucc-card-header-left">
+            <span class="ucc-header-icon-wrap" aria-hidden="true">
+              <svg
+                class="ucc-header-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </span>
+            <span class="ucc-header-title">UCC/Lien Filings</span>
+            <span class="ucc-count-badge">{filingsLabel}</span>
+          </div>
+          <div class="ucc-card-header-right">
+            <span class="ucc-source-label">Source: Business Registry</span>
+          </div>
+        </div>
+
+        <!-- Card Body -->
+        <div class="ucc-card-body">
+          <!-- Summary Row (Count + Business Name) -->
+          <div class="ucc-summary-row">
+            <div class="ucc-stat-cell">
+              <div class="ucc-stat-number">{totalFilings}</div>
+              <div class="ucc-stat-label">Total Lien Filings</div>
+            </div>
+            <template if:true={hasBusinessName}>
+              <div class="ucc-biz-cell">
+                <div class="ucc-biz-name">{businessName}</div>
+                <div class="ucc-biz-verified">Verified Business Name</div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Filing Cards List -->
+          <div class="ucc-filings-list">
+            <template for:each={filings} for:item="filing">
+              <div key={filing.key} class="ucc-filing-card">
+                <!-- Top Row -->
+                <div class="ucc-filing-top">
+                  <div class="ucc-filing-top-left">
+                    <span class="ucc-filing-label">{filing.label}</span>
+                    <template if:true={filing.filingType}>
+                      <span class="ucc-type-badge">{filing.filingType}</span>
+                    </template>
+                    <span class={filing.statusClass}>{filing.statusDisplay}</span>
+                  </div>
+                  <div class="ucc-filing-top-right">
+                    <template if:true={filing.filedDate}>
+                      <div class="ucc-date-filed">Filed: {filing.filedDate}</div>
+                    </template>
+                    <template if:true={filing.expiresDate}>
+                      <div class="ucc-date-expires">Expires: {filing.expiresDate}</div>
+                    </template>
+                  </div>
+                </div>
+
+                <!-- Jurisdiction Plain Text -->
+                <template if:true={filing.jurisdiction}>
+                  <div class="ucc-jurisdiction-text">Jurisdiction: {filing.jurisdiction}</div>
+                </template>
+
+                <!-- Secured Party Block -->
+                <template if:true={filing.hasSecuredParties}>
+                  <div class="ucc-party-block ucc-party-block--secured">
+                    <div class="ucc-party-label ucc-party-label--secured">SECURED PARTY</div>
+                    <template for:each={filing.securedParties} for:item="party">
+                      <div key={party.key} class="ucc-party-row">
+                        <div class="ucc-party-name ucc-party-name--secured">{party.name}</div>
+                        <template if:true={party.hasAddress}>
+                          <div class="ucc-party-address ucc-party-address--secured">{party.address}</div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Debtor Block -->
+                <template if:true={filing.hasDebtors}>
+                  <div class="ucc-party-block ucc-party-block--debtor">
+                    <div class="ucc-party-label ucc-party-label--debtor">DEBTOR</div>
+                    <template for:each={filing.debtors} for:item="debtor">
+                      <div key={debtor.key} class="ucc-party-row">
+                        <div class="ucc-party-name ucc-party-name--debtor">{debtor.name}</div>
+                        <template if:true={debtor.hasAddress}>
+                          <div class="ucc-party-address ucc-party-address--debtor">{debtor.address}</div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+
+                <!-- Collateral Block -->
+                <template if:true={filing.hasCollateral}>
+                  <div class="ucc-party-block ucc-party-block--collateral">
+                    <div class="ucc-party-label ucc-party-label--collateral">COLLATERAL</div>
+                    <div class="ucc-collateral-text">{filing.collateral}</div>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Empty State -->
+    <template if:true={showEmptyState}>
+      <div class="ucc-outer-card">
+        <div class="ucc-card-header">
+          <div class="ucc-card-header-left">
+            <span class="ucc-header-icon-wrap" aria-hidden="true">
+              <svg
+                class="ucc-header-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </span>
+            <span class="ucc-header-title">UCC/Lien Filings</span>
+            <span class="ucc-count-badge">0 filings</span>
+          </div>
+          <div class="ucc-card-header-right">
+            <span class="ucc-source-label">Source: Business Registry</span>
+          </div>
+        </div>
+        <div class="ucc-card-body">
+          <div class="ucc-empty-state">
+            <div class="ucc-empty-icon">&#8212;</div>
+            <p class="ucc-empty-text">No UCC lien filings found for this company.</p>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

@@ -2,19 +2,44 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 05-28-2026
+  @last modified on  : 08-26-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
     <div class="cds-wrapper">
-        <!-- Header -->
+        <!-- Header with Title, Legend & Download PDF Button -->
         <div class="cds-header">
-            <h2 class="cds-title">Signals &amp; Risk Assessment</h2>
-            <div class="cds-legend">
-                <span class="cds-badge cds-p5">P5 Critical</span>
-                <span class="cds-badge cds-p4">P4 High</span>
-                <span class="cds-badge cds-p3">P3 Medium</span>
-                <span class="cds-badge cds-p2">P2 Low</span>
+            <div class="cds-header-left">
+                <h2 class="cds-title">Signals &amp; Risk Assessment</h2>
+                <div class="cds-legend">
+                    <span class="cds-badge cds-p5">P5 Critical</span>
+                    <span class="cds-badge cds-p4">P4 High</span>
+                    <span class="cds-badge cds-p3">P3 Medium</span>
+                    <span class="cds-badge cds-p2">P2 Low</span>
+                </div>
+            </div>
+
+            <!-- Download PDF Button on the Right -->
+            <div class="cds-header-right">
+                <button
+                    class="cds-pdf-btn"
+                    onclick={handleDownloadPdf}
+                    disabled={isDownloadingPdf}
+                    title="Download Signals PDF"
+                >
+                    <template if:true={isDownloadingPdf}>
+                        <span class="cds-btn-spinner"></span>
+                        <span>Downloading...</span>
+                    </template>
+                    <template if:false={isDownloadingPdf}>
+                        <svg class="cds-pdf-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>Download PDF</span>
+                    </template>
+                </button>
             </div>
         </div>
 

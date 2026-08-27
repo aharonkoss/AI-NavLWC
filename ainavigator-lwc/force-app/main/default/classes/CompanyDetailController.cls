@@ -5,7 +5,7 @@
  *               Updated to use unified request logging object: AI_Navigator_Request_Log__c.
  * @author       AI Navigator Platform
  * @group        AI Navigator Integration
- * @last modified on  : 08-17-2026
+ * @last modified on  : 08-26-2026
 **/
 public with sharing class CompanyDetailController {
 
@@ -754,7 +754,62 @@ public with sharing class CompanyDetailController {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // Tab PDF Download URL — GET /v1/user/companies/{azureCompanyId}/{tab}/pdf
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled
+    public static String getTabPdfDownloadUrl(String companyId, String tabName) {
+        Long startTime = System.currentTimeMillis();
+        String correlationId = generateCorrelationId();
+        String endpoint = '';
+        try {
+            String azureId = getAzureCompanyId(companyId);
 
+            // Map the tab name to the API route segment
+            String pathSegment = 'research-library';
+            if (String.isNotBlank(tabName)) {
+                String cleanTab = tabName.toLowerCase();
+                if (cleanTab == 'leadership') {
+                    pathSegment = 'leadership';
+                } else if (cleanTab == 'ucc') {
+                    pathSegment = 'ucc';
+                } else if (cleanTab == 'researchlibrary' || cleanTab == 'research-library') {
+                    pathSegment = 'research-library';
+                } else {
+                    pathSegment = cleanTab;
+                }
+            }
+
+            endpoint = buildEndpoint('user/companies/' + azureId + '/' + pathSegment + '/pdf');
+            HttpResponse res = makeAzureGet(endpoint, companyId, correlationId);
+            
+            Long durationMs = System.currentTimeMillis() - startTime;
+            insert new AI_Navigator_Request_Log__c(
+                Name = ('GET /' + pathSegment + '/pdf (' + durationMs + 'ms)').left(80),
+                HTTP_Method__c = 'GET',
+                Endpoint_Name__c = endpoint.left(255),
+                Request_Timestamp__c = DateTime.now(),
+                Response_Body__c = ('[Duration: ' + durationMs + ' ms]\n' + res.getBody()).left(32768),
+                HTTP_Status_Code__c = res.getStatusCode(),
+                Status__c = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                Correlation_ID__c = correlationId
+            );
+
+            return handleResponse(res, 'getTabPdfDownloadUrl', companyId);
+        } catch (Exception e) {
+            Long durationMs = System.currentTimeMillis() - startTime;
+            insert new AI_Navigator_Request_Log__c(
+                Name = ('GET /tab-pdf Error (' + durationMs + 'ms)').left(80),
+                HTTP_Method__c = 'GET',
+                Endpoint_Name__c = endpoint.left(255),
+                Request_Timestamp__c = DateTime.now(),
+                Error_Message__c = (e.getMessage() + '\n' + e.getStackTraceString()).left(32768),
+                Status__c = 'Failed',
+                Correlation_ID__c = correlationId
+            );
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
     // ─────────────────────────────────────────────────────────────────────────
     // PRIVATE HELPERS
     // ─────────────────────────────────────────────────────────────────────────

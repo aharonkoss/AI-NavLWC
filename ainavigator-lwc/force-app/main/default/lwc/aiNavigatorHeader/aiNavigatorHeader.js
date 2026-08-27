@@ -88,6 +88,13 @@ export default class AiNavigatorHeader extends LightningElement {
                 classes: `nav-tab ${this.activeTab === 'signals' ? 'active-tab' : ''} ${companyStateDisabled ? 'tab-disabled' : ''}`
             },
             { 
+                id: 'enhanced-signals', 
+                label: 'Enhanced Signal Digest', 
+                disabled: companyStateDisabled, 
+                isDivider: false,
+                classes: `nav-tab ${this.activeTab === 'enhanced-signals' ? 'active-tab' : ''} ${companyStateDisabled ? 'tab-disabled' : ''}`
+            },
+            { 
                 id: 'insights', 
                 label: 'Insights', 
                 disabled: companyStateDisabled, 

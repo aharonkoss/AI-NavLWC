@@ -1,0 +1,114 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 08-21-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+    <div class="digest-container slds-p-around_medium">
+        
+        <!-- Executive Summary Section -->
+        <div class="section-card slds-m-bottom_medium">
+            <div class="section-header">
+                <h2>Executive Summary</h2>
+            </div>
+            <div class="section-body">
+                <p>Prisma's recent acquisition and operational consolidation in Phoenix marks a significant pivot toward scale...</p>
+            </div>
+        </div>
+
+        <!-- Recent Signals Table -->
+        <div class="section-card slds-m-bottom_medium">
+            <div class="section-header slds-grid slds-grid_align-spread">
+                <h2>Recent Signals (Last 1 Year)</h2>
+                <span class="sub-text">7 Signals | 1 Recent Pivot</span>
+            </div>
+            <div class="section-body slds-p-around_none">
+                <table class="signals-table">
+                    <tbody>
+                        <template for:each={digestData.recentSignals} for:item="sig">
+                            <tr key={sig.event}>
+                                <td class="date-col">{sig.date}</td>
+                                <td class="event-col">{sig.event}</td>
+                                <td class="link-col">🔗</td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Signal Interpretation Grid -->
+        <div class="section-card border-gold slds-m-bottom_medium">
+            <div class="section-header">
+                <h2 class="text-gold">Signal Interpretation</h2>
+            </div>
+            <div class="section-body">
+                <div class="slds-grid slds-wrap slds-gutters">
+                    <template for:each={digestData.interpretations} for:item="item">
+                        <div key={item.desc} class="slds-col slds-size_1-of-2 slds-m-bottom_small">
+                            <div class="interpretation-box">
+                                <div class="slds-grid slds-grid_align-spread">
+                                    <span class="interp-title">{item.title}</span>
+                                    <span class={item.impactClass}>{item.impact}</span>
+                                </div>
+                                <p class="interp-desc">{item.desc}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analysis Section -->
+        <div class="section-card slds-m-bottom_medium">
+            <div class="section-header"><h2>Analysis</h2></div>
+            <div class="section-body">
+                <!-- Looming Decision -->
+                <div class="decision-box slds-m-bottom_small">
+                    <span class="box-label">LOOMING DECISION BEING FACED</span>
+                    <p>{digestData.loomingDecision}</p>
+                </div>
+
+                <!-- Primary Tradeoff -->
+                <div class="tradeoff-box slds-m-bottom_small">
+                    <span class="box-label">PRIMARY TRADEOFF</span>
+                    <p class="font-bold">{tradeoffMain}</p>
+                    <ul>
+                        <template for:each={tradeoffList} for:item="t">
+                            <li key={t}>{t}</li>
+                        </template>
+                    </ul>
+                </div>
+
+                <!-- Confidence Builder -->
+                <div class="confidence-box slds-m-bottom_small">
+                    <span class="box-label">DECISION CONFIDENCE BUILDER</span>
+                    <p>{digestData.confidenceBuilder}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Opening Statement -->
+        <div class="section-card border-blue slds-m-bottom_medium">
+            <div class="section-header"><h2 class="text-blue">Opening Statement</h2></div>
+            <div class="section-body opening-statement-body">
+                <p class="quote-text">"{digestData.openingStatement}"</p>
+            </div>
+        </div>
+
+        <!-- Banker Action Summary -->
+        <div class="section-card border-green slds-m-bottom_medium">
+            <div class="section-header"><h2 class="text-green">Banker Action Summary</h2></div>
+            <div class="section-body">
+                <template for:each={digestData.bankerActions} for:item="action">
+                    <div key={action.text} class="action-row slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
+                        <span class="action-tag">{action.tag}</span>
+                        <span class="action-text slds-m-left_small">{action.text}</span>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</template>
