@@ -5,7 +5,7 @@
  *               Updated to use unified request logging object: AI_Navigator_Request_Log__c.
  * @author       AI Navigator Platform
  * @group        AI Navigator Integration
- * @last modified on  : 08-26-2026
+ * @last modified on  : 08-27-2026
 **/
 public with sharing class CompanyDetailController {
 
@@ -811,6 +811,197 @@ public with sharing class CompanyDetailController {
         }
     }
     // ─────────────────────────────────────────────────────────────────────────
+    // 1. GET Notes — GET /v1/user/companies/{companyId}/notes
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String getNotes(String companyId) {
+        try {
+            String azureCompanyId = getAzureCompanyId(companyId);
+            String correlationId  = generateCorrelationId();
+            String userId         = UserInfo.getUserId();
+
+            String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/notes';
+
+            HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('GET /notes').left(80),
+                    HTTP_Method__c      = 'GET',
+                    Endpoint_Name__c    = 'CompanyDetailController.getNotes',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() == 200) {
+                return res.getBody();
+            } else if (res.getStatusCode() == 404) {
+                return JSON.serialize(new Map<String, Object>{
+                    'count' => 0,
+                    'notes' => new List<Object>()
+                });
+            } else {
+                throw createHandledException('Fetch notes failed (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2. CREATE Note — POST /v1/user/companies/{companyId}/notes
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String createNote(String companyId, String title, String content, String sourceTab, String sourceSection) {
+        try {
+            String azureCompanyId = getAzureCompanyId(companyId);
+            String correlationId  = generateCorrelationId();
+            String userId         = UserInfo.getUserId();
+
+            String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/notes';
+
+            Map<String, Object> payload = new Map<String, Object>{
+                'title'         => title,
+                'content'       => content,
+                'sourceTab'     => String.isNotBlank(sourceTab) ? sourceTab : 'Discovery Call Plan',
+                'sourceSection' => String.isNotBlank(sourceSection) ? sourceSection : ''
+            };
+
+            HttpRequest req = AzureHttpService.buildRequest('POST', path, correlationId, userId);
+            req.setBody(JSON.serialize(payload));
+            req.setHeader('Content-Type', 'application/json');
+
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('POST /notes').left(80),
+                    HTTP_Method__c      = 'POST',
+                    Endpoint_Name__c    = 'CompanyDetailController.createNote',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return String.isNotBlank(res.getBody()) ? res.getBody() : '{"success":true}';
+            } else {
+                throw createHandledException('Create note failed (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 3. EDIT Note — PUT /v1/user/notes/{noteId}
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String updateNote(String noteId, String title, String content) {
+        if (String.isBlank(noteId)) {
+            throw createHandledException('noteId is required.');
+        }
+
+        try {
+            String correlationId = generateCorrelationId();
+            String userId        = UserInfo.getUserId();
+            String path          = '/v1/user/notes/' + EncodingUtil.urlEncode(noteId.trim(), 'UTF-8');
+
+            Map<String, Object> payload = new Map<String, Object>{
+                'title'   => title,
+                'content' => content
+            };
+
+            HttpRequest req = AzureHttpService.buildRequest('PUT', path, correlationId, userId);
+            req.setBody(JSON.serialize(payload));
+            req.setHeader('Content-Type', 'application/json');
+            req.setHeader('Accept', 'application/json');
+
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('PUT /notes/' + noteId).left(80),
+                    HTTP_Method__c      = 'PUT',
+                    Endpoint_Name__c    = 'CompanyDetailController.updateNote',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId,
+                    Error_Message__c    = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? null : ('HTTP ' + res.getStatusCode() + ': ' + res.getBody()).left(32768)
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return String.isNotBlank(res.getBody()) ? res.getBody() : '{"success":true}';
+            } else {
+                throw createHandledException('Update note failed (HTTP ' + res.getStatusCode() + ' for noteId ' + noteId + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. DELETE Note — DELETE /v1/user/notes/{noteId}
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String deleteNote(String noteId) {
+        if (String.isBlank(noteId)) {
+            throw createHandledException('noteId is required.');
+        }
+
+        try {
+            String correlationId = generateCorrelationId();
+            String userId        = UserInfo.getUserId();
+            String path          = '/v1/user/notes/' + EncodingUtil.urlEncode(noteId.trim(), 'UTF-8');
+
+            HttpRequest req = AzureHttpService.buildRequest('DELETE', path, correlationId, userId);
+            req.setHeader('Accept', 'application/json');
+
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('DELETE /notes/' + noteId).left(80),
+                    HTTP_Method__c      = 'DELETE',
+                    Endpoint_Name__c    = 'CompanyDetailController.deleteNote',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId,
+                    Error_Message__c    = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? null : ('HTTP ' + res.getStatusCode() + ': ' + res.getBody()).left(32768)
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return '{"success":true}';
+            } else {
+                throw createHandledException('Delete note failed (HTTP ' + res.getStatusCode() + ' for noteId ' + noteId + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     // PRIVATE HELPERS
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -921,5 +1112,13 @@ public with sharing class CompanyDetailController {
             Crypto.generateAesKey(128)
         ).substring(0, 8);
         return 'SF-' + String.valueOf(DateTime.now().getTime()) + '-' + hex;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+    // Helper to ensure custom error messages reach LWC without generic masking
+    // ─────────────────────────────────────────────────────────────────────────
+    private static AuraHandledException createHandledException(String message) {
+        AuraHandledException ex = new AuraHandledException(message);
+        ex.setMessage(message);
+        return ex;
     }
 }

@@ -2,14 +2,31 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 04-03-2026
+  @last modified on  : 08-27-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
-    <c-pdf-generator></c-pdf-generator>
     <div class="cdcp-wrapper">
 
-        <!-- Loading -->
+        <!-- ── Header Bar ── -->
+        <div class="cdcp-header-bar">
+            <div>
+                <h1 class="cdcp-header-title">St. Meyer &amp; Hubbard Discovery Call Plan</h1>
+            </div>
+            <div class="cdcp-header-right">
+                <button class="cdcp-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
+                    <template if:true={isDownloading}>
+                        <span class="cdcp-btn-spinner"></span>
+                        <span>Downloading...</span>
+                    </template>
+                    <template if:false={isDownloading}>
+                        <span>Download PDF</span>
+                    </template>
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Loading State ── -->
         <template if:true={isLoading}>
             <div class="cdcp-loading">
                 <span class="cdcp-spinner"></span>
@@ -17,162 +34,375 @@
             </div>
         </template>
 
-                <!-- Loading -->
-        <template if:true={isLoading}>
-            <div class="cdcp-loading">
-                <span class="cdcp-spinner"></span>
-                <span>Loading call plan...</span>
+        <!-- ── Error State ── -->
+        <template if:true={error}>
+            <div class="cdcp-error-box">
+                <span class="cdcp-error-icon">&#9888;</span>
+                <span>{error}</span>
             </div>
         </template>
 
         <template if:false={isLoading}>
 
-            <!-- Header Bar -->
-            <div class="cdcp-header-bar">
-                <div>
-                    <h2 class="cdcp-header-title">St. Meyer Hubbard Discovery Call Plan</h2>
-                    <p class="cdcp-header-sub">Consultative discovery framework — understand before prescribing</p>
+            <!-- 1. Call Objective Card (Soft Indigo/Blue tint) -->
+            <div class="cdcp-card cdcp-card--objective">
+                <div class="cdcp-card-header">
+                    <h3 class="cdcp-card-label cdcp-label--objective">Call Objective</h3>
+                    <template if:true={isObjectiveInNotes}>
+                        <div class="cdcp-check-box" title="Added to My Notes">
+                            <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </template>
+                    <template if:false={isObjectiveInNotes}>
+                        <button class="cdcp-add-btn" onclick={handleAddObjectiveToNotes} title="Add to My Notes">+</button>
+                    </template>
                 </div>
-                <div class="cdcp-header-right">
-                    <button class="cdcp-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
-                        <template if:true={isDownloading}>Generating...</template>
-                        <template if:false={isDownloading}>Download PDF</template>
-                    </button>
+                <p class="cdcp-card-body cdcp-body--objective">{callPlan.callObjective}</p>
+            </div>
+
+            <!-- 2. Pre-Call Preparation Card (Clean White) -->
+            <div class="cdcp-card cdcp-card--prep">
+                <div class="cdcp-card-header">
+                    <h3 class="cdcp-card-label cdcp-label--dark">Pre-Call Preparation</h3>
+                    <template if:true={isPrepInNotes}>
+                        <div class="cdcp-check-box" title="Added to My Notes">
+                            <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </template>
+                    <template if:false={isPrepInNotes}>
+                        <button class="cdcp-add-btn" onclick={handleAddPrepToNotes} title="Add to My Notes">+</button>
+                    </template>
                 </div>
+                <ul class="cdcp-bullet-list">
+                    <template for:each={callPlan.preCallPreparation} for:item="item">
+                        <li key={item} class="cdcp-bullet-item">
+                            <span class="cdcp-dash">-</span>
+                            <span>{item}</span>
+                        </li>
+                    </template>
+                </ul>
             </div>
 
-            <!-- Call Objective -->
-            <div class="cdcp-card cdcp-objective">
-                <h3 class="cdcp-card-label">Call Objective</h3>
-                <p class="cdcp-card-body">{callPlan.callObjective}</p>
+            <!-- 3. Opening Statement Card (Soft Amber/Yellow tint) -->
+            <div class="cdcp-card cdcp-card--opening">
+                <div class="cdcp-card-header">
+                    <h3 class="cdcp-card-label cdcp-label--opening">Opening Statement</h3>
+                    <template if:true={isOpeningInNotes}>
+                        <div class="cdcp-check-box" title="Added to My Notes">
+                            <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </template>
+                    <template if:false={isOpeningInNotes}>
+                        <button class="cdcp-add-btn" onclick={handleAddOpeningToNotes} title="Add to My Notes">+</button>
+                    </template>
+                </div>
+                <p class="cdcp-card-body cdcp-body--opening cdcp-italic">{callPlan.openingStatement}</p>
             </div>
 
-            <!-- Opening Statement -->
-            <div class="cdcp-card cdcp-opening">
-                <h3 class="cdcp-card-label">Opening Statement</h3>
-                <p class="cdcp-card-body cdcp-italic">{callPlan.openingStatement}</p>
-            </div>
-
-            <!-- Pre-Call Prep + Key Talking Points -->
-            <div class="cdcp-two-col">
+            <!-- 4. Key Talking Points (Only if present) -->
+            <template if:true={hasTalkingPoints}>
                 <div class="cdcp-card">
-                    <h3 class="cdcp-card-label">Pre-Call Preparation</h3>
-                    <ul class="cdcp-bullet-list">
-                        <template for:each={callPlan.preCallPreparation} for:item="item">
-                            <li key={item} class="cdcp-bullet-item">
-                                <span class="cdcp-bullet-dot">·</span>{item}
-                            </li>
+                    <div class="cdcp-card-header">
+                        <h3 class="cdcp-card-label cdcp-label--dark">Key Talking Points</h3>
+                        <template if:true={isTalkingPointsInNotes}>
+                            <div class="cdcp-check-box" title="Added to My Notes">
+                                <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
                         </template>
-                    </ul>
-                </div>
-                <div class="cdcp-card cdcp-talking">
-                    <h3 class="cdcp-card-label">Key Talking Points</h3>
+                        <template if:false={isTalkingPointsInNotes}>
+                            <button class="cdcp-add-btn" onclick={handleAddTalkingPointsToNotes} title="Add to My Notes">+</button>
+                        </template>
+                    </div>
                     <ul class="cdcp-bullet-list">
                         <template for:each={callPlan.keyTalkingPoints} for:item="point">
                             <li key={point} class="cdcp-bullet-item">
-                                <span class="cdcp-bullet-dot">·</span>{point}
+                                <span class="cdcp-dash">-</span>
+                                <span>{point}</span>
                             </li>
                         </template>
                     </ul>
                 </div>
+            </template>
+
+            <!-- 5. Stepper Nav & Discovery Framework -->
+            <template if:true={hasSteps}>
+                <div class="cdcp-framework-container">
+                    <div class="cdcp-stepper-nav">
+                        <template for:each={steps} for:item="step">
+                            <button
+                                key={step.index}
+                                class={step.navClass}
+                                data-index={step.index}
+                                onclick={handleStepClick}
+                            >
+                                {step.shortLabel}
+                            </button>
+                        </template>
+                    </div>
+
+                    <!-- Active Step Content -->
+                    <div class="cdcp-step-card">
+                        <div class="cdcp-step-header">
+                            <div>
+                                <h3 class="cdcp-step-title">{activeStep.step}</h3>
+                                <p class="cdcp-step-desc">{activeStep.description}</p>
+                            </div>
+                            <template if:true={isActiveStepInNotes}>
+                                <div class="cdcp-check-box" title="Added to My Notes">
+                                    <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </template>
+                            <template if:false={isActiveStepInNotes}>
+                                <button class="cdcp-add-btn" onclick={handleAddActiveStepToNotes} title="Add Step to My Notes">+</button>
+                            </template>
+                        </div>
+
+                        <!-- 3-Col Grid -->
+                        <div class="cdcp-step-grid">
+                            <!-- St. Meyer Knowledge -->
+                            <div class="cdcp-knowledge-card">
+                                <h4 class="cdcp-col-title">{activeStep.stMeyerKnowledge.title}</h4>
+                                <ul class="cdcp-bullet-list">
+                                    <template for:each={activeStep.stMeyerKnowledge.content} for:item="item">
+                                        <li key={item} class="cdcp-bullet-item cdcp-knowledge-item">
+                                            <span class="cdcp-dash">·</span>
+                                            <span>{item}</span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+
+                            <!-- Company Info -->
+                            <div class="cdcp-info-card">
+                                <h4 class="cdcp-col-title">{activeStep.companyInfo.title}</h4>
+                                <ul class="cdcp-bullet-list">
+                                    <template for:each={activeStep.companyInfo.content} for:item="item">
+                                        <li key={item} class="cdcp-info-item">
+                                            <span class="cdcp-info-dot">→</span>
+                                            <span>{item}</span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+
+                            <!-- Discovery Questions -->
+                            <div class="cdcp-questions-card">
+                                <h4 class="cdcp-col-title">Discovery Questions</h4>
+                                <ol class="cdcp-q-list">
+                                    <template for:each={activeStep.questions} for:item="q">
+                                        <li key={q.key} class="cdcp-q-item">
+                                            <span class="cdcp-q-num">{q.num}</span>
+                                            <span class="cdcp-q-text">{q.text}</span>
+                                        </li>
+                                    </template>
+                                </ol>
+                            </div>
+                        </div>
+
+                        <!-- Step Footer Nav -->
+                        <div class="cdcp-step-footer">
+                            <button class="cdcp-nav-btn" disabled={isPrevDisabled} onclick={handlePrev}>← Previous</button>
+                            <div class="cdcp-step-dots">
+                                <template for:each={steps} for:item="dot">
+                                    <span key={dot.index} class={dot.dotClass}></span>
+                                </template>
+                            </div>
+                            <button class="cdcp-nav-btn cdcp-nav-next" disabled={isNextDisabled} onclick={handleNext}>Next →</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- 6. Goals & Next Steps -->
+            <template if:true={callPlan.nextStepsProposal}>
+                <div class="cdcp-card">
+                    <div class="cdcp-card-header">
+                        <h3 class="cdcp-card-label cdcp-label--dark">Proposed Next Steps</h3>
+                    </div>
+                    <p class="cdcp-card-body">{callPlan.nextStepsProposal}</p>
+                </div>
+            </template>
+
+        </template>
+
+        <!-- ── Floating Circular Action Button (FAB) Bottom Right ── -->
+        <div class="cdcp-fab-container">
+            <button
+                class="cdcp-fab"
+                onclick={handleToggleNotesDrawer}
+                title="Open My Notes"
+            >
+                <svg class="cdcp-fab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <template if:true={hasNotes}>
+                    <span class="cdcp-fab-badge">{notesCount}</span>
+                </template>
+            </button>
+        </div>
+
+        <!-- ── Slide-Out "My Notes" Drawer ── -->
+        <div class={drawerClass}>
+            <!-- Drawer Header (Blue Banner) -->
+            <div class="cdcp-drawer-header">
+                <div class="cdcp-drawer-header-left">
+                    <svg class="cdcp-drawer-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                    <span class="cdcp-drawer-title">My Notes</span>
+                    <span class="cdcp-drawer-count">{notesCount}</span>
+                </div>
+                <div class="cdcp-drawer-header-right">
+                    <span class="cdcp-width-tag">480px</span>
+                    <button class="cdcp-icon-btn" onclick={handlePrintNotes} title="Print Notes">
+                        <svg class="cdcp-top-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                            <rect x="6" y="14" width="12" height="8"></rect>
+                        </svg>
+                    </button>
+                    <button class="cdcp-icon-btn" onclick={handleCloseNotesDrawer} title="Close">
+                        <svg class="cdcp-top-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
 
-            <!-- Stepper Nav -->
-            <div class="cdcp-stepper-nav">
-                <template for:each={steps} for:item="step">
-                    <button key={step.index}
-                        class={step.navClass}
-                        data-index={step.index}
-                        onclick={handleStepClick}>
-                        {step.shortLabel}
+            <!-- Drawer Body -->
+            <div class="cdcp-drawer-body">
+                <div class="cdcp-drawer-company-label">
+                    <strong>Company:</strong> {companyDisplayName}
+                </div>
+
+                <!-- Add New Note Dashed Button -->
+                <template if:false={isEditingNote}>
+                    <button class="cdcp-dashed-add-btn" onclick={handleOpenNewNoteForm}>
+                        <span class="cdcp-plus-glyph">+</span> Add New Note
                     </button>
+                </template>
+
+                <!-- Note Composer Form -->
+                <template if:true={isEditingNote}>
+                    <div class="cdcp-composer-card">
+                        <input
+                            type="text"
+                            class="cdcp-composer-title-input"
+                            placeholder="Note title (optional)"
+                            value={currentNoteTitle}
+                            oninput={handleNoteTitleChange}
+                        />
+                        <textarea
+                            class="cdcp-composer-textarea"
+                            placeholder="Write your notes here..."
+                            rows="4"
+                            oninput={handleNoteContentChange}
+                        >{currentNoteContent}</textarea>
+
+                        <!-- Formatting Toolbar & Actions -->
+                        <div class="cdcp-composer-toolbar">
+                            <div class="cdcp-toolbar-tools">
+                                <button class="cdcp-tool-btn" onclick={handleFormatBold} title="Bold"><strong>B</strong></button>
+                                <button class="cdcp-tool-btn" onclick={handleFormatItalic} title="Italic"><em>/</em></button>
+                                <button class="cdcp-tool-btn" onclick={handleFormatBullet} title="Bullet List">&#8801;</button>
+                            </div>
+                            <div class="cdcp-composer-actions">
+                                <button class="cdcp-btn-cancel" onclick={handleCancelNoteEdit}>Cancel</button>
+                                <button class="cdcp-btn-save" onclick={handleSaveNote} disabled={isSavingNote}>
+                                    <template if:true={isSavingNote}>Saving...</template>
+                                    <template if:false={isSavingNote}>Save Note</template>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Notes List Loading Spinner -->
+                <template if:true={isLoadingNotes}>
+                    <div class="cdcp-notes-loading">
+                        <div class="cdcp-spinner"></div>
+                        <span>Loading notes...</span>
+                    </div>
+                </template>
+
+                <!-- Notes List -->
+                <template if:false={isLoadingNotes}>
+                    <div class="cdcp-notes-list">
+                        <template for:each={filteredNotesList} for:item="note">
+                            <div key={note.id} class="cdcp-note-card">
+                                <!-- Accordion Header -->
+                                <div class="cdcp-note-card-header" data-id={note.id} onclick={handleToggleNoteExpand}>
+                                    <div class="cdcp-note-header-left">
+                                        <span class={note.chevronClass}>&#8250;</span>
+                                        <span class="cdcp-note-item-title">{note.title}</span>
+                                    </div>
+                                    <span class="cdcp-note-timestamp">{note.timestamp}</span>
+                                </div>
+
+                                <!-- Expanded Content -->
+                                <template if:true={note.isExpanded}>
+                                    <div class="cdcp-note-card-expanded">
+                                        <template if:true={note.isUserCreated}>
+                                            <div class="cdcp-badge-row">
+                                                <span class="cdcp-user-badge">User Created</span>
+                                            </div>
+                                        </template>
+                                        
+                                        <div class="cdcp-note-text-container">
+                                            <p class="cdcp-note-body-text">{note.content}</p>
+                                        </div>
+
+                                        <div class="cdcp-note-actions-row">
+                                            <button class="cdcp-action-icon-btn" data-id={note.id} onclick={handleEditNote} title="Edit Note">
+                                                <svg class="cdcp-action-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                </svg>
+                                            </button>
+                                            <button class="cdcp-action-icon-btn cdcp-delete-btn" data-id={note.id} onclick={handleDeleteNote} title="Delete Note">
+                                                <svg class="cdcp-action-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template if:false={hasNotes}>
+                            <div class="cdcp-notes-empty">
+                                No notes saved for this call plan yet. Click "+ Add New Note" or the "+" on any section above.
+                            </div>
+                        </template>
+                    </div>
                 </template>
             </div>
 
-            <!-- Active Step Content -->
-            <div class="cdcp-step-card">
-
-                <!-- Step Header -->
-                <div class="cdcp-step-header">
-                    <h3 class="cdcp-step-title">{activeStep.step}</h3>
-                    <p class="cdcp-step-desc">{activeStep.description}</p>
-                </div>
-
-                <!-- Three columns: St. Meyer | Company Info | Questions -->
-                <div class="cdcp-step-grid">
-
-                    <!-- St. Meyer Knowledge -->
-                    <div class="cdcp-knowledge-card">
-                        <h4 class="cdcp-col-title">{activeStep.stMeyerKnowledge.title}</h4>
-                        <ul class="cdcp-bullet-list">
-                            <template for:each={activeStep.stMeyerKnowledge.content} for:item="item">
-                                <li key={item} class="cdcp-bullet-item cdcp-knowledge-item">
-                                    <span class="cdcp-bullet-dot cdcp-amber-dot">·</span>{item}
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-
-                    <!-- Company Info -->
-                    <div class="cdcp-info-card">
-                        <h4 class="cdcp-col-title">{activeStep.companyInfo.title}</h4>
-                        <ul class="cdcp-bullet-list">
-                            <template for:each={activeStep.companyInfo.content} for:item="item">
-                                <li key={item} class="cdcp-info-item">
-                                    <span class="cdcp-info-dot">→</span>{item}
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-
-                    <!-- Discovery Questions -->
-                    <div class="cdcp-questions-card">
-                        <h4 class="cdcp-col-title">Discovery Questions</h4>
-                        <ol class="cdcp-q-list">
-                            <template for:each={activeStep.questions} for:item="q">
-                                <li key={q.key} class="cdcp-q-item">
-                                    <span class="cdcp-q-num">{q.num}</span>
-                                    <span class="cdcp-q-text">{q.text}</span>
-                                </li>
-                            </template>
-                        </ol>
-                    </div>
-
-                </div>
-
-                <!-- Step Navigator -->
-                <div class="cdcp-step-footer">
-                    <button class="cdcp-nav-btn" disabled={isPrevDisabled} onclick={handlePrev}>← Previous</button>
-                    <div class="cdcp-step-dots">
-                        <template for:each={steps} for:item="dot">
-                            <span key={dot.index} class={dot.dotClass}></span>
-                        </template>
-                    </div>
-                    <button class="cdcp-nav-btn cdcp-nav-next" disabled={isNextDisabled} onclick={handleNext}>Next →</button>
-                </div>
+            <!-- Drawer Footer -->
+            <div class="cdcp-drawer-footer">
+                <span>Drag left edge to resize | Notes saved per company</span>
             </div>
+        </div>
 
-            <!-- Max / Min Call Goals -->
-            <div class="cdcp-card cdcp-goals">
-                <h3 class="cdcp-card-label">Maximum &amp; Minimum Call Goals</h3>
-                <div class="cdcp-goals-row">
-                    <div class="cdcp-goal-box cdcp-goal-max">
-                        <span class="cdcp-goal-label">Maximum</span>
-                        <span class="cdcp-goal-text">Obtain 3-year financials and schedule follow-up with CEO + CFO together</span>
-                    </div>
-                    <div class="cdcp-goal-box cdcp-goal-min">
-                        <span class="cdcp-goal-label">Minimum</span>
-                        <span class="cdcp-goal-text">Schedule a follow-up call with a specific date confirmed on the calendar</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Next Steps Proposal -->
-            <div class="cdcp-card cdcp-nextsteps">
-                <h3 class="cdcp-card-label">Proposed Next Steps</h3>
-                <p class="cdcp-card-body">{callPlan.nextStepsProposal}</p>
-            </div>
-
+        <!-- Backdrop Overlay -->
+        <template if:true={isNotesDrawerOpen}>
+            <div class="cdcp-backdrop" onclick={handleCloseNotesDrawer}></div>
         </template>
+
     </div>
 </template>

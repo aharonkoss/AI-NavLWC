@@ -1,26 +1,52 @@
 /**
  * @description Controller for the companyDetailInsights LWC.
- *              Calls GET /v1/user/companies/{azureCompanyId}/insights
- *              and GET /v1/user/companies/{azureCompanyId}/insights/pdf.
+ *              Handles Insights, Insights PDF download, and Notes CRUD operations.
  * @group       AI Navigator - Apex
- * @last-modified 2026-08-26
+ * @last-modified 2026-08-27
  */
 public with sharing class CompanyDetailInsightsController {
 
-    /**
-     * @description Fetches AI-generated insights for a company.
-     * @param  companyId  Salesforce Company__c.Id
-     * @return JSON string of insights payload
-     */
+    private static AuraHandledException createHandledException(String message) {
+        AuraHandledException ex = new AuraHandledException(message);
+        ex.setMessage(message); // Required for LWC to display the actual message instead of "Script-thrown exception"
+        return ex;
+    }
+
+    private static AI_Navigator_Company__c getCompanyRecord(String companyId) {
+        if (String.isBlank(companyId)) {
+            throw createHandledException('companyId is required.');
+        }
+
+        List<AI_Navigator_Company__c> companies = [
+            SELECT Id, Azure_Company_Id__c, Correlation_Id__c, Name
+            FROM AI_Navigator_Company__c
+            WHERE Id = :companyId
+            LIMIT 1
+        ];
+
+        if (companies.isEmpty()) {
+            throw createHandledException('Company record not found: ' + companyId);
+        }
+
+        if (String.isBlank(companies[0].Azure_Company_Id__c)) {
+            throw createHandledException('Azure Company ID is missing for this company.');
+        }
+
+        return companies[0];
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 1. GET Insights
+    // ─────────────────────────────────────────────────────────────────────────
     @AuraEnabled
     public static String getInsights(String companyId) {
         if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required.');
+            throw createHandledException('companyId is required.');
         }
 
         try {
             List<AI_Navigator_Company__c> companies = [
-                SELECT Id, Azure_Company_Id__c, Name
+                SELECT Id, Azure_Company_Id__c, Correlation_Id__c, Name
                 FROM AI_Navigator_Company__c
                 WHERE Id = :companyId
                 LIMIT 1
@@ -31,9 +57,9 @@ public with sharing class CompanyDetailInsightsController {
             }
 
             String azureCompanyId = companies[0].Azure_Company_Id__c;
-            String correlationId  = AiNavigatorEventService.generateCorrelationId();
+            String correlationId  = companies[0].Correlation_Id__c;
             String userId         = UserInfo.getUserId();
-            String path           = 'v1/user/companies/' + azureCompanyId + '/insights';
+            String path           = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/insights';
 
             HttpRequest req  = AzureHttpService.buildRequest('GET', path, correlationId, userId);
             HttpResponse res = new Http().send(req);
@@ -68,80 +94,244 @@ public with sharing class CompanyDetailInsightsController {
         }
     }
 
-    /**
-     * @description Fetches the Insights PDF download URL from Azure.
-     *              GET /v1/user/companies/{azureCompanyId}/insights/pdf
-     * @param  companyId  Salesforce Company__c.Id
-     * @return JSON string containing downloadUrl, fileName, and expiresAt
-     */
-    @AuraEnabled
+    // ─────────────────────────────────────────────────────────────────────────
+    // 2. GET Insights PDF Download URL
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
     public static String getInsightsPdfDownloadUrl(String companyId) {
-        if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required.');
-        }
-
-        Long startTime = System.currentTimeMillis();
-        String correlationId = AiNavigatorEventService.generateCorrelationId();
-        String path = '';
-
         try {
-            List<AI_Navigator_Company__c> companies = [
-                SELECT Id, Azure_Company_Id__c
-                FROM AI_Navigator_Company__c
-                WHERE Id = :companyId
-                LIMIT 1
-            ];
+            AI_Navigator_Company__c comp = getCompanyRecord(companyId);
+            String azureCompanyId = comp.Azure_Company_Id__c;
+            String correlationId  = comp.Correlation_Id__c;
+            String userId         = UserInfo.getUserId();
+            
+            String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/insights/pdf';
 
-            if (companies.isEmpty()) {
-                throw new AuraHandledException('Company not found: ' + companyId);
-            }
-
-            String azureCompanyId = companies[0].Azure_Company_Id__c;
-            if (String.isBlank(azureCompanyId)) {
-                throw new AuraHandledException('Company Azure ID is missing.');
-            }
-
-            path = '/v1/user/companies/' + azureCompanyId + '/insights/pdf';
-            HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, UserInfo.getUserId());
+            HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
             HttpResponse res = new Http().send(req);
 
-            Long durationMs = System.currentTimeMillis() - startTime;
             try {
                 insert new AI_Navigator_Request_Log__c(
-                    Name                = ('GET /insights/pdf (' + durationMs + 'ms)').left(80),
+                    Name                = ('GET /insights/pdf').left(80),
                     HTTP_Method__c      = 'GET',
-                    Endpoint_Name__c    = path.left(255),
-                    Request_Timestamp__c= DateTime.now(),
-                    Response_Body__c    = ('[Duration: ' + durationMs + ' ms]\n' + res.getBody()).left(32768),
-                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Endpoint_Name__c    = 'CompanyDetailInsightsController.getInsightsPdfDownloadUrl',
+                    Response_Body__c    = res.getBody(),
                     Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
                     Correlation_ID__c   = correlationId
                 );
             } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log failed: ' + logEx.getMessage());
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
             }
 
             if (res.getStatusCode() == 200) {
                 return res.getBody();
             } else {
-                throw new AuraHandledException('Insights PDF fetch failed (' + res.getStatusCode() + '): ' + res.getBody());
+                throw createHandledException('Insights PDF fetch failed (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
             }
 
         } catch (Exception e) {
-            Long durationMs = System.currentTimeMillis() - startTime;
-            insert new AI_Navigator_Request_Log__c(
-                Name                = ('GET /insights/pdf Error (' + durationMs + 'ms)').left(80),
-                HTTP_Method__c      = 'GET',
-                Endpoint_Name__c    = path.left(255),
-                Request_Timestamp__c= DateTime.now(),
-                Error_Message__c    = (e.getMessage() + '\n' + e.getStackTraceString()).left(32768),
-                Status__c           = 'Failed',
-                Correlation_ID__c   = correlationId
-            );
-            throw new AuraHandledException(e.getMessage());
+            throw createHandledException(e.getMessage());
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // 3. GET Notes — GET /v1/user/companies/{companyId}/notes
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String getNotes(String companyId) {
+        try {
+            AI_Navigator_Company__c comp = getCompanyRecord(companyId);
+            String azureCompanyId = comp.Azure_Company_Id__c;
+            String correlationId  = comp.Correlation_Id__c;
+            String userId         = UserInfo.getUserId();
+
+            String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/notes';
+
+            HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('GET /notes').left(80),
+                    HTTP_Method__c      = 'GET',
+                    Endpoint_Name__c    = 'CompanyDetailInsightsController.getNotes',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() == 200) {
+                return res.getBody();
+            } else if (res.getStatusCode() == 404) {
+                return JSON.serialize(new Map<String, Object>{
+                    'count' => 0,
+                    'notes' => new List<Object>()
+                });
+            } else {
+                throw createHandledException('Fetch notes failed (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 4. CREATE Note — POST /v1/user/companies/{companyId}/notes
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String createNote(String companyId, String title, String content, String sourceTab, String sourceSection) {
+        try {
+            AI_Navigator_Company__c comp = getCompanyRecord(companyId);
+            String azureCompanyId = comp.Azure_Company_Id__c;
+            String correlationId  = comp.Correlation_Id__c;
+            String userId         = UserInfo.getUserId();
+
+            String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/notes';
+
+            Map<String, Object> payload = new Map<String, Object>{
+                'title'         => title,
+                'content'       => content,
+                'sourceTab'     => String.isNotBlank(sourceTab) ? sourceTab : 'Discovery Call Insights',
+                'sourceSection' => String.isNotBlank(sourceSection) ? sourceSection : ''
+            };
+
+            HttpRequest req = AzureHttpService.buildRequest('POST', path, correlationId, userId);
+            req.setBody(JSON.serialize(payload));
+            req.setHeader('Content-Type', 'application/json');
+
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('POST /notes').left(80),
+                    HTTP_Method__c      = 'POST',
+                    Endpoint_Name__c    = 'CompanyDetailInsightsController.createNote',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return String.isNotBlank(res.getBody()) ? res.getBody() : '{"success":true}';
+            } else {
+                throw createHandledException('Create note failed (HTTP ' + res.getStatusCode() + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 5. EDIT Note — PUT /v1/user/notes/{noteId}
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String updateNote(String noteId, String title, String content) {
+        if (String.isBlank(noteId)) {
+            throw createHandledException('noteId parameter is blank or missing.');
+        }
+
+        try {
+            String correlationId = AiNavigatorEventService.generateCorrelationId();
+            String userId        = UserInfo.getUserId();
+            String path          = '/v1/user/notes/' + EncodingUtil.urlEncode(noteId.trim(), 'UTF-8');
+
+            Map<String, Object> payload = new Map<String, Object>{
+                'title'   => title,
+                'content' => content
+            };
+
+            HttpRequest req = AzureHttpService.buildRequest('PUT', path, correlationId, userId);
+            req.setBody(JSON.serialize(payload));
+            req.setHeader('Content-Type', 'application/json');
+            req.setHeader('Accept', 'application/json');
+
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('PUT /notes/' + noteId).left(80),
+                    HTTP_Method__c      = 'PUT',
+                    Endpoint_Name__c    = 'CompanyDetailInsightsController.updateNote',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId,
+                    Error_Message__c    = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? null : ('HTTP ' + res.getStatusCode() + ': ' + res.getBody()).left(32768)
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return String.isNotBlank(res.getBody()) ? res.getBody() : '{"success":true}';
+            } else {
+                throw createHandledException('Update note failed (HTTP ' + res.getStatusCode() + ' for noteId ' + noteId + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 6. DELETE Note — DELETE /v1/user/notes/{noteId}
+    // ─────────────────────────────────────────────────────────────────────────
+    @AuraEnabled(cacheable=false)
+    public static String deleteNote(String noteId) {
+        if (String.isBlank(noteId)) {
+            throw createHandledException('noteId parameter is blank or missing.');
+        }
+
+        try {
+            String correlationId = AiNavigatorEventService.generateCorrelationId();
+            String userId        = UserInfo.getUserId();
+            String path          = '/v1/user/notes/' + EncodingUtil.urlEncode(noteId.trim(), 'UTF-8');
+
+            HttpRequest req = AzureHttpService.buildRequest('DELETE', path, correlationId, userId);
+            req.setHeader('Accept', 'application/json');
+
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    Name                = ('DELETE /notes/' + noteId).left(80),
+                    HTTP_Method__c      = 'DELETE',
+                    Endpoint_Name__c    = 'CompanyDetailInsightsController.deleteNote',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId,
+                    Error_Message__c    = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? null : ('HTTP ' + res.getStatusCode() + ': ' + res.getBody()).left(32768)
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return '{"success":true}';
+            } else {
+                throw createHandledException('Delete note failed (HTTP ' + res.getStatusCode() + ' for noteId ' + noteId + '): ' + res.getBody());
+            }
+
+        } catch (Exception e) {
+            throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Mock Fallback
+    // ─────────────────────────────────────────────────────────────────────────
     private static String getMockInsights() {
         Map<String, Object> companyProfile = new Map<String, Object>{
             'businessType'       => 'Turnkey fueling infrastructure construction and compliance services provider for fueling retailers and service stations (B2B) in East Texas, Arkansas, Mississippi, Alabama, and parts of Louisiana.',
@@ -170,7 +360,7 @@ public with sharing class CompanyDetailInsightsController {
                 'priority'           => 'High',
                 'rawDataTrigger'     => 'Strategic Intelligence: Multi-state fleet expansion planned with new diagnostic equipment.',
                 'insight'            => 'The company is actively planning fleet and equipment upgrades to service expanding regional utility contracts. This creates an immediate equipment leasing & term-lending opportunity.',
-                'businessNeed'       => 'Capital for specialized fueling installation vehicles and testing equipment.',
+                'businessNeed'       => 'Capital for precision fueling installation vehicles and diagnostic testing equipment.',
                 'discoveryQuestions' => new List<String>{
                     'What is your projected timeline for acquiring additional fleet units?',
                     'How are you currently structuring your heavy equipment leases?'

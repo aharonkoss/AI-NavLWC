@@ -101,19 +101,19 @@
     font-size: 0.8125rem;
 }
 
-/* Cards (Matches React Portal) */
+/* Cards Layout */
 .cdi-content-container {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 16px;
 }
 
 .cdi-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 8px;
-    padding: 16px 20px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    padding: 18px 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .cdi-card-header {
@@ -137,8 +137,8 @@
     flex-wrap: wrap;
 }
 
-/* Plus Add-Note Icon Button */
-.cdi-add-note-btn {
+/* Plus Add Button (Gray) */
+.cdi-add-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -155,13 +155,31 @@
     transition: all 140ms ease;
 }
 
-.cdi-add-note-btn:hover {
+.cdi-add-btn:hover {
     background: #f3f4f6;
     color: #111827;
     border-color: #e5e7eb;
 }
 
-/* Content Body */
+/* Green Checkmark Box (Matches Screenshot 1) */
+.cdi-check-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+}
+
+.cdi-check-svg {
+    width: 14px;
+    height: 14px;
+    color: #16a34a;
+}
+
+/* Card Body Typography */
 .cdi-card-body {
     display: flex;
     flex-direction: column;
@@ -199,7 +217,6 @@
     margin: 0;
 }
 
-/* Bullet List */
 .cdi-bullet-list {
     list-style: none;
     padding: 0;
@@ -224,7 +241,6 @@
     line-height: 1.2;
 }
 
-/* Badges */
 .cdi-badge {
     font-size: 0.6875rem;
     font-weight: 600;
@@ -249,11 +265,16 @@
 .cdi-trigger-label { font-weight: 700; color: #b45309; margin-right: 4px; }
 .cdi-trigger-text  { color: #92400e; }
 
-/* ── Floating Action Button (FAB) ── */
-.cdi-fab {
+/* ── Floating Action Button (FAB) with Red Notification Badge ── */
+.cdi-fab-container {
     position: fixed;
     bottom: 24px;
     right: 24px;
+    z-index: 999;
+}
+
+.cdi-fab {
+    position: relative;
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -266,7 +287,6 @@
     justify-content: center;
     cursor: pointer;
     transition: transform 150ms ease, background-color 150ms ease;
-    z-index: 99;
 }
 
 .cdi-fab:hover {
@@ -277,6 +297,25 @@
 .cdi-fab-icon {
     width: 22px;
     height: 22px;
+}
+
+/* Red circular count badge on FAB (Matches Screenshot 1) */
+.cdi-fab-badge {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    background-color: #ef4444;
+    color: #ffffff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid #ffffff;
 }
 
 /* ── Slide-Out "My Notes" Drawer ── */
@@ -406,84 +445,134 @@
     background: #f0f7ff;
 }
 
-.cdi-plus-icon {
+.cdi-plus-glyph {
     font-size: 1.125rem;
 }
 
-/* Note Composer Form */
-.cdi-note-form-card {
+/* Note Composer Form (Matches Screenshot 3 & 4) */
+.cdi-composer-card {
     background: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
     padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    gap: 10px;
 }
 
-.cdi-note-input {
+.cdi-composer-title-input {
     border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    padding: 6px 10px;
+    border-radius: 6px;
+    padding: 8px 12px;
     font-size: 0.8125rem;
     outline: none;
-    font-weight: 600;
+    color: #1e293b;
+    font-weight: 500;
 }
 
-.cdi-note-textarea {
+.cdi-composer-title-input:focus {
+    border-color: #0b5cff;
+}
+
+.cdi-composer-textarea {
     border: 1px solid #e2e8f0;
-    border-radius: 4px;
-    padding: 8px 10px;
+    border-radius: 6px;
+    padding: 10px 12px;
     font-size: 0.8125rem;
     font-family: inherit;
     outline: none;
     resize: vertical;
+    color: #1e293b;
 }
 
-.cdi-form-actions {
+.cdi-composer-textarea:focus {
+    border-color: #0b5cff;
+}
+
+/* Formatting Toolbar (B, /, ≡) */
+.cdi-composer-toolbar {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 4px;
+}
+
+.cdi-toolbar-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.cdi-tool-btn {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: #475569;
+    cursor: pointer;
+    font-size: 0.875rem;
+    border-radius: 4px;
+}
+
+.cdi-tool-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.cdi-composer-actions {
+    display: flex;
+    align-items: center;
     gap: 8px;
 }
 
 .cdi-btn-cancel {
-    background: #f1f5f9;
-    color: #475569;
+    background: none;
+    color: #64748b;
     border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-size: 0.8125rem;
+    font-weight: 500;
     cursor: pointer;
+    padding: 6px 12px;
+}
+
+.cdi-btn-cancel:hover {
+    color: #0f172a;
 }
 
 .cdi-btn-save {
     background: #0b5cff;
     color: #ffffff;
     border: none;
-    padding: 6px 14px;
+    padding: 6px 16px;
     border-radius: 4px;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
+    transition: background-color 140ms ease;
 }
 
-/* Notes List */
+.cdi-btn-save:hover {
+    background: #004bd6;
+}
+
+/* Notes List (Matches Screenshot 5) */
 .cdi-notes-list {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.cdi-note-item-card {
+.cdi-note-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
     overflow: hidden;
 }
 
-.cdi-note-header {
+.cdi-note-card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -493,14 +582,14 @@
     transition: background 140ms;
 }
 
-.cdi-note-header:hover {
+.cdi-note-card-header:hover {
     background: #f8fafc;
 }
 
 .cdi-note-header-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .cdi-note-chevron {
@@ -508,6 +597,7 @@
     color: #64748b;
     transition: transform 180ms ease;
     display: inline-block;
+    line-height: 1;
 }
 
 .cdi-note-chevron.cdi-chevron-down {
@@ -525,10 +615,34 @@
     color: #94a3b8;
 }
 
-.cdi-note-expanded-body {
-    padding: 10px 12px;
+.cdi-note-card-expanded {
+    padding: 12px;
     border-top: 1px solid #f1f5f9;
-    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #ffffff;
+}
+
+.cdi-badge-row {
+    display: flex;
+}
+
+/* User Created Badge (Matches Screenshot 5) */
+.cdi-user-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.cdi-note-text-container {
+    background: #fdfdfd;
+    border: 1px solid #f1f5f9;
+    border-radius: 6px;
+    padding: 10px 12px;
 }
 
 .cdi-note-body-text {
@@ -536,32 +650,41 @@
     color: #334155;
     line-height: 1.5;
     white-space: pre-wrap;
-    margin: 0 0 8px 0;
+    margin: 0;
 }
 
-.cdi-note-item-actions {
+/* Edit / Delete Action Icons Row */
+.cdi-note-actions-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 4px;
 }
 
-.cdi-link-action {
+.cdi-action-icon-btn {
     background: none;
     border: none;
-    padding: 0;
-    color: #0b5cff;
-    font-size: 0.6875rem;
+    color: #94a3b8;
     cursor: pointer;
-    text-decoration: underline;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: color 140ms ease;
 }
 
-.cdi-link-delete {
+.cdi-action-icon-btn:hover {
+    color: #0b5cff;
+}
+
+.cdi-delete-btn:hover {
     color: #ef4444;
 }
 
-.cdi-divider {
-    color: #cbd5e1;
-    font-size: 0.6875rem;
+.cdi-action-svg {
+    width: 15px;
+    height: 15px;
 }
 
 .cdi-notes-empty {
@@ -586,6 +709,6 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgba(0, 0, 0, 0.2);
     z-index: 9998;
 }

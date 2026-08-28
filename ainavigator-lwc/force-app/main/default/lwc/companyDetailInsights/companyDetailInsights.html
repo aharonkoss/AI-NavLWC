@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 08-26-2026
+  @last modified on  : 08-27-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -51,14 +51,22 @@
                     <div class="cdi-card">
                         <div class="cdi-card-header">
                             <h2 class="cdi-card-title">Company Profile</h2>
-                            <button
-                                class="cdi-add-note-btn"
-                                onclick={handleAddNoteFromSection}
-                                data-section="Company Profile"
-                                title="Add note for Company Profile"
-                            >
-                                +
-                            </button>
+                            <template if:true={isCompanyProfileInNotes}>
+                                <div class="cdi-check-box" title="Added to My Notes">
+                                    <svg class="cdi-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </template>
+                            <template if:false={isCompanyProfileInNotes}>
+                                <button
+                                    class="cdi-add-btn"
+                                    onclick={handleAddCompanyProfileToNotes}
+                                    title="Add Company Profile to My Notes"
+                                >
+                                    +
+                                </button>
+                            </template>
                         </div>
                         <div class="cdi-card-body">
                             <template if:true={companyProfile.businessType}>
@@ -80,14 +88,22 @@
                     <div class="cdi-card">
                         <div class="cdi-card-header">
                             <h2 class="cdi-card-title">Call Strategy</h2>
-                            <button
-                                class="cdi-add-note-btn"
-                                onclick={handleAddNoteFromSection}
-                                data-section="Call Strategy"
-                                title="Add note for Call Strategy"
-                            >
-                                +
-                            </button>
+                            <template if:true={isCallStrategyInNotes}>
+                                <div class="cdi-check-box" title="Added to My Notes">
+                                    <svg class="cdi-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </template>
+                            <template if:false={isCallStrategyInNotes}>
+                                <button
+                                    class="cdi-add-btn"
+                                    onclick={handleAddCallStrategyToNotes}
+                                    title="Add Call Strategy to My Notes"
+                                >
+                                    +
+                                </button>
+                            </template>
                         </div>
                         <div class="cdi-card-body">
                             <!-- Primary Objective -->
@@ -149,14 +165,23 @@
                                     <span class={ins.categoryClass}>{ins.category}</span>
                                     <span class={ins.priorityClass}>{ins.priority}</span>
                                 </div>
-                                <button
-                                    class="cdi-add-note-btn"
-                                    onclick={handleAddNoteFromSection}
-                                    data-section={ins.title}
-                                    title="Add note for this insight"
-                                >
-                                    +
-                                </button>
+                                <template if:true={ins.isAddedToNotes}>
+                                    <div class="cdi-check-box" title="Added to My Notes">
+                                        <svg class="cdi-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
+                                </template>
+                                <template if:false={ins.isAddedToNotes}>
+                                    <button
+                                        class="cdi-add-btn"
+                                        onclick={handleAddInsightToNotes}
+                                        data-title={ins.title}
+                                        title="Add to My Notes"
+                                    >
+                                        +
+                                    </button>
+                                </template>
                             </div>
                             <div class="cdi-card-body">
                                 <template if:true={ins.rawDataTrigger}>
@@ -167,7 +192,7 @@
                                 </template>
 
                                 <template if:true={ins.insight}>
-                                    <p class="cdi-block-text cdi-m-top">{ins.insight}</p>
+                                    <p class="cdi-block-text">{ins.insight}</p>
                                 </template>
 
                                 <template if:true={ins.businessNeed}>
@@ -212,17 +237,22 @@
             </div>
         </template>
 
-        <!-- ── Floating Action Button (FAB) Bottom Right ── -->
-        <button
-            class="cdi-fab"
-            onclick={handleToggleNotesDrawer}
-            title="Open Notes"
-        >
-            <svg class="cdi-fab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-            </svg>
-        </button>
+        <!-- ── Floating Circular Action Button (FAB) Bottom Right ── -->
+        <div class="cdi-fab-container">
+            <button
+                class="cdi-fab"
+                onclick={handleToggleNotesDrawer}
+                title="Open My Notes"
+            >
+                <svg class="cdi-fab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <template if:true={hasNotes}>
+                    <span class="cdi-fab-badge">{notesCount}</span>
+                </template>
+            </button>
+        </div>
 
         <!-- ── Slide-Out "My Notes" Drawer ── -->
         <div class={drawerClass}>
@@ -261,63 +291,108 @@
                 </div>
 
                 <!-- Add New Note Dashed Button -->
-                <button class="cdi-dashed-add-btn" onclick={handleOpenNewNoteForm}>
-                    <span class="cdi-plus-icon">+</span> Add New Note
-                </button>
+                <template if:false={isEditingNote}>
+                    <button class="cdi-dashed-add-btn" onclick={handleOpenNewNoteForm}>
+                        <span class="cdi-plus-glyph">+</span> Add New Note
+                    </button>
+                </template>
 
-                <!-- New Note Form (When active) -->
+                <!-- Note Composer Form (Matches Screenshots 3 & 4) -->
                 <template if:true={isEditingNote}>
-                    <div class="cdi-note-form-card">
+                    <div class="cdi-composer-card">
                         <input
                             type="text"
-                            class="cdi-note-input"
-                            placeholder="Note Topic / Title"
+                            class="cdi-composer-title-input"
+                            placeholder="Note title (optional)"
                             value={currentNoteTitle}
                             oninput={handleNoteTitleChange}
                         />
                         <textarea
-                            class="cdi-note-textarea"
+                            class="cdi-composer-textarea"
                             placeholder="Write your notes here..."
                             rows="4"
                             oninput={handleNoteContentChange}
                         >{currentNoteContent}</textarea>
-                        <div class="cdi-form-actions">
-                            <button class="cdi-btn-cancel" onclick={handleCancelNoteEdit}>Cancel</button>
-                            <button class="cdi-btn-save" onclick={handleSaveNote}>Save Note</button>
+
+                        <!-- Formatting Toolbar & Actions -->
+                        <div class="cdi-composer-toolbar">
+                            <div class="cdi-toolbar-tools">
+                                <button class="cdi-tool-btn" onclick={handleFormatBold} title="Bold"><strong>B</strong></button>
+                                <button class="cdi-tool-btn" onclick={handleFormatItalic} title="Italic"><em>/</em></button>
+                                <button class="cdi-tool-btn" onclick={handleFormatBullet} title="Bullet List">&#8801;</button>
+                            </div>
+                            <div class="cdi-composer-actions">
+                                <button class="cdi-btn-cancel" onclick={handleCancelNoteEdit}>Cancel</button>
+                                <button class="cdi-btn-save" onclick={handleSaveNote} disabled={isSavingNote}>
+                                    <template if:true={isSavingNote}>Saving...</template>
+                                    <template if:false={isSavingNote}>Save Note</template>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </template>
 
-                <!-- Notes List -->
-                <div class="cdi-notes-list">
-                    <template for:each={notesList} for:item="note">
-                        <div key={note.id} class="cdi-note-item-card">
-                            <div class="cdi-note-header" data-id={note.id} onclick={handleToggleNoteExpand}>
-                                <div class="cdi-note-header-left">
-                                    <span class={note.chevronClass}>&#8250;</span>
-                                    <span class="cdi-note-item-title">{note.title}</span>
-                                </div>
-                                <span class="cdi-note-timestamp">{note.timestamp}</span>
-                            </div>
-                            <template if:true={note.isExpanded}>
-                                <div class="cdi-note-expanded-body">
-                                    <p class="cdi-note-body-text">{note.content}</p>
-                                    <div class="cdi-note-item-actions">
-                                        <button class="cdi-link-action" data-id={note.id} onclick={handleEditNote}>Edit</button>
-                                        <span class="cdi-divider">|</span>
-                                        <button class="cdi-link-action cdi-link-delete" data-id={note.id} onclick={handleDeleteNote}>Delete</button>
-                                    </div>
-                                </div>
-                            </template>
-                        </div>
-                    </template>
+                <!-- Notes List Loading Spinner -->
+                <template if:true={isLoadingNotes}>
+                    <div class="cdi-notes-loading">
+                        <div class="cdi-spinner"></div>
+                        <span>Loading notes...</span>
+                    </div>
+                </template>
 
-                    <template if:false={hasNotes}>
-                        <div class="cdi-notes-empty">
-                            No notes recorded yet for this company. Click "+ Add New Note" above.
-                        </div>
-                    </template>
-                </div>
+                <!-- Notes List (Matches Screenshot 5) -->
+                <template if:false={isLoadingNotes}>
+                    <div class="cdi-notes-list">
+                        <template for:each={notesList} for:item="note">
+                            <div key={note.id} class="cdi-note-card">
+                                <!-- Accordion Header -->
+                                <div class="cdi-note-card-header" data-id={note.id} onclick={handleToggleNoteExpand}>
+                                    <div class="cdi-note-header-left">
+                                        <span class={note.chevronClass}>&#8250;</span>
+                                        <span class="cdi-note-item-title">{note.title}</span>
+                                    </div>
+                                    <span class="cdi-note-timestamp">{note.timestamp}</span>
+                                </div>
+
+                                <!-- Expanded Content -->
+                                <template if:true={note.isExpanded}>
+                                    <div class="cdi-note-card-expanded">
+                                        <template if:true={note.isUserCreated}>
+                                            <div class="cdi-badge-row">
+                                                <span class="cdi-user-badge">User Created</span>
+                                            </div>
+                                        </template>
+                                        
+                                        <div class="cdi-note-text-container">
+                                            <p class="cdi-note-body-text">{note.content}</p>
+                                        </div>
+
+                                        <div class="cdi-note-actions-row">
+                                            <button class="cdi-action-icon-btn" data-id={note.id} onclick={handleEditNote} title="Edit Note">
+                                                <svg class="cdi-action-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                                </svg>
+                                            </button>
+                                            <button class="cdi-action-icon-btn cdi-delete-btn" data-id={note.id} onclick={handleDeleteNote} title="Delete Note">
+                                                <svg class="cdi-action-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template if:false={hasNotes}>
+                            <div class="cdi-notes-empty">
+                                No notes saved yet. Click "+ Add New Note" or the "+" on any section.
+                            </div>
+                        </template>
+                    </div>
+                </template>
             </div>
 
             <!-- Drawer Footer -->
@@ -326,7 +401,7 @@
             </div>
         </div>
 
-        <!-- Backdrop overlay when drawer is open on smaller screens -->
+        <!-- Optional Backdrop Overlay -->
         <template if:true={isNotesDrawerOpen}>
             <div class="cdi-backdrop" onclick={handleCloseNotesDrawer}></div>
         </template>
