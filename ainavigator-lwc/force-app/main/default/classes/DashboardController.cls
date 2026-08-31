@@ -1,13 +1,10 @@
 /**
- * @description DashboardController — Updated to show ONLY hidden records.
- *              Uses new custom objects: AI_Navigator_Company__c, 
- *              AI_Navigator_Request_Log__c, and AI_Navigator_Shared_Company__c.
+ * @description DashboardController — Pure Salesforce database updates for Stage_List__c 
+ *              and Client_Type_List__c on AI_Navigator_Company__c.
  * @group AI Navigator - Apex
  */
 public with sharing class DashboardController {
 
-    // ── CONFIG — loaded once from AI_Navigator_Config__mdt
-    // FIXED: Static initializer queries the local, unmanaged Dev record, falls back to packaged record if empty
     private static final AI_Navigator_Config__mdt CONFIG;
     
     static {
@@ -30,7 +27,6 @@ public with sharing class DashboardController {
         CONFIG = configs.isEmpty() ? null : configs[0];
     }
 
-    // FIXED: Reverted back to the original simple structure — defaults directly to the namespaced credential name
     private static final String NAMED_CRED =
         'callout:' + (CONFIG?.Named_Credential_Name__c != null
                       ? CONFIG.Named_Credential_Name__c
@@ -84,7 +80,7 @@ public with sharing class DashboardController {
         try {
             List<AI_Navigator_Company__c> records = [
                 SELECT Id, Name, City__c, State__c, Website__c,
-                       Status__c, Stage__c, Client_Type__c,
+                       Status__c, Stage_List__c, Client_Type_List__c,
                        Azure_Company_Id__c, CreatedDate, Shared_By_Name__c,
                        (SELECT Id FROM AI_Navigator_Shared_With_Users__r) 
                 FROM   AI_Navigator_Company__c
@@ -105,8 +101,8 @@ public with sharing class DashboardController {
                     'state'          => c.State__c,
                     'website'        => c.Website__c,
                     'status'         => c.Status__c?.toLowerCase(),
-                    'stage'          => c.Stage__c,
-                    'clientType'     => c.Client_Type__c,
+                    'stage'          => c.Stage_List__c,
+                    'clientType'     => c.Client_Type_List__c,
                     'createdAt'      => c.CreatedDate,
                     'sharedByName'   => c.Shared_By_Name__c,
                     'isShared'       => !c.AI_Navigator_Shared_With_Users__r.isEmpty()
@@ -132,9 +128,10 @@ public with sharing class DashboardController {
     public static String shareCompanies(List<String> companyIds, String targetUserId) {
         try {
             List<AI_Navigator_Company__c> originalRecords = [
-                SELECT Id, Name, City__c, State__c, Website__c, Status__c, Stage__c, 
-                    Client_Type__c, Azure_Company_Id__c 
-                FROM AI_Navigator_Company__c WHERE Id IN :companyIds
+                SELECT Id, Name, City__c, State__c, Website__c, Status__c, 
+                       Stage_List__c, Client_Type_List__c, Azure_Company_Id__c 
+                FROM AI_Navigator_Company__c 
+                WHERE Id IN :companyIds
             ];
             
             List<AI_Navigator_Company__c> clones = new List<AI_Navigator_Company__c>();
@@ -212,15 +209,15 @@ public with sharing class DashboardController {
             List<Map<String, Object>> signals = new List<Map<String, Object>>();
             for (AI_Navigator_Signals__c s : rows) {
                 signals.add(new Map<String, Object>{
-                    'id'         => s.Id,
-                    'signalName' => s.Name,
-                    'signalType' => s.Signal_Type__c,
-                    'headline'   => s.Headline__c,
-                    'priority'   => s.Priority__c,
-                    'impact'     => s.Impact__c,
-                    'source'     => s.Source__c,
-                    'isNew'      => s.Is_New__c,
-                    'detectedAt' => s.Detected_At__c,
+                    'id'                => s.Id,
+                    'signalName'        => s.Name,
+                    'signalType'        => s.Signal_Type__c,
+                    'headline'          => s.Headline__c,
+                    'priority'          => s.Priority__c,
+                    'impact'            => s.Impact__c,
+                    'source'            => s.Source__c,
+                    'isNew'             => s.Is_New__c,
+                    'detectedAt'        => s.Detected_At__c,
                     'signalCategory'    => s.Signal_Type__c,
                     'signalDescription' => s.Headline__c,
                     'eventDate'         => s.Detected_At__c
@@ -232,6 +229,9 @@ public with sharing class DashboardController {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // updateCompany (Pure Salesforce Object Update - No API Callout)
+    // -------------------------------------------------------------------------
     @AuraEnabled
     public static String updateCompany(String companyId, String stage, String clientType) {
         if (String.isBlank(companyId)) {
@@ -239,7 +239,7 @@ public with sharing class DashboardController {
         }
         try {
             AI_Navigator_Company__c company = [
-                SELECT Id, Azure_Company_Id__c, Stage__c, Client_Type__c
+                SELECT Id, Stage_List__c, Client_Type_List__c
                 FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
                 AND    OwnerId = :UserInfo.getUserId()
@@ -247,33 +247,24 @@ public with sharing class DashboardController {
             ];
 
             Boolean changed = false;
-            if (String.isNotBlank(stage) && stage != company.Stage__c) {
-                company.Stage__c = stage;
+            if (String.isNotBlank(stage) && stage != company.Stage_List__c) {
+                company.Stage_List__c = stage;
                 changed = true;
             }
-            if (String.isNotBlank(clientType) && clientType != company.Client_Type__c) {
-                company.Client_Type__c = clientType;
+            if (String.isNotBlank(clientType) && clientType != company.Client_Type_List__c) {
+                company.Client_Type_List__c = clientType;
                 changed = true;
             }
-            if (changed) { update company; }
-
-            if (String.isNotBlank(company.Azure_Company_Id__c)) {
-                Map<String, Object> body = new Map<String, Object>();
-                if (String.isNotBlank(stage))      { body.put('stage',      stage);      }
-                if (String.isNotBlank(clientType)) { body.put('clientType', clientType); }
-                HttpResponse res = azureCallout(
-                    'PUT',
-                    '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8'),
-                    body, TIMEOUT_MS
-                );
-                handleCalloutResponse(res, 'updateCompany', company.Azure_Company_Id__c);
+            
+            if (changed) { 
+                update company; 
             }
 
             return JSON.serialize(new Map<String, Object>{
                 'success'    => true,
                 'companyId'  => companyId,
-                'stage'      => stage,
-                'clientType' => clientType
+                'stage'      => company.Stage_List__c,
+                'clientType' => company.Client_Type_List__c
             });
         } catch (AuraHandledException ahe) {
             throw ahe;
@@ -359,7 +350,7 @@ public with sharing class DashboardController {
         try {
             AI_Navigator_Company__c c = [
                 SELECT Id, Name, City__c, State__c, Website__c,
-                       Status__c, Stage__c, Client_Type__c,
+                       Status__c, Stage_List__c, Client_Type_List__c,
                        Azure_Company_Id__c, CreatedDate
                 FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
@@ -374,8 +365,8 @@ public with sharing class DashboardController {
                 'state'          => c.State__c,
                 'website'        => c.Website__c,
                 'status'         => c.Status__c?.toLowerCase(),
-                'stage'          => c.Stage__c,
-                'clientType'     => c.Client_Type__c,
+                'stage'          => c.Stage_List__c,
+                'clientType'     => c.Client_Type_List__c,
                 'createdAt'      => c.CreatedDate
             });
         } catch (Exception e) {

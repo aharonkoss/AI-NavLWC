@@ -2,7 +2,7 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 06-26-2026
+ * @last modified on  : 08-28-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 **/
 public with sharing class InputController {
@@ -21,9 +21,9 @@ public with sharing class InputController {
             Id currentUserId = UserInfo.getUserId();
 
             // 1. Check if a company with the same Website already exists OWNED by the current user
-            // Changed filter from CreatedById to OwnerId for better accuracy
             List<AI_Navigator_Company__c> existingCompanies = [
-                SELECT Id, Name, Website__c, City__c, State__c, Stage__c, Client_Type__c, Status__c, Correlation_Id__c, CreatedDate, Is_Hidden__c
+                SELECT Id, Name, Website__c, City__c, State__c, Stage_List__c, Client_Type_List__c, 
+                       Status__c, Correlation_Id__c, CreatedDate, Is_Hidden__c
                 FROM AI_Navigator_Company__c
                 WHERE OwnerId = :currentUserId AND Website__c = :website
                 LIMIT 1
@@ -37,14 +37,13 @@ public with sharing class InputController {
                 existingCompany.Name = companyName;
                 existingCompany.City__c = city;
                 existingCompany.State__c = state;
-                existingCompany.Stage__c = stage;
-                existingCompany.Client_Type__c = clientType;
+                existingCompany.Stage_List__c = stage;
+                existingCompany.Client_Type_List__c = clientType;
                 existingCompany.Status__c = 'pending';
                 
                 update existingCompany;
 
-                // FIX: Check if a Lead exists for this Company. If not, create one.
-                // (Only if this wasn't triggered by a Lead creation already)
+                // Check if a Lead exists for this Company. If not, create one.
                 if (isCalledFromLead == null || !isCalledFromLead) {
                     List<Lead> existingLeads = [
                         SELECT Id FROM Lead 
@@ -75,8 +74,8 @@ public with sharing class InputController {
                     'website'       => existingCompany.Website__c,
                     'city'          => existingCompany.City__c,
                     'state'         => existingCompany.State__c,
-                    'stage'         => existingCompany.Stage__c,
-                    'clientType'    => existingCompany.Client_Type__c,
+                    'stage'         => existingCompany.Stage_List__c,
+                    'clientType'    => existingCompany.Client_Type_List__c,
                     'status'        => 'pending',
                     'createdAt'     => String.valueOf(existingCompany.CreatedDate)
                 });
@@ -86,16 +85,16 @@ public with sharing class InputController {
             String correlationId = AI_Navigator_Event_Publisher.generateCorrelationId();
 
             AI_Navigator_Company__c company = new AI_Navigator_Company__c(
-                Name             = companyName,
-                Website__c       = website,
-                City__c          = city,
-                State__c         = state,
-                Stage__c         = stage,
-                Client_Type__c   = clientType,
-                Status__c        = 'pending',
-                Correlation_Id__c = correlationId,
-                Is_Hidden__c     = false,
-                OwnerId          = currentUserId
+                Name                 = companyName,
+                Website__c           = website,
+                City__c              = city,
+                State__c             = state,
+                Stage_List__c        = stage,
+                Client_Type_List__c  = clientType,
+                Status__c            = 'pending',
+                Correlation_Id__c    = correlationId,
+                Is_Hidden__c         = false,
+                OwnerId              = currentUserId
             );
             insert company;
 
@@ -117,11 +116,11 @@ public with sharing class InputController {
             ));
 
             return JSON.serialize(new Map<String, Object>{
-                'success' => true,
-                'companyId' => company.Id,
+                'success'       => true,
+                'companyId'     => company.Id,
                 'correlationId' => correlationId,
-                'name' => companyName,
-                'status' => 'pending'
+                'name'          => companyName,
+                'status'        => 'pending'
             });
 
         } catch (Exception e) {

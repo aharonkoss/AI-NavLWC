@@ -36,7 +36,7 @@
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* ── Page Header & Stats Grid (Unchanged) ── */
+/* ── Page Header & Stats Grid ── */
 .page-header { margin-bottom: 16px; }
 .page-title { font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0; }
 
@@ -52,8 +52,11 @@
 .icon-amber { background-color: #fef3c7; color: #d97706; }
 .icon-green { background-color: #dcfce7; color: #16a34a; }
 .icon-purple { background-color: #f3e8ff; color: #9333ea; }
+.text-amber { color: #d97706; }
+.text-green { color: #16a34a; }
+.text-purple { color: #9333ea; }
 
-/* ── Sharing Toolbar (PDF Step 1) ── */
+/* ── Sharing Toolbar ── */
 .share-toolbar {
     background-color: #f9fafb;
     border-bottom: 1px solid #e5e7eb;
@@ -84,7 +87,7 @@
 }
 
 .btn-share-primary {
-    background-color: #2563eb; /* Blue-600 */
+    background-color: #2563eb;
     color: white;
     padding: 6px 16px;
     border-radius: 6px;
@@ -105,16 +108,17 @@
     text-decoration: underline;
 }
 
-/* ── Companies List Grid ── */
+/* ── Companies List Grid & Headers ── */
 .companies-card { background: #ffffff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border: 1px solid #f0f0f0; overflow: hidden; }
 .companies-header { padding: 12px 20px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: center; gap: 12px; }
 .companies-title { font-size: 0.875rem; font-weight: 600; color: #111827; margin: 0; }
 .search-input { padding: 5px 10px; font-size: 0.8rem; border: 1px solid #d1d5db; border-radius: 5px; width: 260px; }
+.filter-select { padding: 5px 10px; font-size: 0.8rem; border: 1px solid #d1d5db; border-radius: 5px; background: white; outline: none; }
 
-/* UPDATED GRID: Added checkbox column at start (0.3fr) */
+/* Grid columns adjusted to comfortably fit 'Pre Qualification' & 'Existing Customer' */
 .company-row {
     display: grid;
-    grid-template-columns: 0.3fr 2.2fr 1fr 1.2fr 1.5fr 1fr 1fr 0.6fr;
+    grid-template-columns: 0.3fr 2fr 0.9fr 1.4fr 1.5fr 1fr 1fr 0.6fr;
     align-items: center;
     gap: 12px;
     padding: 10px 20px;
@@ -140,14 +144,34 @@
 .company-location { font-size: 0.72rem; color: #6b7280; margin: 0; }
 .date-text { font-size: 0.75rem; color: #6b7280; }
 
-.dropdown-stage, .dropdown-clienttype { padding: 3px 6px; font-size: 0.72rem; border-radius: 4px; cursor: pointer; border: 1px solid; }
-.dropdown-stage { border-color: #bfdbfe; background: #eff6ff; color: #1d4ed8; width: 112px; }
-.dropdown-clienttype { border-color: #bbf7d0; background: #f0fdf4; color: #15803d; width: 136px; }
+/* Expanded dropdowns for proper option alignment */
+.dropdown-stage, .dropdown-clienttype { 
+    padding: 4px 8px; 
+    font-size: 0.75rem; 
+    border-radius: 4px; 
+    cursor: pointer; 
+    border: 1px solid; 
+    outline: none;
+}
+.dropdown-stage { 
+    border-color: #bfdbfe; 
+    background: #eff6ff; 
+    color: #1d4ed8; 
+    width: 130px; 
+}
+.dropdown-clienttype { 
+    border-color: #bbf7d0; 
+    background: #f0fdf4; 
+    color: #15803d; 
+    width: 138px; 
+}
 
 /* ── Status & Signals ── */
 .status-badge { padding: 3px 10px; border-radius: 9999px; font-size: 0.7rem; font-weight: 500; text-align: center; display: inline-block; min-width: 75px; }
 .status-completed { background: #dcfce7; color: #16a34a; }
 .status-processing { background: #fef3c7; color: #d97706; }
+.status-pending { background: #e0e7ff; color: #4338ca; }
+.status-failed { background: #fee2e2; color: #dc2626; }
 
 .signal-badge { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; border: 1px solid; cursor: pointer; }
 .signal-p5 { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
@@ -159,6 +183,14 @@
 .btn-delete:hover { color: #ef4444; background: #fee2e2; }
 .btn-unshare { color: #2563eb; }
 .btn-unshare:hover { background: #eff6ff; color: #1d4ed8; }
+
+/* ── Empty State ── */
+.empty-state {
+    padding: 32px 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
 
 /* ── Standard Modals (Unshare & Delete) ── */
 .modal-backdrop {
@@ -202,16 +234,14 @@
 }
 .btn-remove-access:hover { background: #fecaca; }
 
-/* Footer Alignment Update */
 .modal-footer {
     padding: 12px 20px;
     background: #f9fafb;
     display: flex;
     justify-content: flex-end;
-    gap: 8px; /* Consistent spacing between modal actions */
+    gap: 8px;
 }
 
-/* Modal Buttons Styling */
 .btn-modal-close {
     background: white;
     border: 1px solid #d1d5db;
@@ -228,7 +258,7 @@
 }
 
 .btn-confirm-delete {
-    background-color: #ef4444; /* Red-500 */
+    background-color: #ef4444;
     color: white;
     border: none;
     padding: 6px 16px;
@@ -239,7 +269,7 @@
     transition: background 0.15s;
 }
 .btn-confirm-delete:hover {
-    background-color: #dc2626; /* Red-600 */
+    background-color: #dc2626;
 }
 
 /* Spinner helper */

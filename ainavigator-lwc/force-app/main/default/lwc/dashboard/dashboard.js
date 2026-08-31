@@ -1,6 +1,6 @@
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
-import { updateRecord } from 'lightning/uiRecordApi'; // Best Practice Import
+import { updateRecord } from 'lightning/uiRecordApi';
 import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
 import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
 import getSignals from '@salesforce/apex/DashboardController.getSignals';
@@ -11,6 +11,20 @@ import getTeammates from '@salesforce/apex/DashboardController.getTeammates';
 import shareCompanies from '@salesforce/apex/DashboardController.shareCompanies';
 import getSharedUsers from '@salesforce/apex/DashboardController.getSharedUsers';
 import unshareCompany from '@salesforce/apex/DashboardController.unshareCompany';
+
+// Picklist definitions matching Stage_List__c & Client_Type_List__c
+const STAGE_OPTIONS = [
+    { label: 'PreCall',           value: 'PreCall' },
+    { label: 'Appointment Set',   value: 'Appointment Set' },
+    { label: 'Pre Qualification', value: 'Pre Qualification' },
+    { label: 'Face to Face',      value: 'Face to Face' }
+];
+
+const CLIENT_TYPE_OPTIONS = [
+    { label: 'Prospect',          value: 'Prospect' },
+    { label: 'Existing Customer', value: 'Existing Customer' },
+    { label: 'Past Customer',     value: 'Past Customer' }
+];
 
 export default class Dashboard extends NavigationMixin(LightningElement) {
     @track stats = { totalCompanies: 0, processing: 0, completed: 0, opened: 0 };
@@ -26,7 +40,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track selectedCompanyIds = new Set();
     @track shareTargetUserId = '';
     @track isSharing = false;
-    @track shareMessage = null; // Custom toast object: { text: '', type: 'success'|'error' }
+    @track shareMessage = null;
     
     // --- Unshare Modal State ---
     @track isUnshareModalOpen = false;
@@ -34,7 +48,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track currentUnshareCompanyName = '';
     @track sharedWithUsersList = [];
     
-    // ─── ADD THESE THREE LINES HERE FOR REACTIVITY ───
+    // --- Delete Modal State ---
     @track isDeleteModalOpen = false;
     @track companyToDeleteId = '';
     @track companyToDeleteName = '';
@@ -43,12 +57,11 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track simulatingCompanyIds = new Set();
     activeTimeouts = [];
 
-    // Fetch teammates (users in same profile)
+    // Fetch teammates
     @wire(getTeammates)
     teammates;
 
     connectedCallback() {
-        console.log('[Dashboard Log] ConnectedCallback fired');
         this.loadStats();
         this.loadCompanies();
         window.addEventListener('companysubmitted', this.handleCompanySubmitted);
@@ -62,11 +75,9 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     // --- Simulation & UI Record Update Loop ---
     startPendingSimulation(companyId) {
         if (this.simulatingCompanyIds.has(companyId)) {
-            console.log('[Dashboard Log] Already simulating ID:', companyId);
             return;
         }
 
-        console.log('[Dashboard Log] STARTING 30-second simulation for company ID:', companyId);
         this.simulatingCompanyIds.add(companyId);
 
         // eslint-disable-next-line @lwc/lwc/no-async-operation
@@ -78,8 +89,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     completeCompany(companyId) {
-        console.log('[Dashboard Log] 30 seconds are up. Calling standard updateRecord for ID:', companyId);
-        
         const recordInput = {
             fields: {
                 Id: companyId,
@@ -89,8 +98,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
         updateRecord(recordInput)
             .then(() => {
-                console.log('[Dashboard Log] uiRecordApi update returned SUCCESS for ID:', companyId);
-                
                 this.simulatingCompanyIds.delete(companyId);
                 this._companies = this._companies.map(c => {
                     if (c.companyId === companyId) {
@@ -104,18 +111,16 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                 this._companies = [...this._companies];
             })
             .catch(error => {
-                console.error('[Dashboard Log] uiRecordApi update FAILED for ID:', companyId, error);
+                console.error('[Dashboard Log] uiRecordApi update failed:', companyId, error);
                 this.simulatingCompanyIds.delete(companyId);
                 this._companies = [...this._companies];
             });
     }
 
-    // Custom Event Handler for Real-Time Submissions from InputForm
     handleCompanySubmitted = (event) => {
         const payload = event.detail;
         if (!payload || !payload.companyId) return;
 
-        console.log('[Dashboard Log] Event "companysubmitted" received for:', payload.name);
         this.startPendingSimulation(payload.companyId);
 
         const submittedCompany = this.mapCompany({
@@ -151,13 +156,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .then(result => {
                 const raw = JSON.parse(result);
                 
-                // 1. Map raw companies to UI models
                 this._companies = raw.map(c => this.mapCompany(c));
 
-                // 2. SAFE & SELF-HEALING: Scan the raw DB records for any non-completed statuses on load
                 raw.forEach(c => {
                     if (c.status !== 'completed') {
-                        console.log('[Dashboard Log] Self-healing found incomplete record:', c.name, 'Status:', c.status);
                         this.startPendingSimulation(c.companyId);
                     }
                     this.loadSignalsForCompany(c.companyId);
@@ -181,15 +183,19 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     // Consolidated mapCompany method
     mapCompany(c, signals) {
-        // Any record in simulation OR whose actual database status is not 'completed' is forced to 'processing'
         const isSimulating = this.simulatingCompanyIds.has(c.companyId) || c.status !== 'completed';
         const displayStatus = isSimulating ? 'processing' : c.status;
+
+        const currentStage = c.stage || 'PreCall';
+        const currentClientType = c.clientType || 'Prospect';
 
         const companySignals = signals || this._companySignals[c.companyId] || [];
         const signalSummary = this.getSignalSummary(companySignals, displayStatus);
         
         return {
             ...c,
+            stage: currentStage,
+            clientType: currentClientType,
             status: displayStatus,
             locationDisplay: [c.city, c.state].filter(Boolean).join(', '),
             createdAtDisplay: c.createdAt
@@ -198,32 +204,91 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             statusClass: this.getStatusClass(displayStatus),
             statusLabel: displayStatus ? displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) : 'Unknown',
             
-            // --- Sharing UI Logic ---
+            // Dynamic Picklist Options with Selected State
+            stageOptions: STAGE_OPTIONS.map(opt => ({
+                ...opt,
+                isSelected: opt.value === currentStage
+            })),
+            clientTypeOptions: CLIENT_TYPE_OPTIONS.map(opt => ({
+                ...opt,
+                isSelected: opt.value === currentClientType
+            })),
+
+            // Sharing UI Logic
             isSelected: this.selectedCompanyIds.has(c.companyId),
             hasSharedLabel: !!c.sharedByName, 
             sharedByLabel: `Shared by ${c.sharedByName}`,
             showUnshareButton: c.isShared && !c.sharedByName,
             showShareButton: !c.isShared && !c.sharedByName && displayStatus === 'completed',
             
-            stageIsPreCall:        (c.stage || 'PreCall') === 'PreCall',
-            stageIsAppointmentSet: c.stage === 'Appointment Set',
-            stageIsFaceToFace:     c.stage === 'Face To Face',
-            stageIsQualification:  c.stage === 'Qualification',
-            clientTypeIsProspect:  (c.clientType || 'Prospect') === 'Prospect',
-            clientTypeIsExisting:  c.clientType === 'Existing Customer',
-            clientTypeIsPast:      c.clientType === 'Past Customer',
-            hasSignals:            signalSummary !== null,
-            signalBadgeLabel:      signalSummary
-                                        ? (signalSummary.warningCount > 0
-                                            ? `${signalSummary.count} (${signalSummary.warningCount})`
-                                            : `${signalSummary.count}`)
-                                        : 'Signals',
-            signalBadgeClass:      'signal-badge ' + (signalSummary ? this.getSignalBadgeClass(signalSummary.maxPriority) : 'signal-default')
+            hasSignals: signalSummary !== null,
+            signalBadgeLabel: signalSummary
+                ? (signalSummary.warningCount > 0
+                    ? `${signalSummary.count} (${signalSummary.warningCount})`
+                    : `${signalSummary.count}`)
+                : 'Signals',
+            signalBadgeClass: 'signal-badge ' + (signalSummary ? this.getSignalBadgeClass(signalSummary.maxPriority) : 'signal-default')
         };
     }
 
-    // --- Selection Handlers ---
+    // --- Picklist Change Handlers ---
+    handleStageChange(event) {
+        event.stopPropagation();
+        const companyId = event.target.dataset.companyid;
+        const newStage = event.target.value;
+        
+        const oldCompany = this._companies.find(c => c.companyId === companyId);
+        const oldStage = oldCompany ? oldCompany.stage : 'PreCall';
 
+        // 1. Optimistic UI update
+        this._companies = this._companies.map(c => 
+            c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c
+        );
+
+        // 2. Apex update call
+        updateCompany({ companyId: companyId, stage: newStage, clientType: null })
+            .then(() => {
+                this.showCustomToast(`Stage updated to ${newStage}`, 'success');
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error updating stage:', error);
+                this.showCustomToast('Failed to update stage: ' + (error.body?.message || error.message), 'error');
+                // Revert on error
+                this._companies = this._companies.map(c => 
+                    c.companyId === companyId ? this.mapCompany({ ...c, stage: oldStage }) : c
+                );
+            });
+    }
+
+    handleClientTypeChange(event) {
+        event.stopPropagation();
+        const companyId = event.target.dataset.companyid;
+        const newClientType = event.target.value;
+
+        const oldCompany = this._companies.find(c => c.companyId === companyId);
+        const oldClientType = oldCompany ? oldCompany.clientType : 'Prospect';
+
+        // 1. Optimistic UI update
+        this._companies = this._companies.map(c => 
+            c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c
+        );
+
+        // 2. Apex update call
+        updateCompany({ companyId: companyId, stage: null, clientType: newClientType })
+            .then(() => {
+                this.showCustomToast(`Client Type updated to ${newClientType}`, 'success');
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error updating client type:', error);
+                this.showCustomToast('Failed to update client type: ' + (error.body?.message || error.message), 'error');
+                // Revert on error
+                this._companies = this._companies.map(c => 
+                    c.companyId === companyId ? this.mapCompany({ ...c, clientType: oldClientType }) : c
+                );
+            });
+    }
+
+    // --- Selection Handlers ---
     handleRowSelect(event) {
         event.stopPropagation(); 
         const companyId = event.target.dataset.companyid; 
@@ -259,7 +324,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     // --- Sharing Actions ---
-
     handleTeammateChange(event) {
         this.shareTargetUserId = event.target.value;
     }
@@ -329,7 +393,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                 }
                 this.loadCompanies(); 
             })
-            .catch(error => {
+            .catch(() => {
                 this.showCustomToast('Error removing access', 'error');
             });
     }
@@ -342,12 +406,12 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         }, 4000);
     }
 
-    // --- Getters for UI visibility ---
     get toastClass() {
         return this.shareMessage 
             ? `custom-toast toast-${this.shareMessage.type}` 
             : 'custom-toast';
     }
+
     get showShareToolbar() {
         return this.selectedCompanyIds.size > 0;
     }
@@ -361,8 +425,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     // --- Helper Logic ---
-
-    getSignalSummary(signals, status) {
+    getSignalSummary(signals) {
         if (!signals || signals.length === 0) return null;
         const nonNeutral = signals.filter(s => s.signalType !== 'Neutral');
         if (nonNeutral.length === 0) return null;
@@ -425,20 +488,20 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     get filterOptions() {
         return [
-            { label: 'All',                  value: 'all' },
-            { label: 'Most Recent 2',        value: 'recent2' },
-            { label: 'Client: Prospect',     value: 'clientType:Prospect' },
-            { label: 'Client: Existing',     value: 'clientType:Existing Customer' },
-            { label: 'Client: Past',         value: 'clientType:Past Customer' },
-            { label: 'Stage: PreCall',       value: 'stage:PreCall' },
-            { label: 'Stage: Appt Set',      value: 'stage:Appointment Set' },
-            { label: 'Stage: Face To Face',  value: 'stage:Face To Face' },
-            { label: 'Stage: Qualification', value: 'stage:Qualification' },
-            { label: 'Status: Completed',    value: 'status:completed' },
-            { label: 'Status: Processing',   value: 'status:processing' },
-            { label: 'Status: Pending',      value: 'status:pending' },
-            { label: 'Status: Failed',       value: 'status:failed' },
-            { label: 'By Date Submitted',    value: 'byDate' }
+            { label: 'All',                      value: 'all' },
+            { label: 'Most Recent 2',            value: 'recent2' },
+            { label: 'Client: Prospect',         value: 'clientType:Prospect' },
+            { label: 'Client: Existing Customer',value: 'clientType:Existing Customer' },
+            { label: 'Client: Past Customer',    value: 'clientType:Past Customer' },
+            { label: 'Stage: PreCall',           value: 'stage:PreCall' },
+            { label: 'Stage: Appt Set',          value: 'stage:Appointment Set' },
+            { label: 'Stage: Pre Qualification', value: 'stage:Pre Qualification' },
+            { label: 'Stage: Face to Face',      value: 'stage:Face to Face' },
+            { label: 'Status: Completed',        value: 'status:completed' },
+            { label: 'Status: Processing',       value: 'status:processing' },
+            { label: 'Status: Pending',          value: 'status:pending' },
+            { label: 'Status: Failed',           value: 'status:failed' },
+            { label: 'By Date Submitted',        value: 'byDate' }
         ];
     }
 
@@ -508,7 +571,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return 'No companies yet.';
     }
 
-    // --- Standard Handlers ---
     handleSearchChange(event)     { this.searchTerm = event.target.value; this.currentPage = 1; }
     handleClearSearch()           { this.searchTerm = ''; this.currentPage = 1; }
     handleFilterChange(event)     { this.companyFilter = event.target.value; if (this.companyFilter !== 'byDate') this.dateFilter = ''; this.currentPage = 1; }
@@ -516,20 +578,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     handleClearFilter()           { this.companyFilter = 'all'; this.dateFilter = ''; this.searchTerm = ''; this.currentPage = 1; }
     handlePrevPage()              { if (this.currentPage > 1) this.currentPage--; }
     handleNextPage()              { if (this.currentPage < this.totalPages) this.currentPage++; }
-
-    handleStageChange(event) {
-        const companyId = event.target.dataset.companyid;
-        const newStage = event.target.value;
-        this._companies = this._companies.map(c => c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c);
-        updateCompany({ companyId, stage: newStage, clientType: null }).catch(err => console.error(err));
-    }
-
-    handleClientTypeChange(event) {
-        const companyId = event.target.dataset.companyid;
-        const newClientType = event.target.value;
-        this._companies = this._companies.map(c => c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c);
-        updateCompany({ companyId, stage: null, clientType: newClientType }).catch(err => console.error(err));
-    }
 
     handleOpenSignals(event) {
         const companyId = event.currentTarget.dataset.companyid;
@@ -541,91 +589,48 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     }
 
     handleDelete(event) {
-        console.log('[Delete Troubleshooting] ---> handleDelete() event triggered!');
-        event.stopPropagation(); // Prevent row click navigation
-
-        // Log the target and currentTarget to ensure we are listening to the correct element
-        console.log('[Delete Troubleshooting] Event Target:', event.target);
-        console.log('[Delete Troubleshooting] Event CurrentTarget:', event.currentTarget);
-
+        event.stopPropagation();
         const companyId = event.currentTarget ? event.currentTarget.dataset.companyid : null;
-        console.log('[Delete Troubleshooting] Extracted dataset companyId:', companyId);
-
-        // Print a snapshot of active companies currently in the UI list to confirm ID alignment
-        console.log(
-            '[Delete Troubleshooting] Active companies in list:', 
-            JSON.stringify(this._companies.map(c => ({ id: c.companyId, name: c.name })))
-        );
-
         const company = this._companies.find(c => c.companyId === companyId);
-        console.log('[Delete Troubleshooting] Matching company record found:', JSON.stringify(company));
+        if (!company) return;
 
-        if (!company) {
-            console.error(
-                '[Delete Troubleshooting] Aborting operation: No company record matched the extracted ID:', 
-                companyId
-            );
-            return;
-        }
-
-        // Apply state updates to trigger HTML re-render
         this.companyToDeleteId = companyId;
         this.companyToDeleteName = company.name;
         this.isDeleteModalOpen = true;
-
-        console.log(
-            '[Delete Troubleshooting] State successfully updated. Modal is now set to open:',
-            {
-                isDeleteModalOpen: this.isDeleteModalOpen,
-                companyToDeleteId: this.companyToDeleteId,
-                companyToDeleteName: this.companyToDeleteName
-            }
-        );
     }
-handleConfirmDelete() {
-        console.log('[Delete Troubleshooting] ---> handleConfirmDelete() triggered.');
-        const companyId = this.companyToDeleteId;
-        console.log('[Delete Troubleshooting] Target delete ID from state:', companyId);
 
+    handleConfirmDelete() {
+        const companyId = this.companyToDeleteId;
         const company = this._companies.find(c => c.companyId === companyId);
         if (!company) {
-            console.warn('[Delete Troubleshooting] No company record found in state list. Closing modal.');
             this.handleCloseDeleteModal();
             return;
         }
 
-        // Apply optimistic UI delete
-        console.log('[Delete Troubleshooting] Executing optimistic UI delete for:', company.name);
         this._companies = this._companies.filter(c => c.companyId !== companyId);
         this.handleCloseDeleteModal();
 
         deleteCompany({ companyId })
             .then(() => {
-                console.log('[Delete Troubleshooting] Backend delete action returned SUCCESS.');
                 this.showCustomToast('Company deleted successfully', 'success');
                 this.loadStats();
             })
             .catch(error => {
-                console.error('[Delete Troubleshooting] Backend delete action returned FAILURE:', error);
+                console.error('[Dashboard Log] Delete action failed:', error);
                 this.showCustomToast('Failed to delete company', 'error');
-                // Restore state in case of failure
                 this._companies = [...this._companies, company];
             });
     }
+
     handleCloseDeleteModal() {
-        console.log('[Delete Troubleshooting] ---> handleCloseDeleteModal() triggered. Resetting states.');
         this.isDeleteModalOpen = false;
         this.companyToDeleteId = '';
         this.companyToDeleteName = '';
     }
+
     handleCompanyClick(event) {
         const companyId = event.currentTarget.dataset.companyid; 
-        console.log('Row clicked, Company ID:', companyId);
-        
-        if (!companyId) {
-            console.error('Navigation aborted: companyid is missing from HTML attributes');
-            return;
-        }
+        if (!companyId) return;
 
         const company = this._companies.find(c => c.companyId === companyId);
         

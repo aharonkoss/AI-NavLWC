@@ -1,17 +1,10 @@
 /**
  * @description Controller for the upload LWC.
- *              Handles bulk file upload:
- *              1. Creates a Submission__c record (Status = processing)
- *              2. Publishes AINavigatorOutbound__e (UPLOAD) with file content
- *                 embedded in the payload per Azure UploadRequest.v1 schema
- *              3. Returns real Submission__c.Id and updated daily usage to LWC
- *
+ *              Handles bulk file upload and tracks submission progress.
  * @group       AI Navigator - LWC Controllers
- * @last-modified 2026-04-21
  */
 public with sharing class UploadController {
 
-    // Daily upload limit per user. Configurable here until we move to Custom Settings.
     private static final Integer DAILY_LIMIT = 5;
 
     @AuraEnabled(cacheable=true)
@@ -33,7 +26,7 @@ public with sharing class UploadController {
         }
     }
 
-    @AuraEnabled(cacheable=true)
+    @AuraEnabled(cacheable=false)
     public static String getPreviousSubmissions() {
         try {
             List<AI_Navigator_Submission__c> subs = [
@@ -52,7 +45,7 @@ public with sharing class UploadController {
                     'submissionId' => s.Submission_Id__c,
                     'recordId'     => s.Id,
                     'fileName'     => s.File_Name__c,
-                    'status'       => s.Status__c,
+                    'status'       => s.Status__c != null ? s.Status__c.toLowerCase() : 'completed',
                     'submittedAt'  => String.valueOf(s.Submitted_At__c),
                     'total'        => s.Total_Companies__c,
                     'processed'    => s.Processed_Companies__c,
@@ -72,12 +65,11 @@ public with sharing class UploadController {
         String defaultStage,
         String defaultClientType
     ) {
-        String correlationId  = null;
-        String submissionId   = null;
+        String correlationId = null;
+        String submissionId  = null;
         Map<String, Object> payload = null;
 
         try {
-            // ── Guard: daily limit check ────────────────────────────────────
             Integer usedToday = getTodayUploadCount();
             if (usedToday >= DAILY_LIMIT) {
                 throw new AuraHandledException(
@@ -85,198 +77,119 @@ public with sharing class UploadController {
                 );
             }
 
-            // ── 1. Generate IDs ─────────────────────────────────────────────
             correlationId = AiNavigatorEventService.generateCorrelationId();
             submissionId  = correlationId;
-
-            // ── 2. Calculate file size from base64 ──────────────────────────
             Integer fileSize = (Integer)(base64Data.length() * 0.75);
 
-            // ── 3. Create Submission__c record ──────────────────────────────
+            // 1. Parse CSV rows
+            List<AI_Navigator_Company__c> companiesToInsert = new List<AI_Navigator_Company__c>();
+            List<Map<String, String>> parsedRows = parseCsv(base64Data);
+            Id currentUserId = UserInfo.getUserId();
+
+            for (Map<String, String> row : parsedRows) {
+                String rowStage = String.isNotBlank(row.get('Stage')) ? row.get('Stage') : defaultStage;
+                String rowClientType = String.isNotBlank(row.get('ClientType')) ? row.get('ClientType') : defaultClientType;
+
+                companiesToInsert.add(new AI_Navigator_Company__c(
+                    Name                = row.get('Name'),
+                    Website__c          = row.get('Website'),
+                    City__c             = row.get('City'),
+                    State__c            = row.get('State'),
+                    Stage_List__c       = rowStage,
+                    Client_Type_List__c = rowClientType,
+                    Status__c           = 'pending',
+                    Correlation_Id__c   = correlationId,
+                    Is_Hidden__c        = false,
+                    OwnerId             = currentUserId
+                ));
+            }
+
+            if (!companiesToInsert.isEmpty()) {
+                insert companiesToInsert;
+            }
+
+            // 2. Create Submission record
             AI_Navigator_Submission__c sub = new AI_Navigator_Submission__c(
-                Submission_Id__c = submissionId,
-                File_Name__c     = fileName,
-                Status__c        = 'processing',
-                Submitted_By__c  = UserInfo.getUserId(),
-                Submitted_At__c  = DateTime.now()
+                Submission_Id__c       = submissionId,
+                File_Name__c           = fileName,
+                Status__c              = 'processing',
+                Submitted_By__c        = currentUserId,
+                Submitted_At__c        = DateTime.now(),
+                Total_Companies__c     = companiesToInsert.size(),
+                Processed_Companies__c = 0,
+                Failed_Companies__c    = 0
             );
             insert sub;
-        // ── 3b. Parse CSV and pre-create Company__c records ─────────────────
-        List<AI_Navigator_Company__c> companiesToInsert = new List<AI_Navigator_Company__c>();
-        List<Map<String, String>> parsedRows = parseCsv(base64Data);
 
-        for (Map<String, String> row : parsedRows) {
-            companiesToInsert.add(new AI_Navigator_Company__c(
-                Name             = row.get('Name'),
-                Website__c       = row.get('Website'),
-                City__c          = row.get('City'),
-                State__c         = row.get('State'),
-                Stage__c         = String.isNotBlank(row.get('Stage'))      ? row.get('Stage')      : defaultStage,
-                Client_Type__c   = String.isNotBlank(row.get('ClientType')) ? row.get('ClientType') : defaultClientType,
-                Status__c        = 'pending',
-                Correlation_Id__c = correlationId
-            ));
-        }
+            // 3. Build payload
+            List<Map<String, Object>> companyList = new List<Map<String, Object>>();
+            for (AI_Navigator_Company__c c : companiesToInsert) {
+                companyList.add(new Map<String, Object>{
+                    'salesforceId' => c.Id,
+                    'name'         => c.Name,
+                    'website'      => c.Website__c,
+                    'city'         => c.City__c,
+                    'state'        => c.State__c,
+                    'stage'        => c.Stage_List__c,
+                    'clientType'   => c.Client_Type_List__c
+                });
+            }
 
-        if (!companiesToInsert.isEmpty()) {
-            insert companiesToInsert;
-        }
-
-        // ── 3c. Build company list WITH real SF IDs for the payload ──────────
-        List<Map<String, Object>> companyList = new List<Map<String, Object>>();
-        for (AI_Navigator_Company__c c : companiesToInsert) {
-            companyList.add(new Map<String, Object>{
-                'salesforceId' => c.Id,          // ← Azure echoes this back in callbacks
-                'name'         => c.Name,
-                'website'      => c.Website__c,
-                'city'         => c.City__c,
-                'state'        => c.State__c,
-                'stage'        => c.Stage__c,
-                'clientType'   => c.Client_Type__c
-            });
-        }         
-
-            // ── 4. Build payload ─────────────────────────────────────────────
             payload = new Map<String, Object>{
                 'fileName'     => fileName,
                 'fileContent'  => base64Data,
                 'submissionId' => submissionId,
-                'companies'     => companyList,      // ← ADD THIS — real SF IDs included
+                'companies'    => companyList,
                 'stage'        => defaultStage,
                 'clientType'   => defaultClientType,
                 'fileSize'     => fileSize,
-                'submittedBy'  => UserInfo.getUserId(),
+                'submittedBy'  => currentUserId,
                 'submittedAt'  => String.valueOf(DateTime.now())
             };
 
-            // ── 5. Enqueue async HTTP callout to Azure ───────────────────────────
+            // 4. Enqueue Azure Callout Job
+            try {
                 System.enqueueJob(new AzureUploadCompanyCallout(
                     sub.Id,
                     JSON.serialize(payload),
                     correlationId
                 ));
+            } catch (Exception calloutEx) {
+                System.debug(LoggingLevel.WARN, 'Callout queue warning: ' + calloutEx.getMessage());
+            }
 
-            // ── 6. Log the outbound event (SUCCESS) ──────────────────────────
-            writeLog('PLATFORM_EVENT', 'UploadController.uploadFile',
-                    JSON.serialize(payload), null, 'Success', 202,       // ← Integer 202
-                    correlationId, 'submissionId=' + submissionId + ' file=' + fileName);
-
-            // ── 7. Return to LWC ─────────────────────────────────────────────
+            // 5. Return success
             Integer newUsedToday = usedToday + 1;
             return JSON.serialize(new Map<String, Object>{
-                'success'       => true,
-                'message'       => 'File uploaded successfully. Processing will start shortly.',
-                'submissionId'  => submissionId,
-                'recordId'      => sub.Id,
-                'fileName'      => fileName,
-                'fileSize'      => fileSize,
-                'correlationId' => correlationId,
-                'dailyLimit'    => DAILY_LIMIT,
-                'usedToday'     => newUsedToday,
-                'remaining'     => Math.max(0, DAILY_LIMIT - newUsedToday)
+                'success'        => true,
+                'message'        => 'File uploaded successfully. Processing will start shortly.',
+                'submissionId'   => submissionId,
+                'recordId'       => sub.Id,
+                'fileName'       => fileName,
+                'fileSize'       => fileSize,
+                'totalCompanies' => companiesToInsert.size(),
+                'correlationId'  => correlationId,
+                'dailyLimit'     => DAILY_LIMIT,
+                'usedToday'      => newUsedToday,
+                'remaining'      => Math.max(0, DAILY_LIMIT - newUsedToday)
             });
-
-        } catch (DmlException dmlEx) {
-            System.debug(LoggingLevel.ERROR, 'UploadController DML error: ' + dmlEx.getMessage());
-            writeLog('PLATFORM_EVENT', 'UploadController.uploadFile',
-                payload != null ? JSON.serialize(payload) : null,
-                null, 'Failed', 500,                                 // ← Integer 500
-                correlationId, 'DML ERROR: ' + dmlEx.getDmlMessage(0));
-            throw new AuraHandledException(
-                'Could not save the submission record. ' + dmlEx.getDmlMessage(0)
-            );
-
-        } catch (AuraHandledException ahe) {
-            // Daily limit or validation — log it then re-throw
-           writeLog('PLATFORM_EVENT', 'UploadController.uploadFile',
-                null, null, 'Failed', 400,                           // ← Integer 400
-                correlationId, 'VALIDATION: ' + ahe.getMessage());
-            throw ahe;
 
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'UploadController error: ' + e.getMessage());
-            writeLog('PLATFORM_EVENT', 'UploadController.uploadFile',
-                payload != null ? JSON.serialize(payload) : null,
-                null, 'Failed', 500,                                 // ← Integer 500
-                correlationId, 'EXCEPTION: ' + e.getMessage());
-            throw new AuraHandledException('An unexpected error occurred. Please try again.');
+            throw new AuraHandledException('Error during upload: ' + e.getMessage());
         }
     }
 
-    // ── Private log helper ───────────────────────────────────────────────────────
-   private static void writeLog(
-    String httpMethod,
-    String endpointName,
-    String requestBody,
-    String responseBody,
-    String status,
-    Integer httpStatusCode,             // ← was String, now Integer
-    String correlationId,
-    String errorMessage
-    ) {
-        try {
-            if (requestBody != null) {
-                Map<String, Object> bodyMap = (Map<String, Object>) JSON.deserializeUntyped(requestBody);
-                bodyMap.remove('fileContent');
-                requestBody = JSON.serialize(bodyMap);
-            }
-
-            if (requestBody != null && requestBody.length() > 32000) {
-                requestBody = requestBody.substring(0, 32000) + '...[TRUNCATED]';
-            }
-
-            insert new AI_Navigator_Request_Log__c(
-                HTTP_Method__c      = httpMethod,
-                Endpoint_Name__c    = endpointName,
-                Request_Body__c     = requestBody,
-                Response_Body__c    = responseBody,
-                Status__c           = 'Success',
-                HTTP_Status_Code__c = httpStatusCode,   // ← Integer, matches Number field
-                Correlation_ID__c   = correlationId,
-                Error_Message__c    = errorMessage
-            );
-
-        } catch (Exception logEx) {
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    HTTP_Method__c      = httpMethod,
-                    Endpoint_Name__c    = endpointName,
-                    Status__c           = 'Failed',
-                    HTTP_Status_Code__c = httpStatusCode,   // ← Integer here too
-                    Correlation_ID__c   = correlationId,
-                    Error_Message__c    = 'writeLog INSERT FAILED: ' + logEx.getMessage()
-                                        + ' | Original error: ' + errorMessage
-                );
-            } catch (Exception fallbackEx) {
-                // Last resort — only two fields, nothing that can fail
-    insert new AI_Navigator_Request_Log__c(
-        Status__c        = 'Failed',
-        Error_Message__c = 'writeLog ALL inserts failed.'
-                            + ' Final: '    + fallbackEx.getMessage()
-                            + ' Fallback: ' + fallbackEx.getMessage()
-                            + ' Primary: '  + fallbackEx.getMessage()
-                            + ' Original: ' + errorMessage
-        );
-            }
-        }
+    private static Integer getTodayUploadCount() {
+        DateTime startOfDay = DateTime.newInstance(Date.today(), Time.newInstance(0, 0, 0, 0));
+        return [
+            SELECT COUNT()
+            FROM AI_Navigator_Submission__c
+            WHERE Submitted_By__c = :UserInfo.getUserId()
+            AND   Submitted_At__c >= :startOfDay
+        ];
     }
 
-    // ── Private Helpers ──────────────────────────────────────────────────────
-
-        /**
-         * Counts how many Submission__c records the current user has created today.
-         * Used for daily limit enforcement.
-         */
-        private static Integer getTodayUploadCount() {
-            DateTime startOfDay = DateTime.newInstance(Date.today(), Time.newInstance(0, 0, 0, 0));
-            return [
-                SELECT COUNT()
-                FROM AI_Navigator_Submission__c
-                WHERE Submitted_By__c = :UserInfo.getUserId()
-                AND   Submitted_At__c >= :startOfDay
-            ];
-        }
-    // Normalize header names to match row.get() keys
     private static final Map<String, String> HEADER_MAP = new Map<String, String>{
         'company name' => 'Name',
         'name'         => 'Name',
@@ -301,14 +214,12 @@ public with sharing class UploadController {
 
         if (lines.isEmpty()) return rows;
 
-        // Parse + normalize header row
         List<String> headers = new List<String>();
         for (String h : lines[0].replace('\r', '').split(',')) {
             String normalized = HEADER_MAP.get(h.trim().toLowerCase());
             headers.add(normalized != null ? normalized : h.trim());
         }
 
-        // Parse data rows
         for (Integer i = 1; i < lines.size(); i++) {
             String line = lines[i].replace('\r', '').trim();
             if (String.isBlank(line)) continue;

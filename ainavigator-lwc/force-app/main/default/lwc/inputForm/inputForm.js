@@ -16,10 +16,10 @@ export default class InputForm extends LightningElement {
     @track successMessage = '';
 
     stageOptions = [
-        { label: 'PreCall',          value: 'PreCall' },
-        { label: 'Appointment Set',  value: 'Appointment Set' },
-        { label: 'Face To Face',     value: 'Face To Face' },
-        { label: 'Qualification',    value: 'Qualification' }
+        { label: 'PreCall',           value: 'PreCall' },
+        { label: 'Appointment Set',   value: 'Appointment Set' },
+        { label: 'Pre Qualification', value: 'Pre Qualification' },
+        { label: 'Face to Face',      value: 'Face to Face' }
     ];
 
     clientTypeOptions = [
@@ -27,8 +27,10 @@ export default class InputForm extends LightningElement {
         { label: 'Existing Customer', value: 'Existing Customer' },
         { label: 'Past Customer',     value: 'Past Customer' }
     ];
-    _lastCreatedCompanyId   = null;
+
+    _lastCreatedCompanyId     = null;
     _lastCreatedCorrelationId = null;
+
     // ── Computed classes ───────────────────────────────────────────
     get companyNameInputClass() {
         return `input-field${this.errors.companyName ? ' input-error' : ''}`;
@@ -126,19 +128,19 @@ export default class InputForm extends LightningElement {
         this.isSubmitting = true;
 
         submitCompany({
-            companyName : this.companyName.trim(),
-            website     : this.website.trim(),
-            city        : this.city.trim(),
-            state       : this.state.trim(),
-            stage       : this.stage,
-            clientType  : this.clientType,
+            companyName      : this.companyName.trim(),
+            website          : this.website.trim(),
+            city             : this.city.trim(),
+            state            : this.state.trim(),
+            stage            : this.stage,
+            clientType       : this.clientType,
             isCalledFromLead : false
         })
         .then(resultJson => {
             const result = JSON.parse(resultJson);
 
             // Store the real SF record ID and correlationId
-            this._lastCreatedCompanyId    = result.companyId;
+            this._lastCreatedCompanyId     = result.companyId;
             this._lastCreatedCorrelationId = result.correlationId;
 
             this.isSubmitting  = false;
@@ -157,8 +159,7 @@ export default class InputForm extends LightningElement {
             this.errors      = {};
             this.urlValid    = null;
 
-            // Fire an event so parent (app/dashboard) can react immediately
-            // and add the new "processing" card to the list without a refresh.
+            // Fire event so dashboard immediately receives the pending company
             this.dispatchEvent(new CustomEvent('companysubmitted', {
                 bubbles : true,
                 composed: true,
@@ -175,7 +176,7 @@ export default class InputForm extends LightningElement {
                 }
             }));
 
-            // Auto-clear success toast after 6 seconds (unchanged)
+            // Auto-clear success toast after 6 seconds
             setTimeout(() => { this.submitSuccess = false; }, 6000);
         })
         .catch(error => {

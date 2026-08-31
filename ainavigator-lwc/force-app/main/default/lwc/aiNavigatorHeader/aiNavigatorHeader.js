@@ -98,6 +98,11 @@ export default class AiNavigatorHeader extends LightningElement {
         ];
     }
 
+    get showCompanyRibbon() {
+        const nonCompanyTabs = ['dashboard', 'upload', 'input', 'signals-config'];
+        return this.companySelected && !nonCompanyTabs.includes(this.activeTab);
+    }
+
     get hasLocation() {
         return !!(this.companyCity || this.companyState);
     }

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Stage_List__c</fullName>
+    <description>Workflow stage for AI Navigator research</description>
+    <externalId>false</externalId>
+    <label>Stage List</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>false</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>PreCall</fullName>
+                <default>true</default>
+                <label>PreCall</label>
+            </value>
+            <value>
+                <fullName>Appointment Set</fullName>
+                <default>false</default>
+                <label>Appointment Set</label>
+            </value>
+            <value>
+                <fullName>Pre Qualification</fullName>
+                <default>false</default>
+                <label>Pre Qualification</label>
+            </value>
+            <value>
+                <fullName>Face to Face</fullName>
+                <default>false</default>
+                <label>Face to Face</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

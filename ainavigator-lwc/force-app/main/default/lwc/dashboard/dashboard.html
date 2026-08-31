@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 06-30-2026
+  @last modified on  : 08-28-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -22,7 +22,7 @@
             <h1 class="page-title">Dashboard</h1>
         </div>
 
-        <!-- KPI Stats Cards (Unchanged) -->
+        <!-- KPI Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-row">
@@ -82,7 +82,7 @@
                 </div>
             </div>
 
-            <!-- Bulk Share Toolbar (PDF Step 1) -->
+            <!-- Bulk Share Toolbar -->
             <template if:true={showShareToolbar}>
                 <div class="share-toolbar">
                     <div class="toolbar-left">
@@ -117,7 +117,7 @@
                             onclick={handleCompanyClick}
                         >
                             
-                            <!-- Checkbox (New) -->
+                            <!-- Checkbox -->
                             <div class="company-check-col" onclick={stopPropagation}>
                                 <input type="checkbox" 
                                     data-companyid={company.companyId} 
@@ -126,7 +126,7 @@
                                     disabled={company.hasSharedLabel} />
                             </div>
 
-                            <!-- Company Name + "Shared by" Label (PDF Page 2) -->
+                            <!-- Company Name + Shared By Label -->
                             <div class="company-name-col">
                                 <span class="company-name">{company.name}</span>
                                 <template if:true={company.hasSharedLabel}>
@@ -145,24 +145,29 @@
                                 <span class="date-text">{company.createdAtDisplay}</span>
                             </div>
 
-                            <!-- Stage & Client Type (Unchanged) -->
+                            <!-- Dynamic Stage Picklist -->
                             <div class="company-dropdown-col" onclick={stopPropagation}>
                                 <select class="dropdown-stage" data-companyid={company.companyId} onchange={handleStageChange}>
-                                    <option value="PreCall" selected={company.stageIsPreCall}>PreCall</option>
-                                    <option value="Appointment Set" selected={company.stageIsAppointmentSet}>Appointment Set</option>
-                                    <option value="Face To Face" selected={company.stageIsFaceToFace}>Face To Face</option>
-                                    <option value="Qualification" selected={company.stageIsQualification}>Qualification</option>
-                                </select>
-                            </div>
-                            <div class="company-dropdown-col" onclick={stopPropagation}>
-                                <select class="dropdown-clienttype" data-companyid={company.companyId} onchange={handleClientTypeChange}>
-                                    <option value="Prospect" selected={company.clientTypeIsProspect}>Prospect</option>
-                                    <option value="Existing Customer" selected={company.clientTypeIsExisting}>Existing Customer</option>
-                                    <option value="Past Customer" selected={company.clientTypeIsPast}>Past Customer</option>
+                                    <template for:each={company.stageOptions} for:item="opt">
+                                        <option key={opt.value} value={opt.value} selected={opt.isSelected}>
+                                            {opt.label}
+                                        </option>
+                                    </template>
                                 </select>
                             </div>
 
-                            <!-- Signals Badge (Unchanged) -->
+                            <!-- Dynamic Client Type Picklist -->
+                            <div class="company-dropdown-col" onclick={stopPropagation}>
+                                <select class="dropdown-clienttype" data-companyid={company.companyId} onchange={handleClientTypeChange}>
+                                    <template for:each={company.clientTypeOptions} for:item="opt">
+                                        <option key={opt.value} value={opt.value} selected={opt.isSelected}>
+                                            {opt.label}
+                                        </option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            <!-- Signals Badge -->
                             <div class="company-signals-col" onclick={stopPropagation}>
                                 <button class={company.signalBadgeClass} data-companyid={company.companyId} onclick={handleOpenSignals}>
                                     <span class="signal-icon">⚡</span>
@@ -176,19 +181,23 @@
                             </div>
 
                             <div class="company-actions-col" onclick={stopPropagation}>
-                                <!-- PDF: Show Unshare icon if shared with others -->
                                 <template if:true={company.showUnshareButton}>
                                     <button class="btn-action btn-unshare" data-companyid={company.companyId} onclick={handleOpenUnshareModal} title="Manage access">
                                         <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
                                     </button>
                                 </template>
-                                <!-- Standard Delete -->
                                 <button class="btn-action btn-delete" data-companyid={company.companyId} onclick={handleDelete} title="Delete">
                                     <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 </button>
                             </div>
                         </div>
                     </template>
+                </template>
+
+                <template if:false={hasCompanies}>
+                    <div class="empty-state">
+                        <p>{emptyMessage}</p>
+                    </div>
                 </template>
             </div>
         </div>

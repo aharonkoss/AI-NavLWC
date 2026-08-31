@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 03-27-2026
+  @last modified on  : 08-30-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -43,7 +43,7 @@
                     </ul>
                     <p class="up-card-caption">Optional columns:</p>
                     <ul class="up-list">
-                        <li><span class="up-field-name">Stage</span> (PreCall, Appointment Set, Face To Face, Qualification)</li>
+                        <li><span class="up-field-name">Stage</span> (PreCall, Appointment Set, Pre Qualification, Face to Face)</li>
                         <li><span class="up-field-name">Client Type</span> (Prospect, Existing Customer, Past Customer)</li>
                     </ul>
                     <p class="up-card-caption">Download template:</p>
@@ -56,11 +56,11 @@
 
                 <!-- Drag-and-drop card -->
                 <div
-                        class={dropZoneClass}
-                        ondragover={handleDragOver}
-                        ondragleave={handleDragLeave}
-                        ondrop={handleDrop}
-                    >
+                    class={dropZoneClass}
+                    ondragover={handleDragOver}
+                    ondragleave={handleDragLeave}
+                    ondrop={handleDrop}
+                >
                     <p class="up-drop-title">Drag &amp; drop your file here</p>
                     <p class="up-drop-subtitle">or click to select</p>
                     <p class="up-drop-note">CSV, XLSX, XLS</p>
@@ -78,7 +78,7 @@
                     </template>
                 </div>
 
-                <!-- Default stage / client type -->
+                <!-- Default stage / client type dropdowns -->
                 <div class="up-defaults-row">
                     <div class="up-default-group">
                         <label class="up-label">Default Stage</label>
@@ -130,16 +130,16 @@
                             <template for:each={filteredSubmissions} for:item="s">
                                 <div key={s.submissionId} class="up-prev-row">
                                     <div class="up-prev-main">
-                                        <p class="up-prev-name">{s.companyName}</p>
+                                        <p class="up-prev-name">{s.displayName}</p>
                                         <p class="up-prev-meta">
-                                            {s.locationDisplay}
-                                            <template if:true={s.website}>
-                                                · {s.website}
+                                            <template if:true={s.totalDisplay}>
+                                                {s.totalDisplay} ·
                                             </template>
+                                            ID: {s.shortSubmissionId}
                                         </p>
                                     </div>
                                     <div class="up-prev-status">
-                                        <span class={s.statusClass}>{s.status}</span>
+                                        <span class={s.statusClass}>{s.statusLabel}</span>
                                     </div>
                                     <div class="up-prev-date">
                                         {s.submittedAtDisplay}
