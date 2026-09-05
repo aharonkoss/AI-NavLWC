@@ -1,6 +1,7 @@
 /**
  * @description DashboardController — Pure Salesforce database updates for Stage_List__c 
- *              and Client_Type_List__c on AI_Navigator_Company__c.
+ *              and Client_Type_List__c on AI_Navigator_Company__c, plus Azure callouts
+ *              for sharing, unsharing, retrying, and pipeline status polling.
  * @group AI Navigator - Apex
  */
 public with sharing class DashboardController {
@@ -57,8 +58,8 @@ public with sharing class DashboardController {
                 Integer cnt = Integer.valueOf(ar.get('cnt'));
                 totalCompanies += cnt;
                 String st = String.valueOf(ar.get('status')).toLowerCase();
-                if      (st == 'processing') { processing = cnt; }
-                else if (st == 'completed')  { completed  = cnt; }
+                if      (st == 'processing' || st == 'pending') { processing += cnt; }
+                else if (st == 'completed')  { completed  += cnt; }
             }
 
             return JSON.serialize(new Map<String, Object>{
@@ -81,7 +82,7 @@ public with sharing class DashboardController {
             List<AI_Navigator_Company__c> records = [
                 SELECT Id, Name, City__c, State__c, Website__c,
                        Status__c, Stage_List__c, Client_Type_List__c,
-                       Azure_Company_Id__c, CreatedDate, Shared_By_Name__c,
+                       Azure_Company_Id__c, Correlation_Id__c, CreatedDate, Shared_By_Name__c,
                        (SELECT Id FROM AI_Navigator_Shared_With_Users__r) 
                 FROM   AI_Navigator_Company__c
                 WHERE  OwnerId = :UserInfo.getUserId()
@@ -96,6 +97,7 @@ public with sharing class DashboardController {
                     'id'             => c.Id,
                     'companyId'      => c.Id,
                     'azureCompanyId' => c.Azure_Company_Id__c,
+                    'correlationId'  => c.Correlation_Id__c,
                     'name'           => c.Name,
                     'city'           => c.City__c,
                     'state'          => c.State__c,
@@ -111,6 +113,74 @@ public with sharing class DashboardController {
             return JSON.serialize(companies);
         } catch (Exception e) {
             throw new AuraHandledException('Error fetching companies: ' + e.getMessage());
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // getPipelineStatus (Azure Polling API)
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=false)
+    public static String getPipelineStatus(String salesforceCompanyId) {
+        try {
+            if (String.isBlank(salesforceCompanyId)) {
+                throw new AuraHandledException('salesforceCompanyId is required.');
+            }
+
+            List<AI_Navigator_Company__c> companies = [
+                SELECT Id, Azure_Company_Id__c, Correlation_Id__c, Status__c
+                FROM   AI_Navigator_Company__c
+                WHERE  Id = :salesforceCompanyId
+                LIMIT  1
+            ];
+
+            if (companies.isEmpty()) {
+                throw new AuraHandledException('Company not found for Id: ' + salesforceCompanyId);
+            }
+
+            String azureCompanyId = companies[0].Azure_Company_Id__c;
+            if (String.isBlank(azureCompanyId)) {
+                throw new AuraHandledException('This company has not been synced to Azure yet (Azure_Company_Id__c is blank).');
+            }
+
+            String correlationId = String.isNotBlank(companies[0].Correlation_Id__c) 
+                ? companies[0].Correlation_Id__c 
+                : generateCorrelationId();
+            String userId = UserInfo.getUserId();
+            String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/pipeline-status';
+
+            HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
+            HttpResponse res = new Http().send(req);
+
+            try {
+                insert new AI_Navigator_Request_Log__c(
+                    HTTP_Method__c      = 'GET',
+                    Endpoint_Name__c    = 'DashboardController.getPipelineStatus',
+                    Response_Body__c    = res.getBody(),
+                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
+                    HTTP_Status_Code__c = res.getStatusCode(),
+                    Correlation_ID__c   = correlationId
+                );
+            } catch (Exception logEx) {
+                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+            }
+
+            if (res.getStatusCode() == 200) {
+                Map<String, Object> data = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                String returnedStatus = (String) data.get('status');
+                
+                // If status completed on Azure, reflect in Salesforce
+                if (String.isNotBlank(returnedStatus) && returnedStatus.equalsIgnoreCase('completed') && companies[0].Status__c != 'completed') {
+                    companies[0].Status__c = 'completed';
+                    update companies[0];
+                }
+                return res.getBody();
+            } else {
+                throw new AuraHandledException('Azure pipeline status fetch failed (' + res.getStatusCode() + '): ' + res.getBody());
+            }
+        } catch (AuraHandledException ahe) {
+            throw ahe;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
         }
     }
 

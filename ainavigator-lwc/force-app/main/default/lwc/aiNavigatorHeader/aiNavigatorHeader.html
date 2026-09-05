@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 08-30-2026
+  @last modified on  : 08-31-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -98,7 +98,7 @@
                         <!-- Notification Bell -->
                         <div class="notification-trigger" onclick={toggleNotifications}>
                             <span class="bell-icon">
-                                <svg class="bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 20px; height: 20px; display: block; color: #ffffff;">
+                                <svg class="bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                                 </svg>
                             </span>
@@ -122,46 +122,81 @@
             <div class="alerts-feed-wrapper slds-p-horizontal_medium slds-p-bottom_medium">
                 <div class="alerts-feed-content slds-p-around_medium">
                     <div class="slds-grid slds-grid_align-spread slds-m-bottom_small border-b">
-                        <div class="feed-title text-indigo-900 font-bold">Active Target Alerts Feed</div>
+                        <div class="feed-title text-indigo-900 font-bold">
+                            Active Signals Feed ({notificationCount} New)
+                        </div>
                         <button class="close-feed" onclick={closeNotifications}>&times; Close Feed</button>
                     </div>
-                    <div class="feed-items slds-p-vertical_x-small">
-                        <div class="feed-item slds-m-bottom_x-small">
-                            <span class="bullet-alert orange">•</span> PE Acquisition Interest alert detected on Acme Manufacturing Co.
+
+                    <template if:true={isLoadingNotifications}>
+                        <div class="slds-p-around_medium slds-text-align_center text-gray-500">
+                            <div class="slds-spinner_container">
+                                <div role="status" class="slds-spinner slds-spinner_x-small slds-spinner_brand">
+                                    <span class="slds-assistive-text">Loading notifications...</span>
+                                    <div class="slds-spinner__dot-a"></div>
+                                    <div class="slds-spinner__dot-b"></div>
+                                </div>
+                            </div>
+                            <span class="slds-m-left_small">Fetching signals...</span>
                         </div>
-                        <div class="feed-item slds-m-bottom_x-small">
-                            <span class="bullet-alert orange">•</span> Receivables Cycle bottleneck identified on Keystone Medical Supplies.
+                    </template>
+
+                    <template if:false={isLoadingNotifications}>
+                        <div class="feed-items slds-p-vertical_x-small">
+                            <template if:true={hasFeedItems}>
+                                <template for:each={notificationsList} for:item="item">
+                                    <div 
+                                        key={item.companyId} 
+                                        class="feed-item slds-m-bottom_x-small feed-item-clickable"
+                                        data-company-id={item.companyId}
+                                        data-company-name={item.companyName}
+                                        onclick={handleNotificationItemClick}
+                                    >
+                                        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
+                                            <div class="feed-item-main">
+                                                <span class="bullet-alert orange">•</span>
+                                                <strong class="company-name">{item.companyName}</strong>: {item.latestSignalName}
+                                                <span class="signal-summary-tag">({item.signalSummary})</span>
+                                            </div>
+                                            <div class="feed-item-meta">
+                                                <template if:true={item.priority}>
+                                                    <span class={item.priorityClass}>{item.priority}</span>
+                                                </template>
+                                                <span class="feed-timestamp">{item.formattedDate}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+
+                            <template if:false={hasFeedItems}>
+                                <div class="feed-empty-state">No new notification signals found.</div>
+                            </template>
                         </div>
-                        <div class="feed-item slds-m-bottom_x-small">
-                            <span class="bullet-alert orange">•</span> IT Contract award notice compiled for BlueSky Technology Group.
-                        </div>
-                    </div>
-                    <div class="slds-text-align_right shrink-0">
+                    </template>
+
+                    <div class="slds-grid slds-grid_align-spread slds-m-top_small border-t slds-p-top_x-small">
+                        <button class="refresh-feed" onclick={fetchNotifications}>↻ Refresh</button>
                         <button class="mark-read shadow-sm btn-clear" onclick={markAllRead}>Mark all as read</button>
                     </div>
                 </div>
             </div>
         </template>
 
-        <!-- Company Context Ribbon - Re-engineered to match the React Portal's style -->
+        <!-- Company Context Ribbon -->
         <template if:true={showCompanyRibbon}>
             <div class="context-ribbon">
                 <div class="context-left">
-                    <!-- Back Arrow -->
                     <button class="back-arrow-btn" onclick={handleClearCompany} title="Back to Dashboard">
                         &larr;
                     </button>
-                    
-                    <!-- Company Name -->
                     <span class="selected-target-name">{selectedCompanyName}</span>
 
-                    <!-- Location details -->
                     <template if:true={hasLocation}>
                         <span class="context-divider">|</span>
                         <span class="location-text">{formattedLocation}</span>
                     </template>
 
-                    <!-- Website URL link -->
                     <template if:true={companyWebsite}>
                         <span class="context-divider">|</span>
                         <a href={websiteUrl} target="_blank" rel="noopener noreferrer" class="website-link">
@@ -169,7 +204,6 @@
                         </a>
                     </template>
 
-                    <!-- Status badge -->
                     <template if:true={companyStatus}>
                         <span class="context-divider">|</span>
                         <span class={statusBadgeClass}>

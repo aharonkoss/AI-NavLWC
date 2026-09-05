@@ -3,12 +3,14 @@ import { getRecord } from 'lightning/uiRecordApi';
 import USER_ID from '@salesforce/user/Id';
 import NAME_FIELD from '@salesforce/schema/User.Name';
 import AI_NAV_LOGO from '@salesforce/resourceUrl/ai_navigator_logo';
+import getNotificationSignals from '@salesforce/apex/AI_Navigator_HeaderController.getNotificationSignals';
+
+const POLLING_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
 export default class AiNavigatorHeader extends LightningElement {
     @api activeTab = 'dashboard';
     @api companySelected = false;
     @api selectedCompanyName = '';
-    @api notificationCount = 3;
 
     // Public properties to receive company details dynamically
     @api companyCity = '';
@@ -16,12 +18,95 @@ export default class AiNavigatorHeader extends LightningElement {
     @api companyWebsite = '';
     @api companyStatus = '';
 
+    @track notificationCount = 0;
+    @track notificationsList = [];
+    @track isLoadingNotifications = false;
     @track isDropdownOpen = false;
     @track showNotificationsMenu = false;
-    @track currentUserName = 'Aharon Koss'; // Default fallback value
-    @track currentUserInitial = 'A';       // Default fallback initial
+    @track currentUserName = 'Aharon Koss';
+    @track currentUserInitial = 'A';
 
     logoUrl = AI_NAV_LOGO;
+    pollingTimer = null;
+
+    connectedCallback() {
+        this.fetchNotifications();
+        this.startPolling();
+    }
+
+    disconnectedCallback() {
+        this.stopPolling();
+    }
+
+    startPolling() {
+        this.stopPolling(); // Clear any existing timer
+        this.pollingTimer = setInterval(() => {
+            this.fetchNotifications(true);
+        }, POLLING_INTERVAL_MS);
+    }
+
+    stopPolling() {
+        if (this.pollingTimer) {
+            clearInterval(this.pollingTimer);
+            this.pollingTimer = null;
+        }
+    }
+
+    async fetchNotifications(isBackground = false) {
+        if (!isBackground) {
+            this.isLoadingNotifications = true;
+        }
+
+        try {
+            const responseStr = await getNotificationSignals();
+            if (responseStr) {
+                const data = JSON.parse(responseStr);
+                
+                // Priority fallback: totalNewSignals -> totalSignals -> count -> array length
+                this.notificationCount = data.totalNewSignals ?? data.totalSignals ?? data.count ?? 0;
+                
+                const rawNotifications = data.notifications || [];
+                this.notificationsList = rawNotifications.map((item) => ({
+                    ...item,
+                    formattedDate: this.formatDate(item.latestDetectedAt),
+                    priorityClass: this.getPriorityBadgeClass(item.priority)
+                }));
+            }
+       } catch (error) {
+            const errorDetails = error?.body?.message || error?.message || JSON.stringify(error);
+            console.error('🚨 Detailed Notification Error:', errorDetails);
+        } finally {
+            this.isLoadingNotifications = false;
+        }
+    }
+
+    formatDate(isoDateString) {
+        if (!isoDateString) return '';
+        try {
+            const date = new Date(isoDateString);
+            return date.toLocaleDateString(undefined, { 
+                month: 'short', 
+                day: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+        } catch (e) {
+            return isoDateString;
+        }
+    }
+
+    getPriorityBadgeClass(priority) {
+        switch (priority) {
+            case 'P1':
+            case 'P2':
+                return 'priority-badge priority-high';
+            case 'P3':
+            case 'P4':
+                return 'priority-badge priority-medium';
+            default:
+                return 'priority-badge priority-low';
+        }
+    }
 
     // Fetch User Name dynamically via Salesforce wire adapter
     @wire(getRecord, { recordId: USER_ID, fields: [NAME_FIELD] })
@@ -147,6 +232,10 @@ export default class AiNavigatorHeader extends LightningElement {
         return this.notificationCount > 0;
     }
 
+    get hasFeedItems() {
+        return this.notificationsList && this.notificationsList.length > 0;
+    }
+
     handleTabClick(event) {
         const selectedTab = event.currentTarget.dataset.tab;
         this.isDropdownOpen = false;
@@ -160,6 +249,16 @@ export default class AiNavigatorHeader extends LightningElement {
         this.isDropdownOpen = false;
         this.dispatchEvent(new CustomEvent('tabchange', {
             detail: { tabId: selectedTab }
+        }));
+    }
+
+    handleNotificationItemClick(event) {
+        const companyId = event.currentTarget.dataset.companyId;
+        const companyName = event.currentTarget.dataset.companyName;
+        
+        this.showNotificationsMenu = false;
+        this.dispatchEvent(new CustomEvent('companyselect', {
+            detail: { companyId, companyName }
         }));
     }
 
@@ -178,6 +277,9 @@ export default class AiNavigatorHeader extends LightningElement {
 
     toggleNotifications() {
         this.showNotificationsMenu = !this.showNotificationsMenu;
+        if (this.showNotificationsMenu) {
+            this.fetchNotifications();
+        }
     }
 
     closeNotifications() {

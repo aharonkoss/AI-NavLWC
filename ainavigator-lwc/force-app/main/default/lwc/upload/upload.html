@@ -1,9 +1,5 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 08-30-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : Upload Company List Component
 -->
 <template>
     <div class="up-wrapper">
@@ -48,9 +44,9 @@
                     </ul>
                     <p class="up-card-caption">Download template:</p>
                     <p class="up-template-links">
-                        <a href="javascript:void(0)">CSV</a> ·
-                        <a href="javascript:void(0)">XLSX</a> ·
-                        <a href="javascript:void(0)">XLS</a>
+                        <a href="javascript:void(0);" onclick={downloadCsvTemplate}>CSV</a> ·
+                        <a href="javascript:void(0);" onclick={downloadXlsxTemplate}>XLSX</a> ·
+                        <a href="javascript:void(0);" onclick={downloadXlsTemplate}>XLS</a>
                     </p>
                 </div>
 

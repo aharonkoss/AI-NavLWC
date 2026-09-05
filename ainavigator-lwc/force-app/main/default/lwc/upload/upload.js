@@ -7,6 +7,11 @@ import COMPANY_OBJECT from '@salesforce/schema/AI_Navigator_Company__c';
 import STAGE_FIELD from '@salesforce/schema/AI_Navigator_Company__c.Stage_List__c';
 import CLIENT_TYPE_FIELD from '@salesforce/schema/AI_Navigator_Company__c.Client_Type_List__c';
 
+// Static Resource Imports (Managed Package & Namespace Safe)
+import TEMPLATE_CSV from '@salesforce/resourceUrl/Company_Upload_Template_CSV';
+import TEMPLATE_XLSX from '@salesforce/resourceUrl/Company_Upload_Template_XLSX';
+import TEMPLATE_XLS from '@salesforce/resourceUrl/Company_Upload_Template_XLS';
+
 // Apex Controller methods
 import getUploadSettings from '@salesforce/apex/UploadController.getUploadSettings';
 import getPreviousSubmissions from '@salesforce/apex/UploadController.getPreviousSubmissions';
@@ -19,11 +24,11 @@ export default class Upload extends LightningElement {
     @track isUploading = false;
     @track error = null;
     @track successMessage = '';
-    
+
     // Default picklist selection values
     @track defaultStage = '';
     @track defaultClientType = '';
-    
+
     // Dynamic picklist options populated via wire adapters
     @track stageOptions = [];
     @track clientTypeOptions = [];
@@ -50,7 +55,6 @@ export default class Upload extends LightningElement {
                 label: item.label,
                 value: item.value
             }));
-            // Set default stage from first picklist option or defaultValue if available
             if (this.stageOptions.length > 0 && !this.defaultStage) {
                 this.defaultStage = data.defaultValue ? data.defaultValue.value : this.stageOptions[0].value;
             }
@@ -70,7 +74,6 @@ export default class Upload extends LightningElement {
                 label: item.label,
                 value: item.value
             }));
-            // Set default client type from first picklist option or defaultValue if available
             if (this.clientTypeOptions.length > 0 && !this.defaultClientType) {
                 this.defaultClientType = data.defaultValue ? data.defaultValue.value : this.clientTypeOptions[0].value;
             }
@@ -113,6 +116,32 @@ export default class Upload extends LightningElement {
             });
     }
 
+    // ── Static Resource Template Downloads ──────────────────────────────────
+    downloadCsvTemplate(event) {
+        if (event) event.preventDefault();
+        this.downloadStaticResource(TEMPLATE_CSV, 'Company_Upload_Template.csv');
+    }
+
+    downloadXlsxTemplate(event) {
+        if (event) event.preventDefault();
+        this.downloadStaticResource(TEMPLATE_XLSX, 'Company_Upload_Template.xlsx');
+    }
+
+    downloadXlsTemplate(event) {
+        if (event) event.preventDefault();
+        this.downloadStaticResource(TEMPLATE_XLS, 'Company_Upload_Template.xls');
+    }
+
+    downloadStaticResource(resourceUrl, fileName) {
+        const link = document.createElement('a');
+        link.href = resourceUrl;
+        link.download = fileName;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
     // ── Simulation loop: automatically resolves processing after 20s ────────
     startPendingSimulation(recordId) {
         if (!recordId || this.simulatingSubmissionIds.has(recordId)) return;
@@ -145,7 +174,6 @@ export default class Upload extends LightningElement {
                 });
             })
             .catch(() => {
-                // Optimistically mark completed in UI if update fails
                 this.simulatingSubmissionIds.delete(recordId);
                 this.submissions = this.submissions.map(s => {
                     if (s.recordId === recordId) {
@@ -278,7 +306,6 @@ export default class Upload extends LightningElement {
             this.successMessage = res.message ||
                 'File uploaded successfully. Processing will start shortly.';
 
-            // Insert new submission card immediately to the top of list
             const newSub = this.mapSubmission({
                 submissionId : res.submissionId,
                 recordId     : res.recordId,
@@ -290,12 +317,10 @@ export default class Upload extends LightningElement {
 
             this.submissions = [newSub, ...this.submissions];
 
-            // Start the 20-second simulation loop for completion
             if (res.recordId) {
                 this.startPendingSimulation(res.recordId);
             }
 
-            // Notify parent / dashboard
             this.dispatchEvent(new CustomEvent('uploadsubmitted', {
                 bubbles : true,
                 composed: true,

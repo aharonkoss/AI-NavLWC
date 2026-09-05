@@ -148,7 +148,7 @@ function buildLeadershipViewModel(raw) {
   };
 }
 
-export default class DetailLeadship extends LightningElement {
+export default class DetailLeadership extends LightningElement {
   _companyId;
 
   @api
@@ -189,8 +189,8 @@ export default class DetailLeadship extends LightningElement {
           // If leadership endpoint returned 404/null, check if leaders exist in the AI Navigator Report
           return getAiNavigatorReport({ companyId: this._companyId }).then((reportJson) => {
             if (!reportJson) return null;
-            const report = JSON.parse(reportJson);
-            return report?.leadership?.leaders || report?.leadership;
+            const report = typeof reportJson === 'string' ? JSON.parse(reportJson) : reportJson;
+            return report?.leadership?.leaders || report?.leadership || report?.executives;
           });
         }
         return typeof json === 'string' ? JSON.parse(json) : json;
@@ -199,7 +199,12 @@ export default class DetailLeadship extends LightningElement {
         this._viewModel = buildLeadershipViewModel(data);
       })
       .catch((err) => {
-        this._error = err?.body?.message || err?.message || 'Failed to load leadership data.';
+        const errorMsg =
+          err?.body?.message ||
+          err?.message ||
+          (typeof err?.body === 'string' ? err.body : null) ||
+          'Failed to load leadership data.';
+        this._error = errorMsg;
       })
       .finally(() => {
         this._isLoading = false;

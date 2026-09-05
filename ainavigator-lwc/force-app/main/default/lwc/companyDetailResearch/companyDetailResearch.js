@@ -5,9 +5,7 @@ import getTabPdfDownloadUrl from '@salesforce/apex/CompanyDetailController.getTa
 const RESEARCH_SUBTABS = [
   { id: 'researchLibrary', label: 'Research Library' },
   { id: 'leadership', label: 'Leadership' },
-  { id: 'ucc', label: 'UCC' },
-  { id: 'rma', label: 'RMA' },
-  { id: 'equifax', label: 'Equifax' }
+  { id: 'ucc', label: 'UCC' }
 ];
 
 export default class CompanyDetailResearch extends LightningElement {

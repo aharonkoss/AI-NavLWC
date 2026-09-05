@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 08-28-2026
+  @last modified on  : 08-31-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -175,9 +175,14 @@
                                 </button>
                             </div>
 
-                            <!-- Status & Actions -->
+                            <!-- Status & Current Stage Badge -->
                             <div class="company-status-col">
-                                <span class={company.statusClass}>{company.statusLabel}</span>
+                                <span class={company.statusClass} title={company.statusDisplay}>
+                                    <template if:true={company.isProcessing}>
+                                        <span class="pulse-dot"></span>
+                                    </template>
+                                    {company.statusDisplay}
+                                </span>
                             </div>
 
                             <div class="company-actions-col" onclick={stopPropagation}>

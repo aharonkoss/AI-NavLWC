@@ -1,9 +1,9 @@
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
-import { updateRecord } from 'lightning/uiRecordApi';
 import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
 import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
 import getSignals from '@salesforce/apex/DashboardController.getSignals';
+import getPipelineStatus from '@salesforce/apex/DashboardController.getPipelineStatus';
 import updateCompany from '@salesforce/apex/DashboardController.updateCompany';
 import deleteCompany from '@salesforce/apex/DashboardController.deleteCompany';
 // Sharing Imports
@@ -25,6 +25,8 @@ const CLIENT_TYPE_OPTIONS = [
     { label: 'Existing Customer', value: 'Existing Customer' },
     { label: 'Past Customer',     value: 'Past Customer' }
 ];
+
+const POLLING_INTERVAL_MS = 5000;
 
 export default class Dashboard extends NavigationMixin(LightningElement) {
     @track stats = { totalCompanies: 0, processing: 0, completed: 0, opened: 0 };
@@ -53,9 +55,9 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track companyToDeleteId = '';
     @track companyToDeleteName = '';
 
-    // --- Simulation Tracking ---
-    @track simulatingCompanyIds = new Set();
-    activeTimeouts = [];
+    // --- Polling Tracking ---
+    pollingIntervalId = null;
+    isPollingActive = false;
 
     // Fetch teammates
     @wire(getTeammates)
@@ -69,62 +71,91 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     disconnectedCallback() {
         window.removeEventListener('companysubmitted', this.handleCompanySubmitted);
-        this.activeTimeouts.forEach(clearTimeout);
+        this.stopPolling();
     }
 
-    // --- Simulation & UI Record Update Loop ---
-    startPendingSimulation(companyId) {
-        if (this.simulatingCompanyIds.has(companyId)) {
+    // --- Polling Lifecycle ---
+    startPolling() {
+        if (this.pollingIntervalId) return;
+
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.pollingIntervalId = setInterval(() => {
+            this.pollUncompletedCompanies();
+        }, POLLING_INTERVAL_MS);
+    }
+
+    stopPolling() {
+        if (this.pollingIntervalId) {
+            clearInterval(this.pollingIntervalId);
+            this.pollingIntervalId = null;
+        }
+    }
+
+    pollUncompletedCompanies() {
+        if (this.isPollingActive) return;
+
+        // Filter companies that are not completed and have an azureCompanyId or salesforce Id
+        const uncompleted = this._companies.filter(c => c.status !== 'completed');
+
+        if (uncompleted.length === 0) {
+            this.stopPolling();
             return;
         }
 
-        this.simulatingCompanyIds.add(companyId);
+        this.isPollingActive = true;
 
-        // eslint-disable-next-line @lwc/lwc/no-async-operation
-        const timeoutId = setTimeout(() => {
-            this.completeCompany(companyId);
-        }, 30000);
+        const pollPromises = uncompleted.map(comp => {
+            return getPipelineStatus({ salesforceCompanyId: comp.companyId })
+                .then(result => {
+                    const data = JSON.parse(result);
+                    const newStatus = (data.status || comp.status || 'processing').toLowerCase();
+                    const newStage = data.currentStage || comp.currentStage || null;
+                    const percentComplete = data.percentComplete || 0;
 
-        this.activeTimeouts.push(timeoutId);
-    }
+                    const hasCompleted = newStatus === 'completed';
 
-    completeCompany(companyId) {
-        const recordInput = {
-            fields: {
-                Id: companyId,
-                Status__c: 'completed'
-            }
-        };
+                    this._companies = this._companies.map(c => {
+                        if (c.companyId === comp.companyId) {
+                            return this.mapCompany({
+                                ...c,
+                                status: newStatus,
+                                currentStage: newStage,
+                                percentComplete: percentComplete
+                            });
+                        }
+                        return c;
+                    });
 
-        updateRecord(recordInput)
-            .then(() => {
-                this.simulatingCompanyIds.delete(companyId);
-                this._companies = this._companies.map(c => {
-                    if (c.companyId === companyId) {
-                        return this.mapCompany({
-                            ...c,
-                            status: 'completed'
-                        });
+                    // If completed, fetch signals and refresh KPI stats
+                    if (hasCompleted) {
+                        this.loadSignalsForCompany(comp.companyId);
+                        this.loadStats();
                     }
-                    return c;
+                })
+                .catch(error => {
+                    console.error('[Dashboard Log] Error polling pipeline status for:', comp.companyId, error);
                 });
-                this._companies = [...this._companies];
-            })
-            .catch(error => {
-                console.error('[Dashboard Log] uiRecordApi update failed:', companyId, error);
-                this.simulatingCompanyIds.delete(companyId);
-                this._companies = [...this._companies];
-            });
+        });
+
+        Promise.allSettled(pollPromises).finally(() => {
+            this.isPollingActive = false;
+            this._companies = [...this._companies];
+
+            // If all done, stop the timer
+            const remaining = this._companies.filter(c => c.status !== 'completed');
+            if (remaining.length === 0) {
+                this.stopPolling();
+            }
+        });
     }
 
     handleCompanySubmitted = (event) => {
         const payload = event.detail;
         if (!payload || !payload.companyId) return;
 
-        this.startPendingSimulation(payload.companyId);
-
         const submittedCompany = this.mapCompany({
             companyId: payload.companyId,
+            azureCompanyId: payload.azureCompanyId,
             correlationId: payload.correlationId,
             name: payload.name,
             city: payload.city,
@@ -132,6 +163,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             stage: payload.stage,
             clientType: payload.clientType,
             status: 'pending',
+            currentStage: 'submitted',
             createdAt: payload.createdAt || new Date().toISOString()
         });
 
@@ -143,6 +175,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         }
 
         this._companies = [...this._companies];
+        this.startPolling();
     };
 
     loadStats() {
@@ -158,12 +191,19 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                 
                 this._companies = raw.map(c => this.mapCompany(c));
 
+                let hasUncompleted = false;
                 raw.forEach(c => {
                     if (c.status !== 'completed') {
-                        this.startPendingSimulation(c.companyId);
+                        hasUncompleted = true;
                     }
                     this.loadSignalsForCompany(c.companyId);
                 });
+
+                if (hasUncompleted) {
+                    this.startPolling();
+                    // Initial immediate check
+                    this.pollUncompletedCompanies();
+                }
             })
             .catch(error => console.error('Error loading companies:', error));
     }
@@ -183,26 +223,37 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     // Consolidated mapCompany method
     mapCompany(c, signals) {
-        const isSimulating = this.simulatingCompanyIds.has(c.companyId) || c.status !== 'completed';
-        const displayStatus = isSimulating ? 'processing' : c.status;
+        const displayStatus = c.status || 'pending';
+        const isCompleted = displayStatus === 'completed';
 
         const currentStage = c.stage || 'PreCall';
         const currentClientType = c.clientType || 'Prospect';
 
         const companySignals = signals || this._companySignals[c.companyId] || [];
-        const signalSummary = this.getSignalSummary(companySignals, displayStatus);
+        const signalSummary = this.getSignalSummary(companySignals);
+
+        const statusLabel = displayStatus ? displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) : 'Unknown';
+        
+        // Display: status + currentStage in a badge when not completed
+        let statusDisplay = statusLabel;
+        if (!isCompleted && c.currentStage) {
+            statusDisplay = `${statusLabel}: ${c.currentStage}`;
+        }
         
         return {
             ...c,
             stage: currentStage,
             clientType: currentClientType,
             status: displayStatus,
+            currentStage: c.currentStage || null,
             locationDisplay: [c.city, c.state].filter(Boolean).join(', '),
             createdAtDisplay: c.createdAt
                 ? new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
                 : '-',
             statusClass: this.getStatusClass(displayStatus),
-            statusLabel: displayStatus ? displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) : 'Unknown',
+            statusLabel: statusLabel,
+            statusDisplay: statusDisplay,
+            isProcessing: !isCompleted && (displayStatus === 'processing' || displayStatus === 'pending'),
             
             // Dynamic Picklist Options with Selected State
             stageOptions: STAGE_OPTIONS.map(opt => ({
@@ -240,12 +291,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         const oldCompany = this._companies.find(c => c.companyId === companyId);
         const oldStage = oldCompany ? oldCompany.stage : 'PreCall';
 
-        // 1. Optimistic UI update
         this._companies = this._companies.map(c => 
             c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c
         );
 
-        // 2. Apex update call
         updateCompany({ companyId: companyId, stage: newStage, clientType: null })
             .then(() => {
                 this.showCustomToast(`Stage updated to ${newStage}`, 'success');
@@ -253,7 +302,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .catch(error => {
                 console.error('[Dashboard Log] Error updating stage:', error);
                 this.showCustomToast('Failed to update stage: ' + (error.body?.message || error.message), 'error');
-                // Revert on error
                 this._companies = this._companies.map(c => 
                     c.companyId === companyId ? this.mapCompany({ ...c, stage: oldStage }) : c
                 );
@@ -268,12 +316,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         const oldCompany = this._companies.find(c => c.companyId === companyId);
         const oldClientType = oldCompany ? oldCompany.clientType : 'Prospect';
 
-        // 1. Optimistic UI update
         this._companies = this._companies.map(c => 
             c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c
         );
 
-        // 2. Apex update call
         updateCompany({ companyId: companyId, stage: null, clientType: newClientType })
             .then(() => {
                 this.showCustomToast(`Client Type updated to ${newClientType}`, 'success');
@@ -281,7 +327,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .catch(error => {
                 console.error('[Dashboard Log] Error updating client type:', error);
                 this.showCustomToast('Failed to update client type: ' + (error.body?.message || error.message), 'error');
-                // Revert on error
                 this._companies = this._companies.map(c => 
                     c.companyId === companyId ? this.mapCompany({ ...c, clientType: oldClientType }) : c
                 );

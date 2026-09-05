@@ -26,6 +26,29 @@ function formatTimestamp(d) {
     }
 }
 
+// Helper to safely extract string text from strings or structured objects
+function extractItemText(item) {
+    if (item === null || item === undefined) return '';
+    if (typeof item === 'string') return item;
+    if (typeof item === 'object') {
+        const label = item.topic || item.title || item.header || '';
+        const body = item.point || item.text || item.description || item.detail || item.content || item.value || '';
+        
+        if (label && body && label !== body) {
+            return `${label}: ${body}`;
+        }
+        if (body) return body;
+        if (label) return label;
+
+        // Fallback: join any string property values if keys are custom
+        const values = Object.values(item).filter(v => typeof v === 'string' && v.trim().length > 0);
+        if (values.length > 0) {
+            return values.join(' - ');
+        }
+    }
+    return String(item);
+}
+
 export default class CompanyDetailCallPlan extends LightningElement {
     _companyId;
 
@@ -169,7 +192,7 @@ export default class CompanyDetailCallPlan extends LightningElement {
             });
     }
 
-    // ─── 4. Section "+" Button Handlers (Auto-Save Section Note via API) ───
+    // ─── 4. Section "+" Button Handlers ───
     handleAddObjectiveToNotes() {
         if (!this.callPlan?.callObjective) return;
         this.saveSectionNoteToApi('Call Objective', 'Call Objective', this.callPlan.callObjective);
@@ -201,10 +224,10 @@ export default class CompanyDetailCallPlan extends LightningElement {
         if (step.description) lines.push(`Description: ${step.description}`);
 
         if (step.stMeyerKnowledge?.content?.length > 0) {
-            lines.push(`\n${step.stMeyerKnowledge.title || 'Knowledge'}:\n` + step.stMeyerKnowledge.content.map(k => `• ${k}`).join('\n'));
+            lines.push(`\n${step.stMeyerKnowledge.title || 'Knowledge'}:\n` + step.stMeyerKnowledge.content.map(k => `• ${extractItemText(k)}`).join('\n'));
         }
         if (step.companyInfo?.content?.length > 0) {
-            lines.push(`\n${step.companyInfo.title || 'Company Info'}:\n` + step.companyInfo.content.map(c => `• ${c}`).join('\n'));
+            lines.push(`\n${step.companyInfo.title || 'Company Info'}:\n` + step.companyInfo.content.map(c => `• ${extractItemText(c)}`).join('\n'));
         }
         if (step.questions?.length > 0) {
             lines.push(`\nDiscovery Questions:\n` + step.questions.map(q => `${q.num}. ${q.text}`).join('\n'));
@@ -214,7 +237,6 @@ export default class CompanyDetailCallPlan extends LightningElement {
     }
 
     saveSectionNoteToApi(title, sourceSection, content) {
-        // Prevent duplicate creation
         const existing = this.notes.find(n => n.sourceSection === sourceSection || n.title === title);
         if (existing) {
             this.isNotesDrawerOpen = true;
@@ -316,7 +338,6 @@ export default class CompanyDetailCallPlan extends LightningElement {
         const contentToSave = this.currentNoteContent.trim();
 
         if (this.currentNoteId) {
-            // Edit Note (PUT)
             updateNote({
                 noteId: this.currentNoteId,
                 title: titleToSave,
@@ -356,7 +377,6 @@ export default class CompanyDetailCallPlan extends LightningElement {
                     this.isSavingNote = false;
                 });
         } else {
-            // Create Note (POST)
             createNote({
                 companyId: this._companyId,
                 title: titleToSave,
@@ -465,7 +485,21 @@ export default class CompanyDetailCallPlan extends LightningElement {
 
     // ─── Template Getters ───
     get callPlan() {
-        return this.callPlanData?.callPlan || {};
+        const raw = this.callPlanData?.callPlan || {};
+        
+        // Normalize Key Talking Points & Pre-Call Prep in case the API sends arrays of objects
+        const keyTalkingPoints = Array.isArray(raw.keyTalkingPoints)
+            ? raw.keyTalkingPoints.map(extractItemText).filter(Boolean)
+            : [];
+        const preCallPreparation = Array.isArray(raw.preCallPreparation)
+            ? raw.preCallPreparation.map(extractItemText).filter(Boolean)
+            : [];
+
+        return {
+            ...raw,
+            keyTalkingPoints,
+            preCallPreparation
+        };
     }
 
     get _framework() {
@@ -490,15 +524,26 @@ export default class CompanyDetailCallPlan extends LightningElement {
 
     get activeStep() {
         const s = this._framework[this.activeIndex] || {};
-        const questions = (s.questions || []).map((q, i) => ({
+        const rawQuestions = s.questions || [];
+        const questions = rawQuestions.map((q, i) => ({
             key: `q-${i}`,
             num: i + 1,
-            text: q
+            text: extractItemText(q)
         }));
+
+        const rawKnowledge = s.stMeyerKnowledge?.content || [];
+        const rawCompanyInfo = s.companyInfo?.content || [];
+
         return {
             ...s,
-            stMeyerKnowledge: s.stMeyerKnowledge || { title: 'Knowledge', content: [] },
-            companyInfo: s.companyInfo || { title: 'Company Info', content: [] },
+            stMeyerKnowledge: {
+                title: s.stMeyerKnowledge?.title || 'Knowledge',
+                content: rawKnowledge.map(extractItemText)
+            },
+            companyInfo: {
+                title: s.companyInfo?.title || 'Company Info',
+                content: rawCompanyInfo.map(extractItemText)
+            },
             questions
         };
     }
@@ -515,7 +560,6 @@ export default class CompanyDetailCallPlan extends LightningElement {
     }
 
     // ─── Filtered Notes & Section Checkers ───
-    // Section in Notes Checkers (Drives + vs ✓ based on sourceTab & sourceSection)
     get isObjectiveInNotes() {
         return this.notes.some(n => 
             (n.sourceTab === 'Discovery Call Plan' || n.sourceTab === 'Call Plan' || !n.sourceTab) &&
@@ -560,7 +604,6 @@ export default class CompanyDetailCallPlan extends LightningElement {
         return `cdcp-notes-drawer ${this.isNotesDrawerOpen ? 'cdcp-drawer-open' : ''}`;
     }
 
-    // Filter notes list by current tab / general notes
     get filteredNotesList() {
         const list = this.notes.filter(n => 
             !n.sourceTab || 
