@@ -1,9 +1,7 @@
 /**
- * @description       : 
+ * @description       : Handles company submission and Lead creation with State Picklist support
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
- * @group             : 
- * @last modified on  : 09-06-2026
- * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+ * @last modified on  : 09-07-2026
 **/
 public with sharing class InputController {
 
@@ -55,16 +53,16 @@ public with sharing class InputController {
                     ];
 
                     if (existingLeads.isEmpty()) {
-                        insert new Lead(
+                        Lead newLead = new Lead(
                             LastName  = companyName,
                             Company   = companyName,
                             Website   = website,
                             City      = city,
-                            State     = state,
-                            Country   = 'United States',
                             Status    = 'Open - Not Contacted',
                             AIN_Id__c = existingCompany.Id
                         );
+                        populateLeadAddress(newLead, state);
+                        insert newLead;
                     }
                 }
 
@@ -101,16 +99,16 @@ public with sharing class InputController {
             insert company;
 
             if (isCalledFromLead == null || !isCalledFromLead) {
-                insert new Lead(
+                Lead newLead = new Lead(
                     LastName  = companyName,
                     Company   = companyName,
                     Website   = website,
                     City      = city,
-                    State     = state,
-                    Country   = 'United States',
                     Status    = 'Open - Not Contacted',
                     AIN_Id__c = company.Id
                 );
+                populateLeadAddress(newLead, state);
+                insert newLead;
             }
 
             System.enqueueJob(new AzureManualCompanyCallout(
@@ -128,6 +126,26 @@ public with sharing class InputController {
         } catch (Exception e) {
             logError('InputController.submitCompany', 'POST', correlationId, e.getMessage() + ' | ' + e.getStackTraceString());
             throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ── Helper: Safe State & Country mapping ─────────────────────────────────
+    private static void populateLeadAddress(Lead leadRecord, String stateInput) {
+        if (String.isBlank(stateInput)) {
+            leadRecord.Country = 'United States';
+            return;
+        }
+
+        String cleanState = stateInput.trim();
+        
+        if (cleanState.length() == 2) {
+            // ISO 2-letter Code (e.g., 'AZ', 'CA', 'NY')
+            leadRecord.CountryCode = 'US';
+            leadRecord.StateCode   = cleanState.toUpperCase();
+        } else {
+            // Full Name (e.g., 'Arizona', 'California')
+            leadRecord.Country = 'United States';
+            leadRecord.State   = cleanState;
         }
     }
 
