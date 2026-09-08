@@ -1,9 +1,5 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 08-26-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : Company Detail Research parent container with tab caching
 -->
 <template>
   <div class="cdr-wrapper">
@@ -23,7 +19,7 @@
         </template>
       </div>
 
-      <!-- Right: Download PDF Button (Shown on Research Library, Leadership, UCC) -->
+      <!-- Right: Download PDF Button -->
       <template if:true={showDownloadPdfButton}>
         <div class="cdr-download-wrap">
           <button
@@ -44,26 +40,41 @@
       </template>
     </div>
 
-    <!-- Active Tab Delegation -->
+    <!-- Cached Tab Containers -->
     <div class="cdr-tab-container">
-      <template if:true={isResearchLibraryTab}>
-        <c-research-library company-id={companyId}></c-research-library>
+      <!-- Research Library Tab -->
+      <template if:true={visitedTabs.researchLibrary}>
+        <div class={researchLibraryTabClass}>
+          <c-research-library company-id={companyId}></c-research-library>
+        </div>
       </template>
 
-      <template if:true={isLeadershipTab}>
-        <c-detail-leadship company-id={companyId}></c-detail-leadship>
+      <!-- Leadership Tab -->
+      <template if:true={visitedTabs.leadership}>
+        <div class={leadershipTabClass}>
+          <c-detail-leadship company-id={companyId}></c-detail-leadship>
+        </div>
       </template>
 
-      <template if:true={isUccTab}>
-        <c-detail-ucc company-id={companyId}></c-detail-ucc>
+      <!-- UCC Tab -->
+      <template if:true={visitedTabs.ucc}>
+        <div class={uccTabClass}>
+          <c-detail-ucc company-id={companyId}></c-detail-ucc>
+        </div>
       </template>
 
-      <template if:true={isRmaTab}>
-        <c-detail-rma company-id={companyId}></c-detail-rma>
+      <!-- RMA Tab -->
+      <template if:true={visitedTabs.rma}>
+        <div class={rmaTabClass}>
+          <c-detail-rma company-id={companyId}></c-detail-rma>
+        </div>
       </template>
 
-      <template if:true={isEquifaxTab}>
-        <c-detai-equifax company-id={companyId}></c-detai-equifax>
+      <!-- Equifax Tab -->
+      <template if:true={visitedTabs.equifax}>
+        <div class={equifaxTabClass}>
+          <c-detai-equifax company-id={companyId}></c-detai-equifax>
+        </div>
       </template>
     </div>
   </div>

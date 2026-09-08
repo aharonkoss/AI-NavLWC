@@ -28,17 +28,21 @@ public with sharing class AI_Navigator_Outbound_Handler {
         }
 
         public void execute(QueueableContext ctx) {
-            HttpRequest req = new HttpRequest();
-            req.setEndpoint('callout:Azure_AI_Navigator/api/v1/upload');
-            req.setMethod('POST');
-            req.setHeader('Content-Type', 'application/json');
-            req.setHeader('X-Correlation-Id', correlationId);
-            req.setBody(payload);
-            req.setTimeout(120000); // 2 minutes
+           HttpRequest req = new HttpRequest();
+           HttpResponse res;
+           try {
 
-            HttpResponse res = new Http().send(req);
+                req.setEndpoint('callout:Azure_AI_Navigator/api/v1/upload');
+                req.setMethod('POST');
+                req.setHeader('Content-Type', 'application/json');
+                req.setHeader('X-Correlation-Id', correlationId);
+                req.setBody(payload);
+                req.setTimeout(120000); // 2 minutes
 
-            writeLog(res, correlationId);
+                res = new Http().send(req);
+           } catch (Exception e) {
+              writeLog(res, correlationId);
+           }
         }
 
         private void writeLog(HttpResponse res, String corrId) {

@@ -112,7 +112,7 @@ global without sharing class AzureCompanyCallbackService {
             }
 
             // ── 7. Log and respond ───────────────────────────────────────────
-            logRequest(correlationId, companyId, requestBody, 200);
+            //logRequest(correlationId, companyId, requestBody, 200);
 
             sendResponse(res, 200, 'success',
                 'Company record updated successfully.', correlationId);

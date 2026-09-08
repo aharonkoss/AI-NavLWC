@@ -349,7 +349,7 @@ public with sharing class CompanyDetailController {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // CENTRAL EXECUTOR: Uses AzureHttpService and Logs Telemetry
+    // CENTRAL EXECUTOR: Uses AzureHttpService and Logs ONLY Errors
     // ─────────────────────────────────────────────────────────────────────────
     private static String executeAzureRequest(String method, String path, String operationName, String jsonBody) {
         Long startTime = System.currentTimeMillis();
@@ -365,18 +365,6 @@ public with sharing class CompanyDetailController {
             }
 
             res = new Http().send(req);
-            Long durationMs = System.currentTimeMillis() - startTime;
-
-            insert new AI_Navigator_Request_Log__c(
-                Name                = (method + ' ' + path + ' (' + durationMs + 'ms)').left(80),
-                HTTP_Method__c      = method,
-                Endpoint_Name__c    = ('CompanyDetailController.' + operationName).left(255),
-                Request_Timestamp__c= DateTime.now(),
-                Response_Body__c    = ('[Duration: ' + durationMs + ' ms]\n' + res.getBody()).left(32768),
-                HTTP_Status_Code__c = res.getStatusCode(),
-                Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
-                Correlation_ID__c   = correlationId
-            );
 
             if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
                 return res.getBody();

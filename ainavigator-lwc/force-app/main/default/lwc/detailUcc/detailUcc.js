@@ -1,6 +1,9 @@
 import { LightningElement, api, track } from 'lwc';
 import getUccFilings from '@salesforce/apex/CompanyDetailController.getUccFilings';
 
+// In-Memory Module Level Cache across tab switches
+const uccCache = new Map();
+
 function formatDate(d) {
   if (!d) return null;
   try {
@@ -25,10 +28,7 @@ function formatDate(d) {
 }
 
 function buildUccViewModel(raw) {
-  console.log('%c[detailUcc] buildUccViewModel() called with raw data:', 'color: #9333ea; font-weight: bold;', raw);
-
   if (!raw) {
-    console.warn('[detailUcc] raw is null or undefined, returning empty model');
     return {
       totalFilings: 0,
       businessName: null,
@@ -54,8 +54,6 @@ function buildUccViewModel(raw) {
   } else if (raw.data && Array.isArray(raw.data.filings)) {
     rawFilings = raw.data.filings;
   }
-
-  console.log(`[detailUcc] Extracted ${rawFilings.length} raw filings.`);
 
   // 2. Business Name Extraction
   const businessName =
@@ -162,15 +160,12 @@ function buildUccViewModel(raw) {
     };
   });
 
-  const viewModel = {
+  return {
     totalFilings,
     businessName,
     hasFilings: filings.length > 0,
     filings
   };
-
-  console.log('%c[detailUcc] Final Generated View Model:', 'color: #059669; font-weight: bold;', viewModel);
-  return viewModel;
 }
 
 export default class DetailUcc extends LightningElement {
@@ -181,11 +176,9 @@ export default class DetailUcc extends LightningElement {
     return this._companyId;
   }
   set companyId(value) {
-    console.log(`[detailUcc] @api companyId updated to: "${value}"`);
     const hasChanged = this._companyId !== value;
     this._companyId = value;
     if (value && hasChanged) {
-      this._uccLoaded = false;
       this.loadUccData();
     }
   }
@@ -194,39 +187,36 @@ export default class DetailUcc extends LightningElement {
   @track _isLoading = false;
   @track _error = null;
   @track _uccLoaded = false;
-  @track rawJsonDebugString = '';
 
   connectedCallback() {
-    console.log(`[detailUcc] connectedCallback() fired. Current companyId: "${this._companyId}"`);
-    if (this._companyId && !this._uccLoaded) {
+    if (this._companyId) {
       this.loadUccData();
     }
   }
 
-  loadUccData() {
-    if (this._isLoading) {
-      console.warn('[detailUcc] loadUccData skipped: already loading.');
-      return;
-    }
+  loadUccData(forceRefresh = false) {
     if (!this._companyId) {
-      console.warn('[detailUcc] loadUccData skipped: companyId is missing or empty.');
+      this._isLoading = false;
       return;
     }
 
-    console.log(`%c[detailUcc] Fetching UCC data from Apex for companyId: ${this._companyId}`, 'color: #2563eb; font-weight: bold;');
+    // 1. Instant Cache Hit Check
+    if (!forceRefresh && uccCache.has(this._companyId)) {
+      this._viewModel = uccCache.get(this._companyId);
+      this._error = null;
+      this._isLoading = false;
+      this._uccLoaded = true;
+      return;
+    }
+
     this._isLoading = true;
     this._error = null;
 
     getUccFilings({ companyId: this._companyId })
       .then((res) => {
-        console.group('%c[detailUcc] Apex getUccFilings Response Received', 'color: #1d4ed8; font-weight: bold;');
-        console.log('Type of response:', typeof res);
-        console.log('Raw response:', res);
-
         if (!res) {
-          console.warn('Response is null or empty string');
           this._viewModel = buildUccViewModel(null);
-          console.groupEnd();
+          uccCache.set(this._companyId, this._viewModel);
           return;
         }
 
@@ -234,41 +224,26 @@ export default class DetailUcc extends LightningElement {
         if (typeof res === 'string') {
           try {
             parsedData = JSON.parse(res);
-            this.rawJsonDebugString = JSON.stringify(parsedData, null, 2);
-            console.log('Successfully JSON.parsed string to Object:', parsedData);
           } catch (e) {
-            console.error('JSON.parse failed on response string:', e);
             this._error = 'UCC data could not be parsed: ' + e.message;
-            console.groupEnd();
             return;
           }
-        } else {
-          this.rawJsonDebugString = JSON.stringify(res, null, 2);
         }
 
         if (Array.isArray(parsedData)) {
-          console.log('Response is an array, unwrapping first element');
           parsedData = parsedData[0] ?? null;
         }
 
         this._viewModel = buildUccViewModel(parsedData);
-        console.groupEnd();
+        // Save to Cache
+        uccCache.set(this._companyId, this._viewModel);
       })
       .catch((err) => {
-        console.error('[detailUcc] Apex Error in getUccFilings:', err);
         this._error = err?.body?.message || err?.message || 'Failed to load UCC filings.';
       })
       .finally(() => {
         this._isLoading = false;
         this._uccLoaded = true;
-        console.log('%c[detailUcc] State after load:', 'color: #4b5563; font-weight: bold;', {
-          showFilings: this.showFilings,
-          totalFilings: this.totalFilings,
-          businessName: this.businessName,
-          filingsCount: this.filings.length,
-          showEmptyState: this.showEmptyState,
-          hasError: this.hasError
-        });
       });
   }
 
@@ -331,8 +306,7 @@ export default class DetailUcc extends LightningElement {
   }
 
   get showFilings() {
-    const shouldShow = this._uccLoaded && !this._isLoading && !this.hasError && this.filings.length > 0;
-    return shouldShow;
+    return this._uccLoaded && !this._isLoading && !this.hasError && this.filings.length > 0;
   }
   get uccShowFilings() {
     return this.showFilings;

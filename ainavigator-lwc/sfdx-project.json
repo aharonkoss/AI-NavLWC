@@ -11,6 +11,14 @@
     {
       "path": "dev-config",
       "default": false
+    },
+    {
+      "versionName": "ver 0.1",
+      "versionNumber": "0.1.0.NEXT",
+      "path": "force-app",
+      "default": false,
+      "package": "AI_Navigator_LWC_v2.2",
+      "versionDescription": ""
     }
   ],
   "namespace": "ainavigator",
@@ -37,6 +45,8 @@
     "AI_Navigator_LWC_v2@0.1.0-17": "04tgK000000ItIzQAK",
     "AI_Navigator_LWC_v2@0.1.0-18": "04tgK000000IzjNQAS",
     "AI_Navigator_LWC_v2@0.1.0-19": "04tgK000000J3BtQAK",
-    "AI_Navigator_LWC_v2@0.1.0-20": "04tgK000000JAYLQA4"
+    "AI_Navigator_LWC_v2@0.1.0-20": "04tgK000000JAYLQA4",
+    "AI_Navigator_LWC_v2.2": "0HogK0000004dZ3SAI",
+    "AI_Navigator_LWC_v2@0.1.0-21": "04tgK000000Jkn7QAC"
   }
 }

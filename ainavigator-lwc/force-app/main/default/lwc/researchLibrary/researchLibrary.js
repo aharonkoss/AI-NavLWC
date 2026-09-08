@@ -1,6 +1,9 @@
 import { LightningElement, api, track } from 'lwc';
 import getAiNavigatorReport from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
 
+// In-memory module level cache across tab switches
+const reportCache = new Map();
+
 const TITLE_OVERRIDES = {
   'ucc/lien analysis': 'UCC/Lien Analysis',
   'dot fleet intelligence': 'DOT Fleet Intelligence'
@@ -131,11 +134,24 @@ function parseContentToRows(text) {
 }
 
 export default class ResearchLibrary extends LightningElement {
-  @api companyId;
+  _companyId;
+
+  @api
+  get companyId() {
+    return this._companyId;
+  }
+  set companyId(value) {
+    const prevCompanyId = this._companyId;
+    this._companyId = value;
+
+    if (value && value !== prevCompanyId) {
+      this.loadReport();
+    }
+  }
 
   @track parsedSections = [];
   @track sources = [];
-  @track isLoading = true;
+  @track isLoading = false;
   @track error = null;
 
   connectedCallback() {
@@ -143,17 +159,30 @@ export default class ResearchLibrary extends LightningElement {
   }
 
   loadReport() {
-    if (!this.companyId) {
+    if (!this._companyId) {
       this.isLoading = false;
       return;
     }
+
+    // 1. Instant Cache Hit Check
+    if (reportCache.has(this._companyId)) {
+      const cached = reportCache.get(this._companyId);
+      this.parsedSections = cached.parsedSections ? JSON.parse(JSON.stringify(cached.parsedSections)) : [];
+      this.sources = cached.sources ? [...cached.sources] : [];
+      this.error = cached.error || null;
+      this.isLoading = false;
+      return;
+    }
+
+    // 2. Fetch from Apex if not cached
     this.isLoading = true;
     this.error = null;
 
-    getAiNavigatorReport({ companyId: this.companyId })
+    getAiNavigatorReport({ companyId: this._companyId })
       .then((json) => {
         if (!json) {
           this.error = 'Report not yet available for this company.';
+          reportCache.set(this._companyId, { parsedSections: [], sources: [], error: this.error });
           return;
         }
 
@@ -187,10 +216,19 @@ export default class ResearchLibrary extends LightningElement {
         }
 
         const rawCitations = reportObj?.citations || data.citations || data.sources || [];
-        this.buildSourcesFromArray(rawCitations);
+        this.sources = this.formatSources(rawCitations);
+
+        // Save into Cache
+        reportCache.set(this._companyId, {
+          parsedSections: this.parsedSections,
+          sources: this.sources,
+          error: null
+        });
       })
       .catch((err) => {
         this.error = `Report Load Failed: ${err?.body?.message || err?.message}`;
+        this.parsedSections = [];
+        this.sources = [];
       })
       .finally(() => {
         this.isLoading = false;
@@ -247,8 +285,8 @@ export default class ResearchLibrary extends LightningElement {
     return sections;
   }
 
-  buildSourcesFromArray(raw) {
-    this.sources = raw.map((s, idx) => ({
+  formatSources(raw) {
+    return (raw || []).map((s, idx) => ({
       idx: idx + 1,
       url: typeof s === 'string' ? s : s.url,
       label: typeof s === 'string' ? s : s.label || s.title || s.url
@@ -271,9 +309,9 @@ export default class ResearchLibrary extends LightningElement {
   }
 
   get hasSections() {
-    return this.parsedSections.length > 0;
+    return this.parsedSections && this.parsedSections.length > 0;
   }
   get hasSources() {
-    return this.sources.length > 0;
+    return this.sources && this.sources.length > 0;
   }
 }

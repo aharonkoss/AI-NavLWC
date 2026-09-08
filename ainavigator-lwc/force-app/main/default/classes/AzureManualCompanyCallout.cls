@@ -28,79 +28,85 @@ public class AzureManualCompanyCallout implements Queueable, Database.AllowsCall
         String clientType,
         String salesforceId
     ) {
-        this.recordId    = recordId;
-        this.companyName = companyName;
-        this.website     = website;
-        this.city        = city;
-        this.state       = state;
-        this.stage       = stage;
-        this.clientType  = clientType;
+        this.recordId     = recordId;
+        this.companyName  = companyName;
+        this.website      = website;
+        this.city         = city;
+        this.state        = state;
+        this.stage        = stage;
+        this.clientType   = clientType;
         this.salesforceId = salesforceId;
     }
-    public void execute(QueueableContext context) {
 
+    public void execute(QueueableContext context) {
         String correlationId = AiNavigatorEventService.generateCorrelationId();
         String userId        = UserInfo.getUserId();
+        String requestBody   = '';
 
-        HttpRequest req = AzureHttpService.buildRequest(
-            'POST',
-            '/v1/user/companies/manual',
-            correlationId,
-            userId
-        );
+        try {
+            HttpRequest req = AzureHttpService.buildRequest(
+                'POST',
+                '/v1/user/companies/manual',
+                correlationId,
+                userId
+            );
 
-        Map<String, Object> payload = new Map<String, Object>{
-            'name'         => companyName,
-            'website'      => website,
-            'city'         => city,
-            'state'        => state,
-            'stage'        => stage,
-            'clientType'   => clientType,
-            'salesforceId' => salesforceId
-        };
+            Map<String, Object> payload = new Map<String, Object>{
+                'name'         => companyName,
+                'website'      => website,
+                'city'         => city,
+                'state'        => state,
+                'stage'        => stage,
+                'clientType'   => clientType,
+                'salesforceId' => salesforceId
+            };
 
-        String requestBody = JSON.serialize(payload);
-        req.setBody(requestBody);
+            requestBody = JSON.serialize(payload);
+            req.setBody(requestBody);
 
-        HttpResponse res = new Http().send(req);
+            HttpResponse res = new Http().send(req);
 
-        // ── LOG THE OUTBOUND REQUEST ──────────────────────────────────────────
+            if (res.getStatusCode() == 201 || res.getStatusCode() == 200) {
+                Map<String, Object> responseBody =
+                    (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                String azureCompanyId = (String) responseBody.get('companyId');
+
+                update new AI_Navigator_Company__c(
+                    Id                  = recordId,
+                    Azure_Company_Id__c = azureCompanyId,
+                    Correlation_Id__c   = correlationId,
+                    Status__c           = 'processing'
+                );
+            } else {
+                update new AI_Navigator_Company__c(
+                    Id        = recordId,
+                    Status__c = 'failed'
+                );
+                System.debug(LoggingLevel.ERROR,
+                    'AzureManualCompanyCallout failed [' + res.getStatusCode() + ']: ' + res.getBody());
+            }
+
+        } catch (Exception ex) {
+            System.debug(LoggingLevel.ERROR,
+                'AzureManualCompanyCallout Exception: ' + ex.getMessage() + ' | ' + ex.getStackTraceString());
+            logException(correlationId, requestBody, ex);
+        }
+    }
+
+    // ── Private: log only when an exception occurs ───────────────────────────
+    private void logException(String correlationId, String requestBody, Exception ex) {
         try {
             insert new AI_Navigator_Request_Log__c(
-                HTTP_Method__c    = 'POST',
-                Endpoint_Name__c  = 'AzureManualCompanyCallout',
-                Request_Body__c   = requestBody,          // exactly what we sent
-                Response_Body__c  = res.getBody(),        // exactly what Azure returned
-                Status__c         = res.getStatusCode() == 201 || res.getStatusCode() == 200
-                                        ? 'Success' : 'Failed',
-                HTTP_Status_Code__c = res.getStatusCode(),
-                Correlation_ID__c = correlationId,
-                Error_Message__c  = 'salesforceId=' + salesforceId
+                HTTP_Method__c      = 'POST',
+                Endpoint_Name__c    = 'AzureManualCompanyCallout',
+                Request_Body__c     = requestBody,
+                Response_Body__c    = ex.getStackTraceString(),
+                Status__c           = 'Failed',
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = ('salesforceId=' + salesforceId + ' | ' + ex.getMessage()).left(32768)
             );
         } catch (Exception logEx) {
             System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
         }
-        // ─────────────────────────────────────────────────────────────────────
-
-        if (res.getStatusCode() == 201 || res.getStatusCode() == 200) {
-            Map<String, Object> responseBody =
-                (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
-            String azureCompanyId = (String) responseBody.get('companyId');
-
-            update new AI_Navigator_Company__c(
-                Id                  = recordId,
-                Azure_Company_Id__c = azureCompanyId,
-                Correlation_Id__c   = correlationId,
-                Status__c           = 'processing'
-            );
-        } else {
-            update new AI_Navigator_Company__c(
-                Id        = recordId,
-                Status__c = 'failed'
-            );
-            System.debug(LoggingLevel.ERROR,
-                'AzureManualCompanyCallout failed [' + res.getStatusCode() + ']: ' + res.getBody());
-        }
     }
-
 }

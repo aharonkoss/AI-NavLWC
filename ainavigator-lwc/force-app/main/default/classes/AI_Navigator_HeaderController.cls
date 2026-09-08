@@ -2,7 +2,7 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 08-31-2026
+ * @last modified on  : 09-06-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 **/
 public with sharing class AI_Navigator_HeaderController {
@@ -34,21 +34,6 @@ public with sharing class AI_Navigator_HeaderController {
 
             HttpResponse res = new Http().send(req);
 
-            // Log entry
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    Name                = ('GET /v1/user/notifications/signals').left(80),
-                    HTTP_Method__c      = 'GET',
-                    Endpoint_Name__c    = 'AI_Navigator_HeaderController.getNotificationSignals',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
-
             if (res.getStatusCode() == 200) {
                 return res.getBody();
             } else if (res.getStatusCode() == 404) {
@@ -64,10 +49,27 @@ public with sharing class AI_Navigator_HeaderController {
             }
 
         } catch (AuraHandledException ahe) {
+            logError('AI_Navigator_HeaderController.getNotificationSignals', 'GET', correlationId, ahe.getMessage());
             throw ahe;
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'Exception: ' + e.getMessage() + ' | ' + e.getStackTraceString());
+            logError('AI_Navigator_HeaderController.getNotificationSignals', 'GET', correlationId, e.getMessage() + ' | ' + e.getStackTraceString());
             throw createHandledException(e.getMessage());
+        }
+    }
+
+    private static void logError(String endpointName, String httpMethod, String correlationId, String errorMessage) {
+        try {
+            insert new AI_Navigator_Request_Log__c(
+                Name              = (httpMethod + ' /v1/user/notifications/signals').left(80),
+                HTTP_Method__c    = httpMethod,
+                Endpoint_Name__c  = endpointName,
+                Response_Body__c  = errorMessage,
+                Status__c         = 'Failed',
+                Correlation_ID__c = correlationId
+            );
+        } catch (Exception logEx) {
+            System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
         }
     }
 

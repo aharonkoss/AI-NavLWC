@@ -134,8 +134,7 @@ global without sharing class AzureInboundEventService {
                 return;
             }
 
-            // ── 7. Log and respond ───────────────────────────────────────────
-            logRequest(correlationId, eventType, requestBody, 202);
+            
 
             sendResponse(res, 202, 'accepted',
                 'Event received and queued for processing.', correlationId);

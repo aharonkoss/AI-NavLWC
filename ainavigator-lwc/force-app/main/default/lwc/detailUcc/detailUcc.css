@@ -46,10 +46,7 @@
   margin-top: 1px;
 }
 
-/* ═══════════════════════════════════════════════════════════════════
-   UCC TAB — PIXEL-PERFECT MATCH TO REACT PORTAL
-═══════════════════════════════════════════════════════════════════ */
-
+/* UCC Card Container */
 .ucc-outer-card {
   background: #ffffff !important;
   border: 1px solid #ddd6fe !important;

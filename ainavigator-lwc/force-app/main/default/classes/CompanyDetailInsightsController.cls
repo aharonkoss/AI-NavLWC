@@ -44,6 +44,7 @@ public with sharing class CompanyDetailInsightsController {
             throw createHandledException('companyId is required.');
         }
 
+        String correlationId = '';
         try {
             List<AI_Navigator_Company__c> companies = [
                 SELECT Id, Azure_Company_Id__c, Correlation_Id__c, Name
@@ -57,7 +58,7 @@ public with sharing class CompanyDetailInsightsController {
             }
 
             String azureCompanyId = companies[0].Azure_Company_Id__c;
-            String correlationId  = companies[0].Correlation_Id__c;
+            correlationId         = companies[0].Correlation_Id__c;
             String userId         = UserInfo.getUserId();
             String path           = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/insights';
 
@@ -67,29 +68,19 @@ public with sharing class CompanyDetailInsightsController {
             Integer statusCode = res.getStatusCode();
             String  body       = res.getBody();
 
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    HTTP_Method__c      = 'GET',
-                    Endpoint_Name__c    = 'CompanyDetailInsightsController.getInsights',
-                    Response_Body__c    = body,
-                    Status__c           = (statusCode == 200) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = statusCode,
-                    Correlation_ID__c   = correlationId,
-                    Error_Message__c    = (statusCode != 200) ? 'HTTP ' + statusCode : null
-                );
-            } catch (DmlException logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log failed: ' + logEx.getMessage());
-            }
-
             if (statusCode == 200 && String.isNotBlank(body) && body != '{}' && body != 'null') {
                 return body;
             }
 
+            // Log non-200 or empty response error before falling back to mock
+            logError('CompanyDetailInsightsController.getInsights', 'GET', correlationId, 'HTTP ' + statusCode + ': ' + body);
             return getMockInsights();
 
         } catch (AuraHandledException ahe) {
+            logError('CompanyDetailInsightsController.getInsights', 'GET', correlationId, ahe.getMessage());
             throw ahe;
         } catch (Exception e) {
+            logError('CompanyDetailInsightsController.getInsights', 'GET', correlationId, e.getMessage() + ' | ' + e.getStackTraceString());
             return getMockInsights();
         }
     }
@@ -99,30 +90,17 @@ public with sharing class CompanyDetailInsightsController {
     // ─────────────────────────────────────────────────────────────────────────
     @AuraEnabled(cacheable=false)
     public static String getInsightsPdfDownloadUrl(String companyId) {
+        String correlationId = '';
         try {
             AI_Navigator_Company__c comp = getCompanyRecord(companyId);
             String azureCompanyId = comp.Azure_Company_Id__c;
-            String correlationId  = comp.Correlation_Id__c;
+            correlationId         = comp.Correlation_Id__c;
             String userId         = UserInfo.getUserId();
             
             String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/insights/pdf';
 
             HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
             HttpResponse res = new Http().send(req);
-
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    Name                = ('GET /insights/pdf').left(80),
-                    HTTP_Method__c      = 'GET',
-                    Endpoint_Name__c    = 'CompanyDetailInsightsController.getInsightsPdfDownloadUrl',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
 
             if (res.getStatusCode() == 200) {
                 return res.getBody();
@@ -131,6 +109,7 @@ public with sharing class CompanyDetailInsightsController {
             }
 
         } catch (Exception e) {
+            logError('CompanyDetailInsightsController.getInsightsPdfDownloadUrl', 'GET', correlationId, e.getMessage());
             throw createHandledException(e.getMessage());
         }
     }
@@ -140,30 +119,17 @@ public with sharing class CompanyDetailInsightsController {
     // ─────────────────────────────────────────────────────────────────────────
     @AuraEnabled(cacheable=false)
     public static String getNotes(String companyId) {
+        String correlationId = '';
         try {
             AI_Navigator_Company__c comp = getCompanyRecord(companyId);
             String azureCompanyId = comp.Azure_Company_Id__c;
-            String correlationId  = comp.Correlation_Id__c;
+            correlationId         = comp.Correlation_Id__c;
             String userId         = UserInfo.getUserId();
 
             String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/notes';
 
             HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
             HttpResponse res = new Http().send(req);
-
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    Name                = ('GET /notes').left(80),
-                    HTTP_Method__c      = 'GET',
-                    Endpoint_Name__c    = 'CompanyDetailInsightsController.getNotes',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
 
             if (res.getStatusCode() == 200) {
                 return res.getBody();
@@ -177,6 +143,7 @@ public with sharing class CompanyDetailInsightsController {
             }
 
         } catch (Exception e) {
+            logError('CompanyDetailInsightsController.getNotes', 'GET', correlationId, e.getMessage());
             throw createHandledException(e.getMessage());
         }
     }
@@ -186,10 +153,11 @@ public with sharing class CompanyDetailInsightsController {
     // ─────────────────────────────────────────────────────────────────────────
     @AuraEnabled(cacheable=false)
     public static String createNote(String companyId, String title, String content, String sourceTab, String sourceSection) {
+        String correlationId = '';
         try {
             AI_Navigator_Company__c comp = getCompanyRecord(companyId);
             String azureCompanyId = comp.Azure_Company_Id__c;
-            String correlationId  = comp.Correlation_Id__c;
+            correlationId         = comp.Correlation_Id__c;
             String userId         = UserInfo.getUserId();
 
             String path = '/v1/user/companies/' + EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') + '/notes';
@@ -207,20 +175,6 @@ public with sharing class CompanyDetailInsightsController {
 
             HttpResponse res = new Http().send(req);
 
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    Name                = ('POST /notes').left(80),
-                    HTTP_Method__c      = 'POST',
-                    Endpoint_Name__c    = 'CompanyDetailInsightsController.createNote',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
-
             if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
                 return String.isNotBlank(res.getBody()) ? res.getBody() : '{"success":true}';
             } else {
@@ -228,6 +182,7 @@ public with sharing class CompanyDetailInsightsController {
             }
 
         } catch (Exception e) {
+            logError('CompanyDetailInsightsController.createNote', 'POST', correlationId, e.getMessage());
             throw createHandledException(e.getMessage());
         }
     }
@@ -241,8 +196,9 @@ public with sharing class CompanyDetailInsightsController {
             throw createHandledException('noteId parameter is blank or missing.');
         }
 
+        String correlationId = '';
         try {
-            String correlationId = AiNavigatorEventService.generateCorrelationId();
+            correlationId = AiNavigatorEventService.generateCorrelationId();
             String userId        = UserInfo.getUserId();
             String path          = '/v1/user/notes/' + EncodingUtil.urlEncode(noteId.trim(), 'UTF-8');
 
@@ -258,21 +214,6 @@ public with sharing class CompanyDetailInsightsController {
 
             HttpResponse res = new Http().send(req);
 
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    Name                = ('PUT /notes/' + noteId).left(80),
-                    HTTP_Method__c      = 'PUT',
-                    Endpoint_Name__c    = 'CompanyDetailInsightsController.updateNote',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId,
-                    Error_Message__c    = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? null : ('HTTP ' + res.getStatusCode() + ': ' + res.getBody()).left(32768)
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
-
             if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
                 return String.isNotBlank(res.getBody()) ? res.getBody() : '{"success":true}';
             } else {
@@ -280,6 +221,7 @@ public with sharing class CompanyDetailInsightsController {
             }
 
         } catch (Exception e) {
+            logError('CompanyDetailInsightsController.updateNote', 'PUT', correlationId, e.getMessage());
             throw createHandledException(e.getMessage());
         }
     }
@@ -293,8 +235,9 @@ public with sharing class CompanyDetailInsightsController {
             throw createHandledException('noteId parameter is blank or missing.');
         }
 
+        String correlationId = '';
         try {
-            String correlationId = AiNavigatorEventService.generateCorrelationId();
+            correlationId = AiNavigatorEventService.generateCorrelationId();
             String userId        = UserInfo.getUserId();
             String path          = '/v1/user/notes/' + EncodingUtil.urlEncode(noteId.trim(), 'UTF-8');
 
@@ -303,21 +246,6 @@ public with sharing class CompanyDetailInsightsController {
 
             HttpResponse res = new Http().send(req);
 
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    Name                = ('DELETE /notes/' + noteId).left(80),
-                    HTTP_Method__c      = 'DELETE',
-                    Endpoint_Name__c    = 'CompanyDetailInsightsController.deleteNote',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId,
-                    Error_Message__c    = (res.getStatusCode() >= 200 && res.getStatusCode() < 300) ? null : ('HTTP ' + res.getStatusCode() + ': ' + res.getBody()).left(32768)
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
-
             if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
                 return '{"success":true}';
             } else {
@@ -325,7 +253,23 @@ public with sharing class CompanyDetailInsightsController {
             }
 
         } catch (Exception e) {
+            logError('CompanyDetailInsightsController.deleteNote', 'DELETE', correlationId, e.getMessage());
             throw createHandledException(e.getMessage());
+        }
+    }
+
+    // ── Private Error Logger ─────────────────────────────────────────────────
+    private static void logError(String endpointName, String httpMethod, String correlationId, String errorMessage) {
+        try {
+            insert new AI_Navigator_Request_Log__c(
+                HTTP_Method__c      = httpMethod,
+                Endpoint_Name__c    = endpointName,
+                Status__c           = 'Failed',
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = errorMessage != null ? errorMessage.left(32768) : null
+            );
+        } catch (Exception logEx) {
+            System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
         }
     }
 

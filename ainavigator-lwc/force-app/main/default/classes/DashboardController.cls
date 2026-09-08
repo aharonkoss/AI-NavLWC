@@ -69,7 +69,7 @@ public with sharing class DashboardController {
                 'opened'         => opened
             });
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching dashboard stats: ' + e.getMessage());
+            throw createHandledException('Error fetching dashboard stats: ' + e.getMessage());
         }
     }
 
@@ -112,7 +112,7 @@ public with sharing class DashboardController {
             }
             return JSON.serialize(companies);
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching companies: ' + e.getMessage());
+            throw createHandledException('Error fetching companies: ' + e.getMessage());
         }
     }
 
@@ -121,9 +121,10 @@ public with sharing class DashboardController {
     // -------------------------------------------------------------------------
     @AuraEnabled(cacheable=false)
     public static String getPipelineStatus(String salesforceCompanyId) {
+        String correlationId = '';
         try {
             if (String.isBlank(salesforceCompanyId)) {
-                throw new AuraHandledException('salesforceCompanyId is required.');
+                throw createHandledException('salesforceCompanyId is required.');
             }
 
             List<AI_Navigator_Company__c> companies = [
@@ -134,15 +135,15 @@ public with sharing class DashboardController {
             ];
 
             if (companies.isEmpty()) {
-                throw new AuraHandledException('Company not found for Id: ' + salesforceCompanyId);
+                throw createHandledException('Company not found for Id: ' + salesforceCompanyId);
             }
 
             String azureCompanyId = companies[0].Azure_Company_Id__c;
             if (String.isBlank(azureCompanyId)) {
-                throw new AuraHandledException('This company has not been synced to Azure yet (Azure_Company_Id__c is blank).');
+                throw createHandledException('This company has not been synced to Azure yet (Azure_Company_Id__c is blank).');
             }
 
-            String correlationId = String.isNotBlank(companies[0].Correlation_Id__c) 
+            correlationId = String.isNotBlank(companies[0].Correlation_Id__c) 
                 ? companies[0].Correlation_Id__c 
                 : generateCorrelationId();
             String userId = UserInfo.getUserId();
@@ -150,19 +151,6 @@ public with sharing class DashboardController {
 
             HttpRequest req = AzureHttpService.buildRequest('GET', path, correlationId, userId);
             HttpResponse res = new Http().send(req);
-
-            try {
-                insert new AI_Navigator_Request_Log__c(
-                    HTTP_Method__c      = 'GET',
-                    Endpoint_Name__c    = 'DashboardController.getPipelineStatus',
-                    Response_Body__c    = res.getBody(),
-                    Status__c           = (res.getStatusCode() == 200) ? 'Success' : 'Failed',
-                    HTTP_Status_Code__c = res.getStatusCode(),
-                    Correlation_ID__c   = correlationId
-                );
-            } catch (Exception logEx) {
-                System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-            }
 
             if (res.getStatusCode() == 200) {
                 Map<String, Object> data = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
@@ -175,12 +163,14 @@ public with sharing class DashboardController {
                 }
                 return res.getBody();
             } else {
-                throw new AuraHandledException('Azure pipeline status fetch failed (' + res.getStatusCode() + '): ' + res.getBody());
+                throw createHandledException('Azure pipeline status fetch failed (' + res.getStatusCode() + '): ' + res.getBody());
             }
         } catch (AuraHandledException ahe) {
+            logError('DashboardController.getPipelineStatus', 'GET', correlationId, ahe.getMessage());
             throw ahe;
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            logError('DashboardController.getPipelineStatus', 'GET', correlationId, e.getMessage());
+            throw createHandledException(e.getMessage());
         }
     }
 
@@ -227,7 +217,7 @@ public with sharing class DashboardController {
 
             return '{"success": true}';
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            throw createHandledException(e.getMessage());
         }
     }
 
@@ -242,28 +232,33 @@ public with sharing class DashboardController {
 
     @AuraEnabled
     public static void unshareCompany(String sharedCompanyRecordId) {
+        String correlationId = 'UNSHARE-' + DateTime.now().getTime();
         try {
             AI_Navigator_Shared_Company__c sc = [SELECT Id, Source_Company__r.Azure_Company_Id__c, Target_Company__c, User__c 
                                     FROM AI_Navigator_Shared_Company__c WHERE Id = :sharedCompanyRecordId LIMIT 1];
             
-            HttpRequest req = AzureHttpService.buildRequest('POST', '/v1/user/companies/unshare', 'UNSHARE-' + DateTime.now().getTime(), UserInfo.getUserId());
+            HttpRequest req = AzureHttpService.buildRequest('POST', '/v1/user/companies/unshare', correlationId, UserInfo.getUserId());
             req.setBody(JSON.serialize(new Map<String, Object>{
                 'companyIds' => new List<String>{ sc.Source_Company__r.Azure_Company_Id__c },
                 'targetUserId' => sc.User__c
             }));
             
-            new Http().send(req);
+            HttpResponse res = new Http().send(req);
+            if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
+                throw createHandledException('Unshare failed on Azure (' + res.getStatusCode() + '): ' + res.getBody());
+            }
             delete new AI_Navigator_Company__c(Id = sc.Target_Company__c);
             delete sc;
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            logError('DashboardController.unshareCompany', 'POST', correlationId, e.getMessage());
+            throw createHandledException(e.getMessage());
         }
     }
 
     @AuraEnabled(cacheable=false)
     public static String getSignals(String companyId) {
         if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required');
+            throw createHandledException('companyId is required');
         }
         try {
             List<AI_Navigator_Signals__c> rows = [
@@ -295,7 +290,7 @@ public with sharing class DashboardController {
             }
             return JSON.serialize(signals);
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching signals: ' + e.getMessage());
+            throw createHandledException('Error fetching signals: ' + e.getMessage());
         }
     }
 
@@ -305,7 +300,7 @@ public with sharing class DashboardController {
     @AuraEnabled
     public static String updateCompany(String companyId, String stage, String clientType) {
         if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required');
+            throw createHandledException('companyId is required');
         }
         try {
             AI_Navigator_Company__c company = [
@@ -339,14 +334,14 @@ public with sharing class DashboardController {
         } catch (AuraHandledException ahe) {
             throw ahe;
         } catch (Exception e) {
-            throw new AuraHandledException('Error updating company: ' + e.getMessage());
+            throw createHandledException('Error updating company: ' + e.getMessage());
         }
     }
 
     @AuraEnabled
     public static String deleteCompany(String companyId) {
         if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required');
+            throw createHandledException('companyId is required');
         }
         try {
             AI_Navigator_Company__c company = [
@@ -367,14 +362,14 @@ public with sharing class DashboardController {
         } catch (AuraHandledException ahe) {
             throw ahe;
         } catch (Exception e) {
-            throw new AuraHandledException('Error deleting company: ' + e.getMessage());
+            throw createHandledException('Error deleting company: ' + e.getMessage());
         }
     }
 
     @AuraEnabled
     public static String retryCompany(String companyId) {
         if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required');
+            throw createHandledException('companyId is required');
         }
         try {
             AI_Navigator_Company__c company = [
@@ -386,7 +381,7 @@ public with sharing class DashboardController {
             ];
 
             if (company.Status__c?.toLowerCase() != 'failed') {
-                throw new AuraHandledException('Only failed companies can be retried.');
+                throw createHandledException('Only failed companies can be retried.');
             }
 
             if (String.isNotBlank(company.Azure_Company_Id__c)) {
@@ -408,14 +403,14 @@ public with sharing class DashboardController {
         } catch (AuraHandledException ahe) {
             throw ahe;
         } catch (Exception e) {
-            throw new AuraHandledException('Error retrying company: ' + e.getMessage());
+            throw createHandledException('Error retrying company: ' + e.getMessage());
         }
     }
 
     @AuraEnabled(cacheable=false)
     public static String getCompanyInfo(String companyId) {
         if (String.isBlank(companyId)) {
-            throw new AuraHandledException('companyId is required');
+            throw createHandledException('companyId is required');
         }
         try {
             AI_Navigator_Company__c c = [
@@ -440,7 +435,7 @@ public with sharing class DashboardController {
                 'createdAt'      => c.CreatedDate
             });
         } catch (Exception e) {
-            throw new AuraHandledException('Error fetching company info: ' + e.getMessage());
+            throw createHandledException('Error fetching company info: ' + e.getMessage());
         }
     }
 
@@ -499,7 +494,7 @@ public with sharing class DashboardController {
             insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c      = operation,
                 Endpoint_Name__c    = 'DashboardController.' + operation,
-                Status__c           = 'Error',
+                Status__c           = 'Failed',
                 HTTP_Status_Code__c = statusCode,
                 Correlation_ID__c   = correlationId,
                 Error_Message__c    = errorMsg
@@ -509,12 +504,32 @@ public with sharing class DashboardController {
         }
 
         if (statusCode != 404) {
-            throw new AuraHandledException(errorMsg);
+            throw createHandledException(errorMsg);
+        }
+    }
+
+    private static void logError(String endpointName, String httpMethod, String correlationId, String errorMessage) {
+        try {
+            insert new AI_Navigator_Request_Log__c(
+                HTTP_Method__c      = httpMethod,
+                Endpoint_Name__c    = endpointName,
+                Status__c           = 'Failed',
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = errorMessage != null ? errorMessage.left(32768) : null
+            );
+        } catch (Exception logEx) {
+            System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
         }
     }
 
     private static String generateCorrelationId() {
         return EncodingUtil.convertToHex(Crypto.generateAesKey(128)).substring(0, 8)
             + '-' + String.valueOf(DateTime.now().getTime());
+    }
+
+    private static AuraHandledException createHandledException(String message) {
+        AuraHandledException ex = new AuraHandledException(message);
+        ex.setMessage(message);
+        return ex;
     }
 }

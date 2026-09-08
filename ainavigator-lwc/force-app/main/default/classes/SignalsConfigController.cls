@@ -2,7 +2,7 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 07-10-2026
+ * @last modified on  : 09-06-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
  *                      Updated to use unified request logging object: AI_Navigator_Request_Log__c.
 **/
@@ -258,7 +258,7 @@ public with sharing class SignalsConfigController {
         try {
             HttpRequest  req = AzureHttpService.buildRequest('GET', CONFIG_PATH, correlationId, userId);
             HttpResponse res = new Http().send(req);
-            logRequest('GET', null, res, correlationId);
+            //logRequest('GET', null, res, correlationId);
 
             if (res.getStatusCode() == 200) {
                 Map<String, Object> azureFlags = parseBody(res.getBody());
@@ -296,7 +296,7 @@ public with sharing class SignalsConfigController {
             req.setBody(requestBody);
 
             HttpResponse res = new Http().send(req);
-            logRequest('PUT', requestBody, res, correlationId);
+            //logRequest('PUT', requestBody, res, correlationId);
 
             if (res.getStatusCode() == 200) {
                 return JSON.serialize(new Map<String, Object>{

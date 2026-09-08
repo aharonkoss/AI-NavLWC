@@ -2,7 +2,7 @@
  * @description       : 
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 08-28-2026
+ * @last modified on  : 09-06-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 **/
 public with sharing class InputController {
@@ -17,6 +17,7 @@ public with sharing class InputController {
         String clientType,
         Boolean isCalledFromLead 
     ) {
+        String correlationId = '';
         try {
             Id currentUserId = UserInfo.getUserId();
 
@@ -31,6 +32,7 @@ public with sharing class InputController {
 
             if (!existingCompanies.isEmpty()) {
                 AI_Navigator_Company__c existingCompany = existingCompanies[0];
+                correlationId = existingCompany.Correlation_Id__c;
                 
                 // Unhide and refresh properties
                 existingCompany.Is_Hidden__c = false;
@@ -82,7 +84,7 @@ public with sharing class InputController {
             }
 
             // 2. Standard creation process (No existing record found)
-            String correlationId = AI_Navigator_Event_Publisher.generateCorrelationId();
+            correlationId = AI_Navigator_Event_Publisher.generateCorrelationId();
 
             AI_Navigator_Company__c company = new AI_Navigator_Company__c(
                 Name                 = companyName,
@@ -124,7 +126,29 @@ public with sharing class InputController {
             });
 
         } catch (Exception e) {
-            throw new AuraHandledException(e.getMessage());
+            logError('InputController.submitCompany', 'POST', correlationId, e.getMessage() + ' | ' + e.getStackTraceString());
+            throw createHandledException(e.getMessage());
         }
+    }
+
+    // ── Private: Log only when an error occurs ──────────────────────────────
+    private static void logError(String endpointName, String httpMethod, String correlationId, String errorMessage) {
+        try {
+            insert new AI_Navigator_Request_Log__c(
+                HTTP_Method__c      = httpMethod,
+                Endpoint_Name__c    = endpointName,
+                Status__c           = 'Failed',
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = errorMessage != null ? errorMessage.left(32768) : null
+            );
+        } catch (Exception logEx) {
+            System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+        }
+    }
+
+    private static AuraHandledException createHandledException(String message) {
+        AuraHandledException ex = new AuraHandledException(message);
+        ex.setMessage(message);
+        return ex;
     }
 }

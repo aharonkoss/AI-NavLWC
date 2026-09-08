@@ -25,51 +25,54 @@ public class AzureUploadCompanyCallout implements Queueable, Database.AllowsCall
     }
 
     public void execute(QueueableContext context) {
+        try {
+            HttpRequest req = AzureHttpService.buildRequest(
+                'POST',
+                '/v1/upload',              // ← confirm with Azure team
+                correlationId,
+                UserInfo.getUserId()
+            );
+            req.setTimeout(120000);        // ← override default — fileContent is large
+            req.setBody(payload);
 
-        HttpRequest req = AzureHttpService.buildRequest(
-            'POST',
-            '/v1/upload',              // ← confirm with Azure team
-            correlationId,
-            UserInfo.getUserId()
-        );
-        req.setTimeout(120000);        // ← override default — fileContent is large
-        req.setBody(payload);
+            HttpResponse res = new Http().send(req);
 
-        HttpResponse res = new Http().send(req);
+            if (res.getStatusCode() == 200 || res.getStatusCode() == 202) {
+                update new AI_Navigator_Submission__c(
+                    Id        = submissionRecordId,
+                    Status__c = 'submitted'
+                );
+            } else {
+                update new AI_Navigator_Submission__c(
+                    Id        = submissionRecordId,
+                    Status__c = 'failed'
+                );
+                System.debug(LoggingLevel.ERROR,
+                    'AzureUploadCompanyCallout failed ['
+                    + res.getStatusCode() + ']: '
+                    + AzureHttpService.parseErrorResponse(res));
+            }
 
-        // ── LOG THE OUTBOUND REQUEST ─────────────────────────────────────────
+        } catch (Exception ex) {
+            System.debug(LoggingLevel.ERROR,
+                'AzureUploadCompanyCallout Exception: ' + ex.getMessage() + ' | ' + ex.getStackTraceString());
+            logException(ex);
+        }
+    }
+
+    // ── Private: log only when an exception occurs ───────────────────────────
+    private void logException(Exception ex) {
         try {
             insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c      = 'POST',
                 Endpoint_Name__c    = 'AzureUploadCompanyCallout',
-                Response_Body__c    = res.getBody(),
-                Status__c           = (res.getStatusCode() == 200 || res.getStatusCode() == 202)
-                                        ? 'Success' : 'Failed',
-                HTTP_Status_Code__c = res.getStatusCode(),
+                Response_Body__c    = ex.getStackTraceString(),
+                Status__c           = 'Failed',
                 Correlation_ID__c   = correlationId,
-                Error_Message__c    = (res.getStatusCode() == 200 || res.getStatusCode() == 202)
-                                        ? 'submissionId=' + submissionRecordId
-                                        : AzureHttpService.parseErrorResponse(res)
+                Error_Message__c    = ('submissionId=' + submissionRecordId + ' | ' + ex.getMessage()).left(32768)
             );
         } catch (Exception logEx) {
             System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
-        }
-        // ────────────────────────────────────────────────────────────────────
-
-        if (res.getStatusCode() == 200 || res.getStatusCode() == 202) {
-            update new AI_Navigator_Submission__c(
-                Id        = submissionRecordId,
-                Status__c = 'submitted'
-            );
-        } else {
-            update new AI_Navigator_Submission__c(
-                Id        = submissionRecordId,
-                Status__c = 'failed'
-            );
-            System.debug(LoggingLevel.ERROR,
-                'AzureUploadCompanyCallout failed ['
-                + res.getStatusCode() + ']: '
-                + AzureHttpService.parseErrorResponse(res));
         }
     }
 }

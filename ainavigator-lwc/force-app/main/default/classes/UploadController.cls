@@ -1,11 +1,51 @@
 /**
  * @description Controller for the upload LWC.
- *              Handles bulk file upload and tracks submission progress.
+ *              Handles bulk file upload, tracks submission progress, and logs diagnostics.
  * @group       AI Navigator - LWC Controllers
  */
 public with sharing class UploadController {
 
     private static final Integer DAILY_LIMIT = 5;
+
+    @AuraEnabled(cacheable=true)
+    public static Map<String, List<Map<String, String>>> getPicklistOptions() {
+        try {
+            Map<String, List<Map<String, String>>> result = new Map<String, List<Map<String, String>>>();
+
+            // 1. Describe Stage_List__c
+            List<Map<String, String>> stageOpts = new List<Map<String, String>>();
+            Schema.DescribeFieldResult stageDescribe = AI_Navigator_Company__c.Stage_List__c.getDescribe();
+            for (Schema.PicklistEntry ple : stageDescribe.getPicklistValues()) {
+                if (ple.isActive()) {
+                    stageOpts.add(new Map<String, String>{
+                        'label' => ple.getLabel(),
+                        'value' => ple.getValue()
+                    });
+                }
+            }
+            result.put('stageOptions', stageOpts);
+
+            // 2. Describe Client_Type_List__c
+            List<Map<String, String>> clientTypeOpts = new List<Map<String, String>>();
+            Schema.DescribeFieldResult clientTypeDescribe = AI_Navigator_Company__c.Client_Type_List__c.getDescribe();
+            for (Schema.PicklistEntry ple : clientTypeDescribe.getPicklistValues()) {
+                if (ple.isActive()) {
+                    clientTypeOpts.add(new Map<String, String>{
+                        'label' => ple.getLabel(),
+                        'value' => ple.getValue()
+                    });
+                }
+            }
+            result.put('clientTypeOptions', clientTypeOpts);
+
+            return result;
+        } catch (Exception e) {
+            logError(null, 'getPicklistOptions', e.getMessage() + '\n' + e.getStackTraceString(), null);
+            AuraHandledException ahe = new AuraHandledException('Error loading picklists: ' + e.getMessage());
+            ahe.setMessage('Error loading picklists: ' + e.getMessage());
+            throw ahe;
+        }
+    }
 
     @AuraEnabled(cacheable=true)
     public static String getUploadSettings() {
@@ -17,12 +57,15 @@ public with sharing class UploadController {
                 'dailyLimit'       => DAILY_LIMIT,
                 'usedToday'        => usedToday,
                 'remaining'        => remaining,
-                'templateCsvUrl'   => '/resource/UploadTemplateCSV',
-                'templateXlsxUrl'  => '/resource/UploadTemplateXLSX',
-                'templateXlsUrl'   => '/resource/UploadTemplateXLS'
+                'templateCsvUrl'   => '/resource/Company_Upload_Template_CSV',
+                'templateXlsxUrl'  => '/resource/Company_Upload_Template_XLSX',
+                'templateXlsUrl'   => '/resource/Company_Upload_Template_XLS'
             });
         } catch (Exception e) {
-            throw new AuraHandledException('Error loading upload settings: ' + e.getMessage());
+            logError(null, 'getUploadSettings', e.getMessage() + '\n' + e.getStackTraceString(), null);
+            AuraHandledException ahe = new AuraHandledException('Error loading settings: ' + e.getMessage());
+            ahe.setMessage('Error loading settings: ' + e.getMessage());
+            throw ahe;
         }
     }
 
@@ -54,7 +97,10 @@ public with sharing class UploadController {
             }
             return JSON.serialize(result);
         } catch (Exception e) {
-            throw new AuraHandledException('Error loading submissions: ' + e.getMessage());
+            logError(null, 'getPreviousSubmissions', e.getMessage() + '\n' + e.getStackTraceString(), null);
+            AuraHandledException ahe = new AuraHandledException('Error loading submissions: ' + e.getMessage());
+            ahe.setMessage('Error loading submissions: ' + e.getMessage());
+            throw ahe;
         }
     }
 
@@ -70,29 +116,42 @@ public with sharing class UploadController {
         Map<String, Object> payload = null;
 
         try {
+            System.debug(LoggingLevel.INFO, '[AI_NAVIGATOR_UPLOAD] Starting upload for file: ' + fileName);
+
             Integer usedToday = getTodayUploadCount();
             if (usedToday >= DAILY_LIMIT) {
-                throw new AuraHandledException(
-                    'Daily upload limit of ' + DAILY_LIMIT + ' reached. Try again tomorrow.'
-                );
+                String limitMsg = 'Daily upload limit of ' + DAILY_LIMIT + ' reached. Try again tomorrow.';
+                AuraHandledException ahe = new AuraHandledException(limitMsg);
+                ahe.setMessage(limitMsg);
+                throw ahe;
             }
 
             correlationId = AiNavigatorEventService.generateCorrelationId();
             submissionId  = correlationId;
             Integer fileSize = (Integer)(base64Data.length() * 0.75);
 
-            // 1. Parse CSV rows
+            // 1. Extract companies from file content
             List<AI_Navigator_Company__c> companiesToInsert = new List<AI_Navigator_Company__c>();
-            List<Map<String, String>> parsedRows = parseCsv(base64Data);
             Id currentUserId = UserInfo.getUserId();
 
+            List<Map<String, String>> parsedRows = parseFileContent(base64Data);
+            System.debug(LoggingLevel.INFO, '[AI_NAVIGATOR_UPLOAD] Parsed rows count: ' + parsedRows.size());
+
             for (Map<String, String> row : parsedRows) {
+                String compName = row.get('Name');
+                String compUrl  = row.get('Website');
+
+                // Skip blank rows
+                if (String.isBlank(compName) && String.isBlank(compUrl)) {
+                    continue;
+                }
+
                 String rowStage = String.isNotBlank(row.get('Stage')) ? row.get('Stage') : defaultStage;
                 String rowClientType = String.isNotBlank(row.get('ClientType')) ? row.get('ClientType') : defaultClientType;
 
                 companiesToInsert.add(new AI_Navigator_Company__c(
-                    Name                = row.get('Name'),
-                    Website__c          = row.get('Website'),
+                    Name                = compName,
+                    Website__c          = compUrl,
                     City__c             = row.get('City'),
                     State__c            = row.get('State'),
                     Stage_List__c       = rowStage,
@@ -104,9 +163,20 @@ public with sharing class UploadController {
                 ));
             }
 
-            if (!companiesToInsert.isEmpty()) {
-                insert companiesToInsert;
+            // Guard: Azure requires at least 1 company
+            if (companiesToInsert.isEmpty()) {
+                String emptyMsg = 'No company records found in "' + fileName + '". ' +
+                    'Please ensure the file has columns "Company Name" and "Company URL". ' +
+                    'For Excel files, please save or export your spreadsheet as CSV (.csv) before uploading.';
+                
+                logError(submissionId, 'uploadFile:Validation', emptyMsg, null);
+                AuraHandledException ahe = new AuraHandledException(emptyMsg);
+                ahe.setMessage(emptyMsg);
+                throw ahe;
             }
+
+            insert companiesToInsert;
+            System.debug(LoggingLevel.INFO, '[AI_NAVIGATOR_UPLOAD] Inserted ' + companiesToInsert.size() + ' company records.');
 
             // 2. Create Submission record
             AI_Navigator_Submission__c sub = new AI_Navigator_Submission__c(
@@ -121,7 +191,7 @@ public with sharing class UploadController {
             );
             insert sub;
 
-            // 3. Build payload
+            // 3. Build payload for Azure callout
             List<Map<String, Object>> companyList = new List<Map<String, Object>>();
             for (AI_Navigator_Company__c c : companiesToInsert) {
                 companyList.add(new Map<String, Object>{
@@ -155,14 +225,15 @@ public with sharing class UploadController {
                     correlationId
                 ));
             } catch (Exception calloutEx) {
-                System.debug(LoggingLevel.WARN, 'Callout queue warning: ' + calloutEx.getMessage());
+                System.debug(LoggingLevel.ERROR, '[AI_NAVIGATOR_UPLOAD] Callout queue error: ' + calloutEx.getMessage());
+                logError(submissionId, 'AzureUploadCompanyCallout Queue', calloutEx.getMessage() + '\n' + calloutEx.getStackTraceString(), JSON.serialize(payload));
             }
 
             // 5. Return success
             Integer newUsedToday = usedToday + 1;
             return JSON.serialize(new Map<String, Object>{
                 'success'        => true,
-                'message'        => 'File uploaded successfully. Processing will start shortly.',
+                'message'        => 'File uploaded successfully. Processing ' + companiesToInsert.size() + ' companies.',
                 'submissionId'   => submissionId,
                 'recordId'       => sub.Id,
                 'fileName'       => fileName,
@@ -174,9 +245,14 @@ public with sharing class UploadController {
                 'remaining'      => Math.max(0, DAILY_LIMIT - newUsedToday)
             });
 
+        } catch (AuraHandledException ahe) {
+            throw ahe;
         } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'UploadController error: ' + e.getMessage());
-            throw new AuraHandledException('Error during upload: ' + e.getMessage());
+            System.debug(LoggingLevel.ERROR, '[AI_NAVIGATOR_UPLOAD] Upload error: ' + e.getMessage());
+            logError(submissionId, 'uploadFile', e.getMessage() + '\n' + e.getStackTraceString(), null);
+            AuraHandledException ahe = new AuraHandledException(e.getMessage());
+            ahe.setMessage(e.getMessage());
+            throw ahe;
         }
     }
 
@@ -203,34 +279,72 @@ public with sharing class UploadController {
         'clienttype'   => 'ClientType'
     };
 
-    private static List<Map<String, String>> parseCsv(String base64Data) {
-        if (base64Data.contains(',')) {
-            base64Data = base64Data.substringAfter(',');
-        }
-
-        String csvContent = EncodingUtil.base64Decode(base64Data).toString();
+    /**
+     * @description Parses rows from CSV, TSV, or text streams.
+     */
+    private static List<Map<String, String>> parseFileContent(String base64Data) {
         List<Map<String, String>> rows = new List<Map<String, String>>();
-        List<String> lines = csvContent.split('\n');
-
-        if (lines.isEmpty()) return rows;
-
-        List<String> headers = new List<String>();
-        for (String h : lines[0].replace('\r', '').split(',')) {
-            String normalized = HEADER_MAP.get(h.trim().toLowerCase());
-            headers.add(normalized != null ? normalized : h.trim());
-        }
-
-        for (Integer i = 1; i < lines.size(); i++) {
-            String line = lines[i].replace('\r', '').trim();
-            if (String.isBlank(line)) continue;
-
-            List<String> values = line.split(',');
-            Map<String, String> row = new Map<String, String>();
-            for (Integer j = 0; j < headers.size(); j++) {
-                row.put(headers[j], j < values.size() ? values[j].trim() : '');
+        try {
+            if (base64Data.contains(',')) {
+                base64Data = base64Data.substringAfter(',');
             }
-            rows.add(row);
+
+            Blob fileBlob = EncodingUtil.base64Decode(base64Data);
+            String content = fileBlob.toString();
+
+            // Detect delimiter (comma, tab, semicolon)
+            String delimiter = ',';
+            if (content.contains('\t') && !content.contains(',')) {
+                delimiter = '\t';
+            } else if (content.contains(';') && !content.contains(',')) {
+                delimiter = ';';
+            }
+
+            List<String> lines = content.split('\n');
+            if (lines.isEmpty()) return rows;
+
+            List<String> headers = new List<String>();
+            for (String h : lines[0].replace('\r', '').split(delimiter)) {
+                String cleanHeader = h.trim().replace('"', '');
+                String normalized = HEADER_MAP.get(cleanHeader.toLowerCase());
+                headers.add(normalized != null ? normalized : cleanHeader);
+            }
+
+            for (Integer i = 1; i < lines.size(); i++) {
+                String line = lines[i].replace('\r', '').trim();
+                if (String.isBlank(line)) continue;
+
+                List<String> values = line.split(delimiter);
+                Map<String, String> row = new Map<String, String>();
+                for (Integer j = 0; j < headers.size(); j++) {
+                    String val = j < values.size() ? values[j].trim().replace('"', '') : '';
+                    row.put(headers[j], val);
+                }
+                rows.add(row);
+            }
+        } catch (StringException se) {
+            System.debug(LoggingLevel.WARN, '[AI_NAVIGATOR_UPLOAD] Binary file stream detected: ' + se.getMessage());
+        } catch (Exception ex) {
+            System.debug(LoggingLevel.WARN, '[AI_NAVIGATOR_UPLOAD] File parse warning: ' + ex.getMessage());
         }
         return rows;
+    }
+
+    /**
+     * @description Helper to write persistent errors directly to AI_Navigator_Request_Log__c
+     */
+    private static void logError(String correlationOrSubId, String endpointOrAction, String errorMessage, String payload) {
+        try {
+            AI_Navigator_Request_Log__c log = new AI_Navigator_Request_Log__c(
+                Endpoint_Name__c      = endpointOrAction,
+                Status__c             = 'Error',
+                Error_Message__c      = errorMessage,
+                Request_Body__c       = payload != null && payload.length() > 3000 ? payload.substring(0, 3000) : payload,
+                Request_Timestamp__c  = DateTime.now()
+            );
+            insert log;
+        } catch (Exception logEx) {
+            System.debug(LoggingLevel.ERROR, '[AI_NAVIGATOR_UPLOAD] Failed to insert log record: ' + logEx.getMessage());
+        }
     }
 }

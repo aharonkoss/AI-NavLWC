@@ -1,13 +1,7 @@
-import { LightningElement, track, wire } from 'lwc';
+import { LightningElement, track } from 'lwc';
 import { updateRecord } from 'lightning/uiRecordApi';
-import { getObjectInfo, getPicklistValues } from 'lightning/uiObjectInfoApi';
 
-// Schema references for Object and Custom Picklist Fields
-import COMPANY_OBJECT from '@salesforce/schema/AI_Navigator_Company__c';
-import STAGE_FIELD from '@salesforce/schema/AI_Navigator_Company__c.Stage_List__c';
-import CLIENT_TYPE_FIELD from '@salesforce/schema/AI_Navigator_Company__c.Client_Type_List__c';
-
-// Static Resource Imports (Managed Package & Namespace Safe)
+// Static Resource Imports
 import TEMPLATE_CSV from '@salesforce/resourceUrl/Company_Upload_Template_CSV';
 import TEMPLATE_XLSX from '@salesforce/resourceUrl/Company_Upload_Template_XLSX';
 import TEMPLATE_XLS from '@salesforce/resourceUrl/Company_Upload_Template_XLS';
@@ -15,6 +9,7 @@ import TEMPLATE_XLS from '@salesforce/resourceUrl/Company_Upload_Template_XLS';
 // Apex Controller methods
 import getUploadSettings from '@salesforce/apex/UploadController.getUploadSettings';
 import getPreviousSubmissions from '@salesforce/apex/UploadController.getPreviousSubmissions';
+import getPicklistOptions from '@salesforce/apex/UploadController.getPicklistOptions';
 import uploadFile from '@salesforce/apex/UploadController.uploadFile';
 
 export default class Upload extends LightningElement {
@@ -25,11 +20,9 @@ export default class Upload extends LightningElement {
     @track error = null;
     @track successMessage = '';
 
-    // Default picklist selection values
+    // Picklist selection values and options
     @track defaultStage = '';
     @track defaultClientType = '';
-
-    // Dynamic picklist options populated via wire adapters
     @track stageOptions = [];
     @track clientTypeOptions = [];
 
@@ -39,48 +32,6 @@ export default class Upload extends LightningElement {
     // Simulation tracking for pending uploads
     simulatingSubmissionIds = new Set();
     activeTimeouts = [];
-
-    // ── 1. Fetch Object Info to get the default RecordTypeId ────────────────
-    @wire(getObjectInfo, { objectApiName: COMPANY_OBJECT })
-    objectInfo;
-
-    // ── 2. Wire Picklist Values for Stage_List__c ───────────────────────────
-    @wire(getPicklistValues, {
-        recordTypeId: '$objectInfo.data.defaultRecordTypeId',
-        fieldApiName: STAGE_FIELD
-    })
-    wiredStageValues({ data, error }) {
-        if (data) {
-            this.stageOptions = data.values.map(item => ({
-                label: item.label,
-                value: item.value
-            }));
-            if (this.stageOptions.length > 0 && !this.defaultStage) {
-                this.defaultStage = data.defaultValue ? data.defaultValue.value : this.stageOptions[0].value;
-            }
-        } else if (error) {
-            console.error('[Upload Log] Error loading Stage_List__c picklist values:', error);
-        }
-    }
-
-    // ── 3. Wire Picklist Values for Client_Type_List__c ─────────────────────
-    @wire(getPicklistValues, {
-        recordTypeId: '$objectInfo.data.defaultRecordTypeId',
-        fieldApiName: CLIENT_TYPE_FIELD
-    })
-    wiredClientTypeValues({ data, error }) {
-        if (data) {
-            this.clientTypeOptions = data.values.map(item => ({
-                label: item.label,
-                value: item.value
-            }));
-            if (this.clientTypeOptions.length > 0 && !this.defaultClientType) {
-                this.defaultClientType = data.defaultValue ? data.defaultValue.value : this.clientTypeOptions[0].value;
-            }
-        } else if (error) {
-            console.error('[Upload Log] Error loading Client_Type_List__c picklist values:', error);
-        }
-    }
 
     connectedCallback() {
         this.loadData();
@@ -94,11 +45,28 @@ export default class Upload extends LightningElement {
         this.isLoading = true;
         this.error     = null;
 
-        Promise.all([getUploadSettings(), getPreviousSubmissions()])
-            .then(([settingsJson, subsJson]) => {
-                this.settings    = JSON.parse(settingsJson);
-                const rawSubs    = JSON.parse(subsJson);
+        Promise.all([
+            getUploadSettings(),
+            getPreviousSubmissions(),
+            getPicklistOptions()
+        ])
+            .then(([settingsJson, subsJson, picklistMap]) => {
+                this.settings = JSON.parse(settingsJson);
+                
+                const rawSubs = JSON.parse(subsJson);
                 this.submissions = rawSubs.map(s => this.mapSubmission(s));
+
+                // Process Picklist Options from Apex Describe
+                this.stageOptions = picklistMap.stageOptions || [];
+                this.clientTypeOptions = picklistMap.clientTypeOptions || [];
+
+                // Validate picklists are populated
+                if (this.stageOptions.length === 0 || this.clientTypeOptions.length === 0) {
+                    this.error = 'Please populate Default Stage and Default Client Type picklists before proceeding with file uploads.';
+                } else {
+                    this.defaultStage = this.stageOptions[0].value;
+                    this.defaultClientType = this.clientTypeOptions[0].value;
+                }
 
                 // Self-healing: complete any submissions that were left in processing
                 rawSubs.forEach(s => {
@@ -111,7 +79,7 @@ export default class Upload extends LightningElement {
             })
             .catch(err => {
                 console.error('[Upload Log] Error loading upload data', err);
-                this.error     = err.body?.message || 'Failed to load upload data.';
+                this.error     = err.body?.message || 'Failed to load upload data and picklists.';
                 this.isLoading = false;
             });
     }
@@ -142,7 +110,7 @@ export default class Upload extends LightningElement {
         document.body.removeChild(link);
     }
 
-    // ── Simulation loop: automatically resolves processing after 20s ────────
+    // ── Simulation loop ─────────────────────────────────────────────────────
     startPendingSimulation(recordId) {
         if (!recordId || this.simulatingSubmissionIds.has(recordId)) return;
         this.simulatingSubmissionIds.add(recordId);
@@ -272,14 +240,185 @@ export default class Upload extends LightningElement {
         }
     }
 
-    processFile(file) {
+    async processFile(file) {
         if (this.isUploading) return;
+
+        if (!this.defaultStage || !this.defaultClientType) {
+            this.error = 'Please populate Default Stage and Default Client Type picklists before proceeding with file uploads.';
+            return;
+        }
+
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        try {
+            // 1. Client-Side XLSX Parser
+            if (ext === 'xlsx') {
+                const arrayBuffer = await file.arrayBuffer();
+                const extractedXmls = await this.parseXlsxZip(arrayBuffer);
+                const sheetXmlKey = Object.keys(extractedXmls).find(k => k.includes('sheet1.xml') || k.includes('sheet.xml'));
+                const sharedStringsKey = Object.keys(extractedXmls).find(k => k.includes('sharedStrings.xml'));
+
+                if (sheetXmlKey) {
+                    const rows = this.extractRowsFromSheetXml(extractedXmls[sheetXmlKey], extractedXmls[sharedStringsKey]);
+                    if (rows && rows.length > 0) {
+                        const csvContent = rows
+                            .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+                            .join('\r\n');
+                        const base64 = btoa(unescape(encodeURIComponent(csvContent)));
+                        this.uploadToServer(file.name, base64);
+                        return;
+                    }
+                }
+            } 
+            // 2. Client-Side HTML/XML-based XLS Parser
+            else if (ext === 'xls') {
+                const text = await file.text();
+                const rows = this.parseHtmlOrXmlTable(text);
+                if (rows && rows.length > 0) {
+                    const csvContent = rows
+                        .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+                        .join('\r\n');
+                    const base64 = btoa(unescape(encodeURIComponent(csvContent)));
+                    this.uploadToServer(file.name, base64);
+                    return;
+                }
+            }
+        } catch (parseEx) {
+            console.warn('[Upload Log] Client Excel parsing fallback to raw file:', parseEx);
+        }
+
+        // Standard CSV / fallback stream reader
         const reader = new FileReader();
         reader.onload = () => {
             const base64 = reader.result.split(',')[1];
             this.uploadToServer(file.name, base64);
         };
         reader.readAsDataURL(file);
+    }
+
+    // ── Native OpenXML (.xlsx) Parser ───────────────────────────────────────
+    async parseXlsxZip(arrayBuffer) {
+        const view = new DataView(arrayBuffer);
+        const uint8 = new Uint8Array(arrayBuffer);
+        let offset = 0;
+        const files = {};
+
+        while (offset < uint8.length - 30) {
+            const sig = view.getUint32(offset, true);
+            if (sig === 0x04034b50) {
+                const compMethod = view.getUint16(offset + 8, true);
+                const compSize = view.getUint32(offset + 18, true);
+                const nameLen = view.getUint16(offset + 26, true);
+                const extraLen = view.getUint16(offset + 28, true);
+
+                const nameBytes = uint8.subarray(offset + 30, offset + 30 + nameLen);
+                const fileName = new TextDecoder().decode(nameBytes);
+                const dataStart = offset + 30 + nameLen + extraLen;
+                const dataEnd = dataStart + compSize;
+                const compressedData = uint8.subarray(dataStart, dataEnd);
+
+                if (fileName.includes('sharedStrings.xml') || fileName.includes('sheet1.xml') || fileName.includes('sheet.xml')) {
+                    let xmlText = '';
+                    if (compMethod === 0) {
+                        xmlText = new TextDecoder().decode(compressedData);
+                    } else if (compMethod === 8 && typeof DecompressionStream !== 'undefined') {
+                        const ds = new DecompressionStream('deflate-raw');
+                        const writer = ds.writable.getWriter();
+                        writer.write(compressedData);
+                        writer.close();
+                        const response = new Response(ds.readable);
+                        xmlText = await response.text();
+                    }
+                    files[fileName] = xmlText;
+                }
+                offset = dataEnd;
+            } else if (sig === 0x02014b50 || sig === 0x06054b50) {
+                break;
+            } else {
+                offset++;
+            }
+        }
+        return files;
+    }
+
+    extractRowsFromSheetXml(sheetXml, sharedStringsXml) {
+        const parser = new DOMParser();
+        const sharedStrings = [];
+
+        if (sharedStringsXml) {
+            const ssDoc = parser.parseFromString(sharedStringsXml, 'application/xml');
+            const siNodes = ssDoc.getElementsByTagName('si');
+            for (let i = 0; i < siNodes.length; i++) {
+                const tNodes = siNodes[i].getElementsByTagName('t');
+                let str = '';
+                for (let j = 0; j < tNodes.length; j++) {
+                    str += tNodes[j].textContent;
+                }
+                sharedStrings.push(str);
+            }
+        }
+
+        const sheetDoc = parser.parseFromString(sheetXml, 'application/xml');
+        const rowNodes = sheetDoc.getElementsByTagName('row');
+        const rows = [];
+
+        for (let i = 0; i < rowNodes.length; i++) {
+            const cNodes = rowNodes[i].getElementsByTagName('c');
+            const row = [];
+
+            for (let j = 0; j < cNodes.length; j++) {
+                const c = cNodes[j];
+                const r = c.getAttribute('r');
+                let colIndex = j;
+
+                if (r) {
+                    const colLetters = r.replace(/[0-9]/g, '');
+                    let num = 0;
+                    for (let k = 0; k < colLetters.length; k++) {
+                        num = num * 26 + (colLetters.charCodeAt(k) - 64);
+                    }
+                    colIndex = num - 1;
+                }
+
+                while (row.length < colIndex) {
+                    row.push('');
+                }
+
+                const t = c.getAttribute('t');
+                const vNode = c.getElementsByTagName('v')[0];
+                let val = vNode ? vNode.textContent : '';
+
+                if (t === 's') {
+                    const sIndex = parseInt(val, 10);
+                    val = sharedStrings[sIndex] !== undefined ? sharedStrings[sIndex] : val;
+                } else if (t === 'inlineStr') {
+                    const isT = c.getElementsByTagName('t')[0];
+                    val = isT ? isT.textContent : val;
+                }
+                row[colIndex] = val;
+            }
+            if (row.length > 0) {
+                rows.push(row);
+            }
+        }
+        return rows;
+    }
+
+    parseHtmlOrXmlTable(text) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        const trs = doc.querySelectorAll('tr');
+        if (!trs || trs.length === 0) return null;
+
+        const rows = [];
+        trs.forEach(tr => {
+            const row = [];
+            tr.querySelectorAll('th, td').forEach(cell => {
+                row.push(cell.textContent.trim());
+            });
+            if (row.length > 0) rows.push(row);
+        });
+        return rows.length > 0 ? rows : null;
     }
 
     uploadToServer(fileName, base64Data) {

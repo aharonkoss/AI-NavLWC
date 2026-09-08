@@ -13,6 +13,15 @@ export default class CompanyDetailResearch extends LightningElement {
   @track activeResearchSection = 'researchLibrary';
   @track isDownloadingPdf = false;
 
+  // Tracks which tabs have been visited/rendered so they remain cached in DOM
+  @track visitedTabs = {
+    researchLibrary: true,
+    leadership: false,
+    ucc: false,
+    rma: false,
+    equifax: false
+  };
+
   get researchSubTabs() {
     return RESEARCH_SUBTABS.map((tab) => ({
       ...tab,
@@ -22,6 +31,7 @@ export default class CompanyDetailResearch extends LightningElement {
     }));
   }
 
+  // Active tab state getters for styling & class toggling
   get isResearchLibraryTab() {
     return this.activeResearchSection === 'researchLibrary';
   }
@@ -38,6 +48,23 @@ export default class CompanyDetailResearch extends LightningElement {
     return this.activeResearchSection === 'equifax';
   }
 
+  // Visibility class getters that keep instances alive without re-rendering
+  get researchLibraryTabClass() {
+    return `cdr-tab-pane ${this.isResearchLibraryTab ? 'cdr-tab-pane--active' : 'cdr-hidden'}`;
+  }
+  get leadershipTabClass() {
+    return `cdr-tab-pane ${this.isLeadershipTab ? 'cdr-tab-pane--active' : 'cdr-hidden'}`;
+  }
+  get uccTabClass() {
+    return `cdr-tab-pane ${this.isUccTab ? 'cdr-tab-pane--active' : 'cdr-hidden'}`;
+  }
+  get rmaTabClass() {
+    return `cdr-tab-pane ${this.isRmaTab ? 'cdr-tab-pane--active' : 'cdr-hidden'}`;
+  }
+  get equifaxTabClass() {
+    return `cdr-tab-pane ${this.isEquifaxTab ? 'cdr-tab-pane--active' : 'cdr-hidden'}`;
+  }
+
   // Show Download PDF button for Research Library, Leadership, and UCC
   get showDownloadPdfButton() {
     return this.isResearchLibraryTab || this.isLeadershipTab || this.isUccTab;
@@ -45,7 +72,16 @@ export default class CompanyDetailResearch extends LightningElement {
 
   handleSubTabChange(event) {
     if (event && event.currentTarget && event.currentTarget.dataset) {
-      this.activeResearchSection = event.currentTarget.dataset.id;
+      const selectedTab = event.currentTarget.dataset.id;
+      this.activeResearchSection = selectedTab;
+
+      // Mark tab as visited to lazily instantiate and cache it
+      if (!this.visitedTabs[selectedTab]) {
+        this.visitedTabs = {
+          ...this.visitedTabs,
+          [selectedTab]: true
+        };
+      }
     }
   }
 
@@ -66,7 +102,6 @@ export default class CompanyDetailResearch extends LightningElement {
         const data = typeof json === 'string' ? JSON.parse(json) : json;
 
         if (data.downloadUrl) {
-          // Trigger the browser file download
           const link = document.createElement('a');
           link.href = data.downloadUrl;
           link.download = data.fileName || 'report.pdf';
