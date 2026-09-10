@@ -184,42 +184,129 @@ public with sharing class DashboardController {
         return teammates;
     }
 
+    // -------------------------------------------------------------------------
+    // shareCompanies
+    // -------------------------------------------------------------------------
     @AuraEnabled
     public static String shareCompanies(List<String> companyIds, String targetUserId) {
+        String actingUserId = UserInfo.getUserId();
+        String orgId        = UserInfo.getOrganizationId();
+        String correlationId = '';
+        String targetUserId18 = '';
+
         try {
+            if (companyIds == null || companyIds.isEmpty()) {
+                throw createHandledException('No companies selected to share.');
+            }
+            if (String.isBlank(targetUserId)) {
+                throw createHandledException('targetUserId is required.');
+            }
+
+            // Ensure 18-character recipient User ID
+            targetUserId18 = String.valueOf((Id) targetUserId);
+
+            // 1. Query original companies (including Correlation_Id__c)
             List<AI_Navigator_Company__c> originalRecords = [
                 SELECT Id, Name, City__c, State__c, Website__c, Status__c, 
-                       Stage_List__c, Client_Type_List__c, Azure_Company_Id__c 
-                FROM AI_Navigator_Company__c 
-                WHERE Id IN :companyIds
+                       Stage_List__c, Client_Type_List__c, Azure_Company_Id__c, Correlation_Id__c 
+                FROM   AI_Navigator_Company__c 
+                WHERE  Id IN :companyIds
+                AND    OwnerId = :actingUserId
             ];
-            
+
+            if (originalRecords.isEmpty()) {
+                throw createHandledException('No eligible companies found for sharing.');
+            }
+
+            // 2. Use the record's own Correlation_Id__c (with fallback if blank)
+            correlationId = String.isNotBlank(originalRecords[0].Correlation_Id__c)
+                ? originalRecords[0].Correlation_Id__c
+                : AiNavigatorEventService.generateCorrelationId();
+
+            // 3. Build parallel lists: companyIds (Azure UUIDs) and salesforceIds
+            List<String> azureCompanyIds = new List<String>();
+            List<String> sfCompanyIds    = new List<String>();
+
+            for (AI_Navigator_Company__c original : originalRecords) {
+                if (String.isNotBlank(original.Azure_Company_Id__c)) {
+                    azureCompanyIds.add(original.Azure_Company_Id__c);
+                    sfCompanyIds.add(original.Id);
+                }
+            }
+
+            if (azureCompanyIds.isEmpty()) {
+                throw createHandledException('Selected companies must have an Azure Company ID before sharing.');
+            }
+
+            // 4. Build request with AzureHttpService
+            HttpRequest req = AzureHttpService.buildRequest('POST', '/v1/user/companies/share', correlationId, actingUserId);
+
+            // 5. Set exact required headers
+            req.setHeader('X-Correlation-Id', correlationId);
+            req.setHeader('X-Client-Id', orgId);
+            req.setHeader('X-User-Id', actingUserId);
+            req.setHeader('Content-Type', 'application/json');
+
+            // 6. Set payload matching API specification
+            Map<String, Object> requestPayload = new Map<String, Object>{
+                'companyIds'    => azureCompanyIds,
+                'targetUserId'  => targetUserId18,
+                'salesforceIds' => sfCompanyIds
+            };
+            req.setBody(JSON.serialize(requestPayload));
+
+            // 7. Send callout
+            HttpResponse res = new Http().send(req);
+
+            if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
+                System.debug(LoggingLevel.WARN,
+                    'DashboardController.shareCompanies – Azure returned HTTP ' +
+                    res.getStatusCode() + ': ' + res.getBody());
+
+                // Diagnostics appended to error banner
+                String diagnosticInfo = ' [Sent targetUserId: ' + targetUserId18 
+                                      + ' | X-User-Id: ' + actingUserId 
+                                      + ' | X-Client-Id: ' + orgId + ']';
+
+                throw createHandledException('Azure share failed (' + res.getStatusCode() + '): ' 
+                    + res.getBody() + diagnosticInfo);
+            }
+
+            // 8. On Azure success, clone records & create junctions locally
             List<AI_Navigator_Company__c> clones = new List<AI_Navigator_Company__c>();
             for (AI_Navigator_Company__c original : originalRecords) {
                 AI_Navigator_Company__c clone = original.clone(false, true, false, false);
-                clone.OwnerId = targetUserId;
-                clone.Assigned_User__c = targetUserId;
+                clone.OwnerId           = targetUserId18;
+                clone.Assigned_User__c  = targetUserId18;
                 clone.Shared_By_Name__c = UserInfo.getName();
                 clones.add(clone);
             }
-            
             insert clones;
-            
+
             List<AI_Navigator_Shared_Company__c> junctions = new List<AI_Navigator_Shared_Company__c>();
             for (Integer i = 0; i < originalRecords.size(); i++) {
                 junctions.add(new AI_Navigator_Shared_Company__c(
                     Source_Company__c = originalRecords[i].Id,
                     Target_Company__c = clones[i].Id,
-                    User__c = targetUserId
+                    User__c           = targetUserId18
                 ));
             }
             insert junctions;
 
-            return '{"success": true}';
+            return JSON.serialize(new Map<String, Object>{ 'success' => true });
+
+        } catch (AzureHttpService.AzureHttpServiceException serviceEx) {
+            logError('DashboardController.shareCompanies', 'POST', correlationId, serviceEx.getMessage());
+            throw createHandledException(serviceEx.getMessage() + ' [targetUserId: ' + targetUserId18 + ']');
+        } catch (AuraHandledException ahe) {
+            logError('DashboardController.shareCompanies', 'POST', correlationId, ahe.getMessage());
+            throw ahe;
         } catch (Exception e) {
-            throw createHandledException(e.getMessage());
+            System.debug(LoggingLevel.ERROR, 'DashboardController.shareCompanies – ' + e.getMessage());
+            logError('DashboardController.shareCompanies', 'POST', correlationId, e.getMessage());
+            throw createHandledException('Unable to share companies: ' + e.getMessage() + ' [targetUserId: ' + targetUserId18 + ']');
         }
-    }
+    } 
 
     @AuraEnabled(cacheable=false)
     public static List<Map<String, String>> getSharedUsers(String companyId) {
@@ -338,30 +425,82 @@ public with sharing class DashboardController {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // deleteCompany
+    // -------------------------------------------------------------------------
     @AuraEnabled
     public static String deleteCompany(String companyId) {
         if (String.isBlank(companyId)) {
             throw createHandledException('companyId is required');
         }
+
+        String actingUserId = UserInfo.getUserId();
+        String orgId        = UserInfo.getOrganizationId();
+        String correlationId = '';
+
         try {
+            // 1. Query the company record (including Azure Company ID & Correlation ID)
             AI_Navigator_Company__c company = [
-                SELECT Id, Is_Hidden__c
+                SELECT Id, Azure_Company_Id__c, Correlation_Id__c
                 FROM   AI_Navigator_Company__c
                 WHERE  Id = :companyId
-                AND    OwnerId = :UserInfo.getUserId()
+                AND    OwnerId = :actingUserId
                 LIMIT  1
             ];
 
-            company.Is_Hidden__c = true;
-            update company;
+            // 2. Determine correlation ID
+            correlationId = String.isNotBlank(company.Correlation_Id__c)
+                ? company.Correlation_Id__c
+                : AiNavigatorEventService.generateCorrelationId();
+
+            // 3. Make the DELETE callout to Azure if the company was synced to Azure
+            if (String.isNotBlank(company.Azure_Company_Id__c)) {
+                String path = '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8');
+                
+                HttpRequest req = AzureHttpService.buildRequest('DELETE', path, correlationId, actingUserId);
+                req.setHeader('X-Correlation-Id', correlationId);
+                req.setHeader('X-Client-Id', orgId);
+                req.setHeader('X-User-Id', actingUserId);
+
+                HttpResponse res = new Http().send(req);
+
+                // Allow 200-299 success or 404 (already deleted/not found on Azure)
+                if (res.getStatusCode() >= 300 && res.getStatusCode() != 404) {
+                    System.debug(LoggingLevel.WARN,
+                        'DashboardController.deleteCompany – Azure returned HTTP ' +
+                        res.getStatusCode() + ': ' + res.getBody());
+                    throw createHandledException('Azure company deletion failed (' + res.getStatusCode() + '): ' + res.getBody());
+                }
+            }
+
+            // 4. Clean up any sharing junction records in Salesforce
+            List<AI_Navigator_Shared_Company__c> junctions = [
+                SELECT Id 
+                FROM   AI_Navigator_Shared_Company__c 
+                WHERE  Source_Company__c = :companyId 
+                OR     Target_Company__c = :companyId
+            ];
+            if (!junctions.isEmpty()) {
+                delete junctions;
+            }
+
+            // 5. Hard delete the company record from Salesforce
+            delete company;
 
             return JSON.serialize(new Map<String, Object>{
                 'success'   => true,
                 'companyId' => companyId
             });
+
+        } catch (AzureHttpService.AzureHttpServiceException serviceEx) {
+            logError('DashboardController.deleteCompany', 'DELETE', correlationId, serviceEx.getMessage());
+            throw createHandledException(serviceEx.getMessage());
         } catch (AuraHandledException ahe) {
+            logError('DashboardController.deleteCompany', 'DELETE', correlationId, ahe.getMessage());
             throw ahe;
         } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'DashboardController.deleteCompany – ' + e.getMessage());
+            logError('DashboardController.deleteCompany', 'DELETE', correlationId, e.getMessage());
             throw createHandledException('Error deleting company: ' + e.getMessage());
         }
     }
@@ -447,7 +586,49 @@ public with sharing class DashboardController {
             'message'   => 'Use CompanyDetailController.getAiResearch for full call plan data.'
         });
     }
+// -------------------------------------------------------------------------
+    // getStageOptions
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=true)
+    public static String getStageOptions() {
+        try {
+            List<Map<String, String>> options = new List<Map<String, String>>();
+            Schema.DescribeFieldResult fieldResult = AI_Navigator_Company__c.Stage_List__c.getDescribe();
+            for (Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+                if (entry.isActive()) {
+                    options.add(new Map<String, String>{
+                        'label' => entry.getLabel(),
+                        'value' => entry.getValue()
+                    });
+                }
+            }
+            return JSON.serialize(options);
+        } catch (Exception e) {
+            throw createHandledException('Error fetching stage options: ' + e.getMessage());
+        }
+    }
 
+    // -------------------------------------------------------------------------
+    // getClientTypeOptions
+    // -------------------------------------------------------------------------
+    @AuraEnabled(cacheable=true)
+    public static String getClientTypeOptions() {
+        try {
+            List<Map<String, String>> options = new List<Map<String, String>>();
+            Schema.DescribeFieldResult fieldResult = AI_Navigator_Company__c.Client_Type_List__c.getDescribe();
+            for (Schema.PicklistEntry entry : fieldResult.getPicklistValues()) {
+                if (entry.isActive()) {
+                    options.add(new Map<String, String>{
+                        'label' => entry.getLabel(),
+                        'value' => entry.getValue()
+                    });
+                }
+            }
+            return JSON.serialize(options);
+        } catch (Exception e) {
+            throw createHandledException('Error fetching client type options: ' + e.getMessage());
+        }
+    }
     private static HttpResponse azureCallout(String method, String path, Map<String, Object> body, Integer timeoutMs) {
         HttpRequest req = new HttpRequest();
         req.setEndpoint(NAMED_CRED + path);

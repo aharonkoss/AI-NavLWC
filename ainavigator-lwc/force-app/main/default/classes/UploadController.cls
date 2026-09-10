@@ -111,8 +111,8 @@ public with sharing class UploadController {
         String defaultStage,
         String defaultClientType
     ) {
-        String correlationId = null;
-        String submissionId  = null;
+        String batchCorrelationId = null;
+        String submissionId       = null;
         Map<String, Object> payload = null;
 
         try {
@@ -126,9 +126,9 @@ public with sharing class UploadController {
                 throw ahe;
             }
 
-            correlationId = AiNavigatorEventService.generateCorrelationId();
-            submissionId  = correlationId;
-            Integer fileSize = (Integer)(base64Data.length() * 0.75);
+            batchCorrelationId = AiNavigatorEventService.generateCorrelationId();
+            submissionId       = batchCorrelationId;
+            Integer fileSize   = (Integer)(base64Data.length() * 0.75);
 
             // 1. Extract companies from file content
             List<AI_Navigator_Company__c> companiesToInsert = new List<AI_Navigator_Company__c>();
@@ -149,6 +149,9 @@ public with sharing class UploadController {
                 String rowStage = String.isNotBlank(row.get('Stage')) ? row.get('Stage') : defaultStage;
                 String rowClientType = String.isNotBlank(row.get('ClientType')) ? row.get('ClientType') : defaultClientType;
 
+                // Unique correlation ID for EACH company record to prevent batch ID collisions
+                String rowCorrelationId = AiNavigatorEventService.generateCorrelationId();
+
                 companiesToInsert.add(new AI_Navigator_Company__c(
                     Name                = compName,
                     Website__c          = compUrl,
@@ -157,13 +160,13 @@ public with sharing class UploadController {
                     Stage_List__c       = rowStage,
                     Client_Type_List__c = rowClientType,
                     Status__c           = 'pending',
-                    Correlation_Id__c   = correlationId,
+                    Correlation_Id__c   = rowCorrelationId,
                     Is_Hidden__c        = false,
                     OwnerId             = currentUserId
                 ));
             }
 
-            // Guard: Azure requires at least 1 company
+            // Guard: Must contain at least 1 company
             if (companiesToInsert.isEmpty()) {
                 String emptyMsg = 'No company records found in "' + fileName + '". ' +
                     'Please ensure the file has columns "Company Name" and "Company URL". ' +
@@ -191,30 +194,32 @@ public with sharing class UploadController {
             );
             insert sub;
 
-            // 3. Build payload for Azure callout
+            // 3. Build payload for Azure callout with 1:1 mapping keys
             List<Map<String, Object>> companyList = new List<Map<String, Object>>();
             for (AI_Navigator_Company__c c : companiesToInsert) {
                 companyList.add(new Map<String, Object>{
-                    'salesforceId' => c.Id,
-                    'name'         => c.Name,
-                    'website'      => c.Website__c,
-                    'city'         => c.City__c,
-                    'state'        => c.State__c,
-                    'stage'        => c.Stage_List__c,
-                    'clientType'   => c.Client_Type_List__c
+                    'salesforceId'  => c.Id,
+                    'correlationId' => c.Correlation_Id__c,
+                    'name'          => c.Name,
+                    'website'       => c.Website__c,
+                    'city'          => c.City__c,
+                    'state'         => c.State__c,
+                    'stage'         => c.Stage_List__c,
+                    'clientType'    => c.Client_Type_List__c
                 });
             }
 
             payload = new Map<String, Object>{
-                'fileName'     => fileName,
-                'fileContent'  => base64Data,
-                'submissionId' => submissionId,
-                'companies'    => companyList,
-                'stage'        => defaultStage,
-                'clientType'   => defaultClientType,
-                'fileSize'     => fileSize,
-                'submittedBy'  => currentUserId,
-                'submittedAt'  => String.valueOf(DateTime.now())
+                'fileName'      => fileName,
+                'fileContent'   => base64Data,
+                'submissionId'  => submissionId,
+                'correlationId' => batchCorrelationId,
+                'companies'     => companyList,
+                'stage'         => defaultStage,
+                'clientType'    => defaultClientType,
+                'fileSize'      => fileSize,
+                'submittedBy'   => currentUserId,
+                'submittedAt'   => String.valueOf(DateTime.now())
             };
 
             // 4. Enqueue Azure Callout Job
@@ -222,7 +227,7 @@ public with sharing class UploadController {
                 System.enqueueJob(new AzureUploadCompanyCallout(
                     sub.Id,
                     JSON.serialize(payload),
-                    correlationId
+                    batchCorrelationId
                 ));
             } catch (Exception calloutEx) {
                 System.debug(LoggingLevel.ERROR, '[AI_NAVIGATOR_UPLOAD] Callout queue error: ' + calloutEx.getMessage());
@@ -239,7 +244,7 @@ public with sharing class UploadController {
                 'fileName'       => fileName,
                 'fileSize'       => fileSize,
                 'totalCompanies' => companiesToInsert.size(),
-                'correlationId'  => correlationId,
+                'correlationId'  => batchCorrelationId,
                 'dailyLimit'     => DAILY_LIMIT,
                 'usedToday'      => newUsedToday,
                 'remaining'      => Math.max(0, DAILY_LIMIT - newUsedToday)

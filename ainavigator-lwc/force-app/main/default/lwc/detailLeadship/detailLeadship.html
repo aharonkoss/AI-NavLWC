@@ -2,12 +2,12 @@
   @description       : Leadership & Executive drawer component with in-memory data caching
 -->
 <template>
-  <div class="cdr-subtab-container">
+  <div class="cdr-subtab-container leadership">
     <div class="cdr-subtab-content">
       <!-- Loading Spinner -->
       <template if:true={leadershipIsLoading}>
-        <div class="cdr-loading">
-          <div class="cdr-spinner"></div>
+        <div class="cdr-loading leader-loading">
+          <div class="cdr-spinner leader-spinner"></div>
           <span>Loading leadership data...</span>
         </div>
       </template>
@@ -55,29 +55,28 @@
             </div>
           </div>
 
-          <!-- Executive Cards -->
-          <div class="ldr-card-body">
+          <!-- Executive Master Cards -->
+          <div class="ldr-card-body leader-list">
             <template for:each={leadershipExecutives} for:item="exec">
-              <div key={exec.id} class="ldr-exec-card">
-                <!-- Hero Row -->
-                <div class="ldr-exec-hero">
+              <div key={exec.id} class="ldr-exec-card leader-card">
+                
+                <!-- 1. Hero Profile Header (Fix #1: Uses .ldr-hero-subcard .leader-profile WITHOUT .ldr-subcard) -->
+                <div class="ldr-hero-subcard leader-profile">
                   <div class="ldr-avatar-wrap">
                     <template if:true={exec.hasProfilePic}>
                       <img
-                        class="ldr-avatar-img"
+                        class="ldr-avatar-img leader-avatar-img"
                         src={exec.profilePicUrl}
                         alt={exec.fullName}
                       />
                     </template>
                     <template if:false={exec.hasProfilePic}>
-                      <div class="ldr-avatar">{exec.initials}</div>
+                      <div class="ldr-avatar leader-avatar-initial">{exec.initials}</div>
                     </template>
                   </div>
                   <div class="ldr-exec-hero-info">
                     <div class="ldr-exec-name-row">
-                      <span class="ldr-exec-name">{exec.fullName}</span>
-                      
-                      <!-- Leader Note Action (+ or Checkmark) -->
+                      <span class="ldr-exec-name leader-name">{exec.fullName}</span>
                       <button
                         class={exec.noteBtnClass}
                         title={exec.noteBtnTitle}
@@ -94,10 +93,13 @@
                     </div>
 
                     <template if:true={exec.designation}>
-                      <div class="ldr-exec-designation">{exec.designation}</div>
+                      <div class="ldr-exec-designation leader-title">{exec.designation}</div>
+                    </template>
+                    <template if:true={exec.company}>
+                      <div class="ldr-exec-company-name leader-employer">{exec.company}</div>
                     </template>
                     <template if:true={exec.location}>
-                      <div class="ldr-exec-location">
+                      <div class="ldr-exec-location leader-location">
                         <svg
                           class="ldr-loc-icon"
                           xmlns="http://www.w3.org/2000/svg"
@@ -122,12 +124,12 @@
                   </template>
                 </div>
 
-                <!-- Contact Grid -->
-                <div class="ldr-contact-grid">
-                  <!-- Email Section -->
+                <!-- 2. Contact Grid (Email, Phone, Social Profiles) -->
+                <div class="ldr-contact-grid leader-contact-grid">
+                  <!-- Email Sub-Card -->
                   <template if:true={exec.hasEmails}>
-                    <div class="ldr-section">
-                      <div class="ldr-section-header">
+                    <div class="ldr-subcard contact-panel">
+                      <div class="ldr-section-header contact-panel-heading">
                         <svg
                           class="ldr-section-icon"
                           xmlns="http://www.w3.org/2000/svg"
@@ -145,18 +147,20 @@
                         </svg>
                         <span class="ldr-section-title">Email ({exec.emailCount})</span>
                       </div>
-                      <div class="ldr-section-body">
+                      <div class="ldr-section-body contact-items">
                         <template for:each={exec.emails} for:item="em">
-                          <div key={em.email} class="ldr-contact-row">
-                            <span class="ldr-contact-value">{em.email}</span>
-                            <span class="ldr-type-badge">{em.type}</span>
-                            <template if:true={em.grade}>
-                              <span class="ldr-grade-badge">{em.grade}</span>
-                            </template>
+                          <div key={em.email} class="ldr-contact-row contact-item">
+                            <span class="ldr-contact-value contact-item-value">{em.email}</span>
+                            <div class="ldr-badge-group">
+                              <span class="ldr-type-badge badge badge-professional" data-type={em.type}>{em.type}</span>
+                              <template if:true={em.grade}>
+                                <span class="ldr-grade-badge badge" data-grade={em.grade}>{em.grade}</span>
+                              </template>
+                            </div>
                           </div>
                         </template>
                         <template if:true={exec.recommendedEmail}>
-                          <div class="ldr-recommended-note">
+                          <div class="ldr-recommended-email-box">
                             Recommended: {exec.recommendedEmail.email}
                           </div>
                         </template>
@@ -164,10 +168,10 @@
                     </div>
                   </template>
 
-                  <!-- Phone Section -->
+                  <!-- Phone Sub-Card -->
                   <template if:true={exec.hasPhones}>
-                    <div class="ldr-section">
-                      <div class="ldr-section-header">
+                    <div class="ldr-subcard contact-panel">
+                      <div class="ldr-section-header contact-panel-heading">
                         <svg
                           class="ldr-section-icon"
                           xmlns="http://www.w3.org/2000/svg"
@@ -184,26 +188,31 @@
                         </svg>
                         <span class="ldr-section-title">Phone ({exec.phoneCount})</span>
                       </div>
-                      <div class="ldr-section-body">
+                      <div class="ldr-section-body contact-items">
                         <template for:each={exec.phones} for:item="ph">
-                          <div key={ph.number} class="ldr-contact-row">
-                            <span class="ldr-contact-value">{ph.number}</span>
-                            <template if:true={ph.recommended}>
-                              <span class="ldr-recommended-badge">Recommended</span>
-                            </template>
-                            <template if:true={ph.type}>
-                              <span class="ldr-type-badge">{ph.type}</span>
-                            </template>
+                          <div key={ph.number} class="ldr-contact-row contact-item">
+                            <span class="ldr-contact-value contact-item-value">{ph.number}</span>
+                            <div class="ldr-badge-group">
+                              <template if:true={ph.recommended}>
+                                <span class="ldr-recommended-badge badge badge-valid">Recommended</span>
+                              </template>
+                              <template if:true={ph.type}>
+                                <span class="ldr-type-badge badge badge-professional">{ph.type}</span>
+                              </template>
+                              <template if:true={ph.status}>
+                                <span class="ldr-valid-badge badge badge-valid">{ph.status}</span>
+                              </template>
+                            </div>
                           </div>
                         </template>
                       </div>
                     </div>
                   </template>
 
-                  <!-- Social Profiles -->
+                  <!-- Social Profiles Sub-Card -->
                   <template if:true={exec.hasLinkedIn}>
-                    <div class="ldr-section">
-                      <div class="ldr-section-header">
+                    <div class="ldr-subcard contact-panel">
+                      <div class="ldr-section-header contact-panel-heading">
                         <svg
                           class="ldr-section-icon"
                           xmlns="http://www.w3.org/2000/svg"
@@ -269,10 +278,60 @@
                   </template>
                 </div>
 
-                <!-- Employment History -->
+                <!-- 3. Current Employer Sub-Card -->
+                <template if:true={exec.hasCurrentEmployer}>
+                  <div class="ldr-subcard contact-panel">
+                    <div class="ldr-section-header contact-panel-heading">
+                      <svg
+                        class="ldr-section-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                      <span class="ldr-section-title">Current Employer</span>
+                    </div>
+                    <div class="ldr-employer-grid">
+                      <div class="ldr-employer-col">
+                        <span class="ldr-employer-label">Company</span>
+                        <span class="ldr-employer-value">{exec.currentCompany}</span>
+                      </div>
+                      <div class="ldr-employer-col">
+                        <span class="ldr-employer-label">Industry</span>
+                        <span class="ldr-employer-value">{exec.industry}</span>
+                      </div>
+                      <div class="ldr-employer-col">
+                        <span class="ldr-employer-label">Website</span>
+                        <template if:true={exec.websiteUrl}>
+                          <a class="ldr-employer-link" href={exec.websiteUrl} target="_blank" rel="noopener noreferrer">{exec.websiteDisplay}</a>
+                        </template>
+                        <template if:false={exec.websiteUrl}>
+                          <span class="ldr-employer-value">-</span>
+                        </template>
+                      </div>
+                      <div class="ldr-employer-col">
+                        <span class="ldr-employer-label">LinkedIn</span>
+                        <template if:true={exec.companyLinkedInUrl}>
+                          <a class="ldr-employer-link" href={exec.companyLinkedInUrl} target="_blank" rel="noopener noreferrer">Company Page</a>
+                        </template>
+                        <template if:false={exec.companyLinkedInUrl}>
+                          <span class="ldr-employer-value">-</span>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <!-- 4. Employment History (Fix #2: Uses {job.rowClass} to bind to controller data) -->
                 <template if:true={exec.hasJobHistory}>
-                  <div class="ldr-section">
-                    <div class="ldr-section-header">
+                  <div class="ldr-subcard contact-panel">
+                    <div class="ldr-section-header contact-panel-heading">
                       <svg
                         class="ldr-section-icon"
                         xmlns="http://www.w3.org/2000/svg"
@@ -290,13 +349,13 @@
                         Employment History ({exec.jobHistoryCount})
                       </span>
                     </div>
-                    <div class="ldr-section-body">
+                    <div class="ldr-job-list contact-items">
                       <template for:each={exec.jobHistory} for:item="job">
                         <div key={job.key} class={job.rowClass}>
-                          <div class="ldr-job-title">
-                            {job.title}
+                          <div class="ldr-job-title-row">
+                            <span class="ldr-job-title">{job.title}</span>
                             <template if:true={job.isCurrent}>
-                              <span class="ldr-current-badge">Current</span>
+                              <span class="ldr-current-badge badge badge-valid">Current</span>
                             </template>
                           </div>
                           <div class="ldr-job-company">{job.company}</div>
@@ -307,10 +366,10 @@
                   </div>
                 </template>
 
-                <!-- Education -->
+                <!-- 5. Education -->
                 <template if:true={exec.hasEducation}>
-                  <div class="ldr-section">
-                    <div class="ldr-section-header">
+                  <div class="ldr-subcard contact-panel">
+                    <div class="ldr-section-header contact-panel-heading">
                       <svg
                         class="ldr-section-icon"
                         xmlns="http://www.w3.org/2000/svg"
@@ -328,9 +387,9 @@
                         Education ({exec.educationCount})
                       </span>
                     </div>
-                    <div class="ldr-section-body">
+                    <div class="ldr-edu-list contact-items">
                       <template for:each={exec.education} for:item="edu">
-                        <div key={edu.key} class="ldr-edu-row">
+                        <div key={edu.key} class="ldr-edu-row contact-item">
                           <div class="ldr-edu-school">{edu.school}</div>
                           <template if:true={edu.degree}>
                             <div class="ldr-edu-degree">{edu.degree}</div>
@@ -344,10 +403,10 @@
                   </div>
                 </template>
 
-                <!-- Skills -->
+                <!-- 6. Skills -->
                 <template if:true={exec.hasSkills}>
-                  <div class="ldr-section">
-                    <div class="ldr-section-header">
+                  <div class="ldr-subcard contact-panel">
+                    <div class="ldr-section-header contact-panel-heading">
                       <svg
                         class="ldr-section-icon"
                         xmlns="http://www.w3.org/2000/svg"
@@ -370,6 +429,7 @@
                     </div>
                   </div>
                 </template>
+
               </div>
             </template>
           </div>
@@ -378,7 +438,7 @@
 
       <!-- Empty State -->
       <template if:true={leadershipShowEmptyState}>
-        <div class="cdr-empty">
+        <div class="cdr-empty leader-empty">
           <span class="cdr-empty-icon">&#128100;</span>
           <p>No leadership data found for this company.</p>
         </div>
@@ -413,10 +473,8 @@
     <!-- Slide-in Notes Drawer -->
     <template if:true={isNotesOpen}>
       <div class="ldr-notes-drawer" style={drawerStyle}>
-        <!-- Drag Handle for Resizing -->
         <div class="ldr-resize-handle" onmousedown={startResize}></div>
 
-        <!-- Drawer Header -->
         <div class="ldr-drawer-header">
           <div class="ldr-drawer-header-left">
             <span class="ldr-drawer-icon" aria-hidden="true">
@@ -459,20 +517,17 @@
           </div>
         </div>
 
-        <!-- Drawer Body -->
         <div class="ldr-drawer-body">
           <div class="ldr-drawer-company-row">
             <strong>Company:</strong> {displayCompanyName}
           </div>
 
-          <!-- Add Note Dashed Button -->
           <template if:false={isAddingNote}>
             <button class="ldr-add-note-dash-btn" onclick={handleOpenAddNoteForm}>
               <span class="ldr-add-note-plus">+</span> Add New Note
             </button>
           </template>
 
-          <!-- Add / Edit Note Form -->
           <template if:true={isAddingNote}>
             <div class="ldr-note-form-card">
               <input
@@ -482,7 +537,6 @@
                 value={newNoteTitle}
                 oninput={handleNoteTitleChange}
               />
-              
               <div class="ldr-note-editor-wrapper">
                 <textarea
                   class="ldr-note-textarea"
@@ -490,50 +544,15 @@
                   placeholder="Enter your note..."
                   oninput={handleNoteContentChange}
                 >{newNoteContent}</textarea>
-                
-                <!-- Simple Toolbar (Bold, Italic, Bullet) -->
                 <div class="ldr-note-toolbar">
-                  <button
-                    type="button"
-                    class="ldr-tool-btn"
-                    title="Bold"
-                    onclick={handleToolBold}
-                  >
-                    <strong>B</strong>
-                  </button>
-                  <button
-                    type="button"
-                    class="ldr-tool-btn"
-                    title="Italic"
-                    onclick={handleToolItalic}
-                  >
-                    <em>/</em>
-                  </button>
-                  <button
-                    type="button"
-                    class="ldr-tool-btn"
-                    title="List"
-                    onclick={handleToolBullet}
-                  >
-                    &#9776;
-                  </button>
+                  <button type="button" class="ldr-tool-btn" title="Bold" onclick={handleToolBold}><strong>B</strong></button>
+                  <button type="button" class="ldr-tool-btn" title="Italic" onclick={handleToolItalic}><em>/</em></button>
+                  <button type="button" class="ldr-tool-btn" title="List" onclick={handleToolBullet}>&#9776;</button>
                 </div>
               </div>
-
               <div class="ldr-note-form-actions">
-                <button
-                  type="button"
-                  class="ldr-btn-cancel"
-                  onclick={handleCancelNoteForm}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  class="ldr-btn-save"
-                  disabled={isSavingNote}
-                  onclick={handleSaveNote}
-                >
+                <button type="button" class="ldr-btn-cancel" onclick={handleCancelNoteForm}>Cancel</button>
+                <button type="button" class="ldr-btn-save" disabled={isSavingNote} onclick={handleSaveNote}>
                   <template if:true={isSavingNote}>Saving...</template>
                   <template if:false={isSavingNote}>Save Note</template>
                 </button>
@@ -541,7 +560,6 @@
             </div>
           </template>
 
-          <!-- Loading Notes State -->
           <template if:true={isLoadingNotes}>
             <div class="ldr-notes-loading">
               <div class="cdr-spinner"></div>
@@ -549,15 +567,10 @@
             </div>
           </template>
 
-          <!-- Notes List Accordion -->
           <div class="ldr-notes-list">
             <template for:each={notesList} for:item="note">
               <div key={note.id} class="ldr-note-accordion-item">
-                <div
-                  class="ldr-note-accordion-header"
-                  data-id={note.id}
-                  onclick={toggleNoteAccordion}
-                >
+                <div class="ldr-note-accordion-header" data-id={note.id} onclick={toggleNoteAccordion}>
                   <div class="ldr-note-header-left">
                     <span class={note.chevronClass}></span>
                     <span class="ldr-note-item-title">{note.title}</span>
@@ -565,72 +578,36 @@
                   <div class="ldr-note-item-date">{note.formattedDate}</div>
                 </div>
 
-                <!-- Expanded Note Content -->
                 <template if:true={note.isExpanded}>
                   <div class="ldr-note-accordion-body">
                     <div class="ldr-note-tag-wrapper">
                       <span class="ldr-note-tag-badge">{note.tagLabel}</span>
                     </div>
 
-                    <!-- Note View Mode -->
                     <template if:false={note.isEditing}>
                       <div class="ldr-note-body-content-box">
                         <p class="ldr-note-body-text">{note.content}</p>
                       </div>
-                      
-                      <!-- Action Icons (Edit & Delete) -->
                       <div class="ldr-note-action-icons">
-                        <button
-                          class="ldr-note-icon-btn"
-                          title="Edit Note"
-                          data-id={note.id}
-                          onclick={handleStartEditNote}
-                        >
+                        <button class="ldr-note-icon-btn" title="Edit Note" data-id={note.id} onclick={handleStartEditNote}>
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"/>
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                           </svg>
                         </button>
-                        <button
-                          class="ldr-note-icon-btn"
-                          title="Delete Note"
-                          data-id={note.id}
-                          onclick={handleDeleteNote}
-                        >
+                        <button class="ldr-note-icon-btn" title="Delete Note" data-id={note.id} onclick={handleDeleteNote}>
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                           </svg>
                         </button>
                       </div>
                     </template>
 
-                    <!-- Note Edit Mode -->
                     <template if:true={note.isEditing}>
                       <div class="ldr-note-inline-edit">
-                        <textarea
-                          class="ldr-note-textarea"
-                          rows="4"
-                          data-id={note.id}
-                          oninput={handleInlineContentChange}
-                        >{note.editContent}</textarea>
+                        <textarea class="ldr-note-textarea" rows="4" data-id={note.id} oninput={handleInlineContentChange}>{note.editContent}</textarea>
                         <div class="ldr-note-form-actions">
-                          <button
-                            type="button"
-                            class="ldr-btn-cancel"
-                            data-id={note.id}
-                            onclick={handleCancelInlineEdit}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            class="ldr-btn-save"
-                            data-id={note.id}
-                            onclick={handleSaveInlineEdit}
-                          >
-                            Save
-                          </button>
+                          <button type="button" class="ldr-btn-cancel" data-id={note.id} onclick={handleCancelInlineEdit}>Cancel</button>
+                          <button type="button" class="ldr-btn-save" data-id={note.id} onclick={handleSaveInlineEdit}>Save</button>
                         </div>
                       </div>
                     </template>
@@ -641,7 +618,6 @@
           </div>
         </div>
 
-        <!-- Drawer Footer -->
         <div class="ldr-drawer-footer">
           <span>Drag left edge to resize</span>
           <span class="ldr-footer-divider">|</span>

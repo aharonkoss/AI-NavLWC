@@ -2,7 +2,7 @@
   @description       : 
   @author            : ChangeMeIn@UserSettingsUnder.SFDoc
   @group             : 
-  @last modified on  : 08-31-2026
+  @last modified on  : 09-08-2026
   @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
@@ -165,14 +165,6 @@
                                         </option>
                                     </template>
                                 </select>
-                            </div>
-
-                            <!-- Signals Badge -->
-                            <div class="company-signals-col" onclick={stopPropagation}>
-                                <button class={company.signalBadgeClass} data-companyid={company.companyId} onclick={handleOpenSignals}>
-                                    <span class="signal-icon">⚡</span>
-                                    <span>{company.signalBadgeLabel}</span>
-                                </button>
                             </div>
 
                             <!-- Status & Current Stage Badge -->

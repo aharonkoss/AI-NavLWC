@@ -1,30 +1,21 @@
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+
+// Apex Picklist Imports
+import getStageOptions from '@salesforce/apex/DashboardController.getStageOptions';
+import getClientTypeOptions from '@salesforce/apex/DashboardController.getClientTypeOptions';
+
+// Other Apex Imports
 import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
 import getCompanies from '@salesforce/apex/DashboardController.getCompanies';
 import getSignals from '@salesforce/apex/DashboardController.getSignals';
 import getPipelineStatus from '@salesforce/apex/DashboardController.getPipelineStatus';
 import updateCompany from '@salesforce/apex/DashboardController.updateCompany';
 import deleteCompany from '@salesforce/apex/DashboardController.deleteCompany';
-// Sharing Imports
 import getTeammates from '@salesforce/apex/DashboardController.getTeammates';
 import shareCompanies from '@salesforce/apex/DashboardController.shareCompanies';
 import getSharedUsers from '@salesforce/apex/DashboardController.getSharedUsers';
 import unshareCompany from '@salesforce/apex/DashboardController.unshareCompany';
-
-// Picklist definitions matching Stage_List__c & Client_Type_List__c
-const STAGE_OPTIONS = [
-    { label: 'PreCall',           value: 'PreCall' },
-    { label: 'Appointment Set',   value: 'Appointment Set' },
-    { label: 'Pre Qualification', value: 'Pre Qualification' },
-    { label: 'Face to Face',      value: 'Face to Face' }
-];
-
-const CLIENT_TYPE_OPTIONS = [
-    { label: 'Prospect',          value: 'Prospect' },
-    { label: 'Existing Customer', value: 'Existing Customer' },
-    { label: 'Past Customer',     value: 'Past Customer' }
-];
 
 const POLLING_INTERVAL_MS = 5000;
 
@@ -37,6 +28,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track dateFilter = '';
     @track currentPage = 1;
     ITEMS_PER_PAGE = 10;
+
+    // Picklist Options from Apex Schema
+    @track stageOptions = [];
+    @track clientTypeOptions = [];
 
     // --- Sharing State ---
     @track selectedCompanyIds = new Set();
@@ -65,13 +60,27 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     connectedCallback() {
         this.loadStats();
-        this.loadCompanies();
+        this.loadPicklistOptions();
         window.addEventListener('companysubmitted', this.handleCompanySubmitted);
     }
 
     disconnectedCallback() {
         window.removeEventListener('companysubmitted', this.handleCompanySubmitted);
         this.stopPolling();
+    }
+
+    // Load Apex picklist values first, then companies
+    loadPicklistOptions() {
+        Promise.all([getStageOptions(), getClientTypeOptions()])
+            .then(([stagesJson, clientTypesJson]) => {
+                this.stageOptions = JSON.parse(stagesJson);
+                this.clientTypeOptions = JSON.parse(clientTypesJson);
+                this.loadCompanies();
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error loading picklist options:', error);
+                this.loadCompanies();
+            });
     }
 
     // --- Polling Lifecycle ---
@@ -94,9 +103,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     pollUncompletedCompanies() {
         if (this.isPollingActive) return;
 
-        // Filter companies that are not completed and have an azureCompanyId or salesforce Id
         const uncompleted = this._companies.filter(c => c.status !== 'completed');
-
         if (uncompleted.length === 0) {
             this.stopPolling();
             return;
@@ -111,7 +118,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                     const newStatus = (data.status || comp.status || 'processing').toLowerCase();
                     const newStage = data.currentStage || comp.currentStage || null;
                     const percentComplete = data.percentComplete || 0;
-
                     const hasCompleted = newStatus === 'completed';
 
                     this._companies = this._companies.map(c => {
@@ -126,7 +132,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                         return c;
                     });
 
-                    // If completed, fetch signals and refresh KPI stats
                     if (hasCompleted) {
                         this.loadSignalsForCompany(comp.companyId);
                         this.loadStats();
@@ -141,7 +146,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             this.isPollingActive = false;
             this._companies = [...this._companies];
 
-            // If all done, stop the timer
             const remaining = this._companies.filter(c => c.status !== 'completed');
             if (remaining.length === 0) {
                 this.stopPolling();
@@ -188,7 +192,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         getCompanies()
             .then(result => {
                 const raw = JSON.parse(result);
-                
                 this._companies = raw.map(c => this.mapCompany(c));
 
                 let hasUncompleted = false;
@@ -201,7 +204,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
                 if (hasUncompleted) {
                     this.startPolling();
-                    // Initial immediate check
                     this.pollUncompletedCompanies();
                 }
             })
@@ -226,15 +228,15 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         const displayStatus = c.status || 'pending';
         const isCompleted = displayStatus === 'completed';
 
-        const currentStage = c.stage || 'PreCall';
-        const currentClientType = c.clientType || 'Prospect';
+        // Keep existing stage/clientType or fallback to first option from schema
+        const currentStage = c.stage || (this.stageOptions.length > 0 ? this.stageOptions[0].value : '');
+        const currentClientType = c.clientType || (this.clientTypeOptions.length > 0 ? this.clientTypeOptions[0].value : '');
 
         const companySignals = signals || this._companySignals[c.companyId] || [];
         const signalSummary = this.getSignalSummary(companySignals);
 
         const statusLabel = displayStatus ? displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) : 'Unknown';
         
-        // Display: status + currentStage in a badge when not completed
         let statusDisplay = statusLabel;
         if (!isCompleted && c.currentStage) {
             statusDisplay = `${statusLabel}: ${c.currentStage}`;
@@ -255,12 +257,12 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             statusDisplay: statusDisplay,
             isProcessing: !isCompleted && (displayStatus === 'processing' || displayStatus === 'pending'),
             
-            // Dynamic Picklist Options with Selected State
-            stageOptions: STAGE_OPTIONS.map(opt => ({
+            // Dynamic Picklist Options for HTML template (template for:each={company.stageOptions})
+            stageOptions: this.stageOptions.map(opt => ({
                 ...opt,
                 isSelected: opt.value === currentStage
             })),
-            clientTypeOptions: CLIENT_TYPE_OPTIONS.map(opt => ({
+            clientTypeOptions: this.clientTypeOptions.map(opt => ({
                 ...opt,
                 isSelected: opt.value === currentClientType
             })),
@@ -289,7 +291,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         const newStage = event.target.value;
         
         const oldCompany = this._companies.find(c => c.companyId === companyId);
-        const oldStage = oldCompany ? oldCompany.stage : 'PreCall';
+        const oldStage = oldCompany ? oldCompany.stage : '';
 
         this._companies = this._companies.map(c => 
             c.companyId === companyId ? this.mapCompany({ ...c, stage: newStage }) : c
@@ -314,7 +316,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         const newClientType = event.target.value;
 
         const oldCompany = this._companies.find(c => c.companyId === companyId);
-        const oldClientType = oldCompany ? oldCompany.clientType : 'Prospect';
+        const oldClientType = oldCompany ? oldCompany.clientType : '';
 
         this._companies = this._companies.map(c => 
             c.companyId === companyId ? this.mapCompany({ ...c, clientType: newClientType }) : c
@@ -531,23 +533,32 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             : (this.stats.opened || 0); 
     }
 
+    // Dynamic Filter Options driven by schema picklists
     get filterOptions() {
-        return [
-            { label: 'All',                      value: 'all' },
-            { label: 'Most Recent 2',            value: 'recent2' },
-            { label: 'Client: Prospect',         value: 'clientType:Prospect' },
-            { label: 'Client: Existing Customer',value: 'clientType:Existing Customer' },
-            { label: 'Client: Past Customer',    value: 'clientType:Past Customer' },
-            { label: 'Stage: PreCall',           value: 'stage:PreCall' },
-            { label: 'Stage: Appt Set',          value: 'stage:Appointment Set' },
-            { label: 'Stage: Pre Qualification', value: 'stage:Pre Qualification' },
-            { label: 'Stage: Face to Face',      value: 'stage:Face to Face' },
-            { label: 'Status: Completed',        value: 'status:completed' },
-            { label: 'Status: Processing',       value: 'status:processing' },
-            { label: 'Status: Pending',          value: 'status:pending' },
-            { label: 'Status: Failed',           value: 'status:failed' },
-            { label: 'By Date Submitted',        value: 'byDate' }
+        const baseBefore = [
+            { label: 'All',           value: 'all' },
+            { label: 'Most Recent 2', value: 'recent2' }
         ];
+
+        const clientTypeFilters = this.clientTypeOptions.map(opt => ({
+            label: `Client: ${opt.label}`,
+            value: `clientType:${opt.value}`
+        }));
+
+        const stageFilters = this.stageOptions.map(opt => ({
+            label: `Stage: ${opt.label}`,
+            value: `stage:${opt.value}`
+        }));
+
+        const baseAfter = [
+            { label: 'Status: Completed',  value: 'status:completed' },
+            { label: 'Status: Processing', value: 'status:processing' },
+            { label: 'Status: Pending',    value: 'status:pending' },
+            { label: 'Status: Failed',     value: 'status:failed' },
+            { label: 'By Date Submitted',  value: 'byDate' }
+        ];
+
+        return [...baseBefore, ...clientTypeFilters, ...stageFilters, ...baseAfter];
     }
 
     get showDateFilter()  { return this.companyFilter === 'byDate'; }

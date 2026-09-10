@@ -8,13 +8,10 @@
  *     - PROCESSING_ERROR      → Status__c = failed, Error_Message__c
  *
  *   LOOKUP STRATEGY:
- *     All handlers match on Correlation_Id__c — a dedicated field on the Platform
- *     Event that Azure echoes back from the original upload request.
- *     It is stored on Company__c at record-creation time, enabling a direct
- *     WHERE Correlation_Id__c IN lookup with no Azure changes required.
+ *     Matches by salesforceId first, then Azure_Company_Id__c, then Correlation_Id__c.
  *
  * @group AI Navigator Integration
- * @last-modified 2026-05-04
+ * @last-modified 2026-09-08
  */
 public without sharing class CompanyStatusUpdater {
 
@@ -22,30 +19,69 @@ public without sharing class CompanyStatusUpdater {
     // RESEARCH_DONE
     // ─────────────────────────────────────────────────────────────────────────
     public static void processResearchDone(List<AI_Navigator_Inbound__e> events) {
-        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
-        if (corrIdToEvent.isEmpty()) return;
+        Map<Id, AI_Navigator_Inbound__e> sfIdToEvent = new Map<Id, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> azureIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+
+        for (AI_Navigator_Inbound__e evt : events) {
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
+            String sfId = (String) payload.get('salesforceId');
+            String azId = (String) payload.get('companyId');
+            String corrId = String.isNotBlank((String) payload.get('correlationId')) 
+                ? (String) payload.get('correlationId') 
+                : evt.Correlation_Id__c;
+
+            if (String.isNotBlank(sfId)) {
+                try { sfIdToEvent.put((Id) sfId.trim(), evt); } catch (Exception e) {}
+            }
+            if (String.isNotBlank(azId)) {
+                azureIdToEvent.put(azId.trim(), evt);
+            }
+            if (String.isNotBlank(corrId)) {
+                corrIdToEvent.put(corrId.trim(), evt);
+            }
+        }
 
         List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        Set<Id> updatedIds = new Set<Id>();
+
         for (AI_Navigator_Company__c company : [
             SELECT Id, Status__c, Research_Completed_At__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
             FROM   AI_Navigator_Company__c
-            WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
+            WHERE  Id IN :sfIdToEvent.keySet()
+               OR  Azure_Company_Id__c IN :azureIdToEvent.keySet()
+               OR  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
-            AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
-            Map<String, Object>     payload = parsePayload(evt.Payload__c);
+            if (updatedIds.contains(company.Id)) continue;
 
+            AI_Navigator_Inbound__e evt = sfIdToEvent.containsKey(company.Id) 
+                ? sfIdToEvent.get(company.Id)
+                : (String.isNotBlank(company.Azure_Company_Id__c) && azureIdToEvent.containsKey(company.Azure_Company_Id__c))
+                    ? azureIdToEvent.get(company.Azure_Company_Id__c)
+                    : corrIdToEvent.get(company.Correlation_Id__c);
+
+            if (evt == null) continue;
+
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
             String status = (String) payload.get('status');
+            String azId = (String) payload.get('companyId');
+
             if (status == 'failed') {
                 company.Status__c        = 'failed';
                 company.Error_Message__c = extractErrorMessage(payload);
             } else {
                 company.Status__c                = 'completed';
                 company.Research_Completed_At__c = DateTime.now();
-                company.Error_Message__c         = null; // clear any prior error
+                company.Error_Message__c         = null;
             }
-            company.Azure_Company_Id__c = (String) payload.get('companyId');
+
+            if (String.isNotBlank(azId)) {
+                company.Azure_Company_Id__c = azId.trim();
+            }
+
             toUpdate.add(company);
+            updatedIds.add(company.Id);
         }
         updateRecords(toUpdate, 'CompanyStatusUpdater.processResearchDone');
     }
@@ -54,20 +90,54 @@ public without sharing class CompanyStatusUpdater {
     // SCORING_DONE
     // ─────────────────────────────────────────────────────────────────────────
     public static void processScoringDone(List<AI_Navigator_Inbound__e> events) {
-        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
-        if (corrIdToEvent.isEmpty()) return;
+        Map<Id, AI_Navigator_Inbound__e> sfIdToEvent = new Map<Id, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> azureIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+
+        for (AI_Navigator_Inbound__e evt : events) {
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
+            String sfId = (String) payload.get('salesforceId');
+            String azId = (String) payload.get('companyId');
+            String corrId = String.isNotBlank((String) payload.get('correlationId')) 
+                ? (String) payload.get('correlationId') 
+                : evt.Correlation_Id__c;
+
+            if (String.isNotBlank(sfId)) {
+                try { sfIdToEvent.put((Id) sfId.trim(), evt); } catch (Exception e) {}
+            }
+            if (String.isNotBlank(azId)) {
+                azureIdToEvent.put(azId.trim(), evt);
+            }
+            if (String.isNotBlank(corrId)) {
+                corrIdToEvent.put(corrId.trim(), evt);
+            }
+        }
 
         List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        Set<Id> updatedIds = new Set<Id>();
+
         for (AI_Navigator_Company__c company : [
             SELECT Id, Prospect_Score__c, Scored_At__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
             FROM   AI_Navigator_Company__c
-            WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
+            WHERE  Id IN :sfIdToEvent.keySet()
+               OR  Azure_Company_Id__c IN :azureIdToEvent.keySet()
+               OR  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
-            AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
-            Map<String, Object>     payload = parsePayload(evt.Payload__c);
+            if (updatedIds.contains(company.Id)) continue;
 
+            AI_Navigator_Inbound__e evt = sfIdToEvent.containsKey(company.Id) 
+                ? sfIdToEvent.get(company.Id)
+                : (String.isNotBlank(company.Azure_Company_Id__c) && azureIdToEvent.containsKey(company.Azure_Company_Id__c))
+                    ? azureIdToEvent.get(company.Azure_Company_Id__c)
+                    : corrIdToEvent.get(company.Correlation_Id__c);
+
+            if (evt == null) continue;
+
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
             Object scoreVal = payload.get('overallScore');
+            String azId = (String) payload.get('companyId');
+
             if (scoreVal != null) {
                 company.Prospect_Score__c = Decimal.valueOf(String.valueOf(scoreVal));
                 company.Scored_At__c      = DateTime.now();
@@ -75,31 +145,69 @@ public without sharing class CompanyStatusUpdater {
             } else {
                 company.Error_Message__c = extractErrorMessage(payload);
             }
-            company.Azure_Company_Id__c = (String) payload.get('companyId');
+
+            if (String.isNotBlank(azId)) {
+                company.Azure_Company_Id__c = azId.trim();
+            }
+
             toUpdate.add(company);
+            updatedIds.add(company.Id);
         }
         updateRecords(toUpdate, 'CompanyStatusUpdater.processScoringDone');
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // REPORT_READY  (also handles AI_NAVIGATOR_REPORT_FAILED inside this event)
+    // REPORT_READY
     // ─────────────────────────────────────────────────────────────────────────
     public static void processReportReady(List<AI_Navigator_Inbound__e> events) {
-        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
-        if (corrIdToEvent.isEmpty()) return;
+        Map<Id, AI_Navigator_Inbound__e> sfIdToEvent = new Map<Id, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> azureIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+
+        for (AI_Navigator_Inbound__e evt : events) {
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
+            String sfId = (String) payload.get('salesforceId');
+            String azId = (String) payload.get('companyId');
+            String corrId = String.isNotBlank((String) payload.get('correlationId')) 
+                ? (String) payload.get('correlationId') 
+                : evt.Correlation_Id__c;
+
+            if (String.isNotBlank(sfId)) {
+                try { sfIdToEvent.put((Id) sfId.trim(), evt); } catch (Exception e) {}
+            }
+            if (String.isNotBlank(azId)) {
+                azureIdToEvent.put(azId.trim(), evt);
+            }
+            if (String.isNotBlank(corrId)) {
+                corrIdToEvent.put(corrId.trim(), evt);
+            }
+        }
 
         List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        Set<Id> updatedIds = new Set<Id>();
+
         for (AI_Navigator_Company__c company : [
             SELECT Id, Status__c, PDF_Report_URL__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
             FROM   AI_Navigator_Company__c
-            WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
+            WHERE  Id IN :sfIdToEvent.keySet()
+               OR  Azure_Company_Id__c IN :azureIdToEvent.keySet()
+               OR  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
-            AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
-            Map<String, Object>     payload = parsePayload(evt.Payload__c);
-            String                  code    = (String) payload.get('code');
+            if (updatedIds.contains(company.Id)) continue;
 
-            // Azure sometimes sends failure inside a REPORT_READY event
+            AI_Navigator_Inbound__e evt = sfIdToEvent.containsKey(company.Id) 
+                ? sfIdToEvent.get(company.Id)
+                : (String.isNotBlank(company.Azure_Company_Id__c) && azureIdToEvent.containsKey(company.Azure_Company_Id__c))
+                    ? azureIdToEvent.get(company.Azure_Company_Id__c)
+                    : corrIdToEvent.get(company.Correlation_Id__c);
+
+            if (evt == null) continue;
+
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
+            String code = (String) payload.get('code');
+            String azId = (String) payload.get('companyId');
+
             if (code != null && code.containsIgnoreCase('FAILED')) {
                 company.Status__c        = 'report_failed';
                 company.Error_Message__c = extractErrorMessage(payload);
@@ -110,8 +218,13 @@ public without sharing class CompanyStatusUpdater {
                 company.PDF_Report_URL__c = (String) payload.get('downloadUrl');
                 company.Error_Message__c  = null;
             }
-            company.Azure_Company_Id__c = (String) payload.get('companyId');
+
+            if (String.isNotBlank(azId)) {
+                company.Azure_Company_Id__c = azId.trim();
+            }
+
             toUpdate.add(company);
+            updatedIds.add(company.Id);
         }
         updateRecords(toUpdate, 'CompanyStatusUpdater.processReportReady');
     }
@@ -120,23 +233,62 @@ public without sharing class CompanyStatusUpdater {
     // PROCESSING_ERROR
     // ─────────────────────────────────────────────────────────────────────────
     public static void processError(List<AI_Navigator_Inbound__e> events) {
-        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = mapByCorrelationId(events);
-        if (corrIdToEvent.isEmpty()) return;
+        Map<Id, AI_Navigator_Inbound__e> sfIdToEvent = new Map<Id, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> azureIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+        Map<String, AI_Navigator_Inbound__e> corrIdToEvent = new Map<String, AI_Navigator_Inbound__e>();
+
+        for (AI_Navigator_Inbound__e evt : events) {
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
+            String sfId = (String) payload.get('salesforceId');
+            String azId = (String) payload.get('companyId');
+            String corrId = String.isNotBlank((String) payload.get('correlationId')) 
+                ? (String) payload.get('correlationId') 
+                : evt.Correlation_Id__c;
+
+            if (String.isNotBlank(sfId)) {
+                try { sfIdToEvent.put((Id) sfId.trim(), evt); } catch (Exception e) {}
+            }
+            if (String.isNotBlank(azId)) {
+                azureIdToEvent.put(azId.trim(), evt);
+            }
+            if (String.isNotBlank(corrId)) {
+                corrIdToEvent.put(corrId.trim(), evt);
+            }
+        }
 
         List<AI_Navigator_Company__c> toUpdate = new List<AI_Navigator_Company__c>();
+        Set<Id> updatedIds = new Set<Id>();
+
         for (AI_Navigator_Company__c company : [
             SELECT Id, Status__c,
                    Correlation_Id__c, Azure_Company_Id__c, Error_Message__c
             FROM   AI_Navigator_Company__c
-            WHERE  Correlation_Id__c IN :corrIdToEvent.keySet()
+            WHERE  Id IN :sfIdToEvent.keySet()
+               OR  Azure_Company_Id__c IN :azureIdToEvent.keySet()
+               OR  Correlation_Id__c IN :corrIdToEvent.keySet()
         ]) {
-            AI_Navigator_Inbound__e evt     = corrIdToEvent.get(company.Correlation_Id__c);
-            Map<String, Object>     payload = parsePayload(evt.Payload__c);
+            if (updatedIds.contains(company.Id)) continue;
 
-            company.Status__c           = 'failed';
-            company.Error_Message__c    = extractErrorMessage(payload);
-            company.Azure_Company_Id__c = (String) payload.get('companyId');
+            AI_Navigator_Inbound__e evt = sfIdToEvent.containsKey(company.Id) 
+                ? sfIdToEvent.get(company.Id)
+                : (String.isNotBlank(company.Azure_Company_Id__c) && azureIdToEvent.containsKey(company.Azure_Company_Id__c))
+                    ? azureIdToEvent.get(company.Azure_Company_Id__c)
+                    : corrIdToEvent.get(company.Correlation_Id__c);
+
+            if (evt == null) continue;
+
+            Map<String, Object> payload = parsePayload(evt.Payload__c);
+            String azId = (String) payload.get('companyId');
+
+            company.Status__c        = 'failed';
+            company.Error_Message__c = extractErrorMessage(payload);
+
+            if (String.isNotBlank(azId)) {
+                company.Azure_Company_Id__c = azId.trim();
+            }
+
             toUpdate.add(company);
+            updatedIds.add(company.Id);
         }
         updateRecords(toUpdate, 'CompanyStatusUpdater.processError');
     }
@@ -144,31 +296,12 @@ public without sharing class CompanyStatusUpdater {
     // ─────────────────────────────────────────────────────────────────────────
     // Private Helpers
     // ─────────────────────────────────────────────────────────────────────────
-
-    private static Map<String, AI_Navigator_Inbound__e> mapByCorrelationId(
-        List<AI_Navigator_Inbound__e> events
-    ) {
-        Map<String, AI_Navigator_Inbound__e> result = new Map<String, AI_Navigator_Inbound__e>();
-        for (AI_Navigator_Inbound__e evt : events) {
-            if (String.isNotBlank(evt.Correlation_Id__c)) {
-                result.put(evt.Correlation_Id__c, evt);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * @description Extracts a clean, user-friendly error message from the payload.
-     *              Prefers 'message' field, falls back to 'code', then a generic string.
-     *              Truncates to 255 chars to fit a standard text field.
-     */
     private static String extractErrorMessage(Map<String, Object> payload) {
         String msg  = (String) payload.get('message');
         String code = (String) payload.get('code');
         String raw  = String.isNotBlank(msg) ? msg
                     : String.isNotBlank(code) ? code
                     : 'Azure processing error — no details provided';
-        // Strip HTML tags Azure sometimes includes in error messages
         raw = raw.replaceAll('<[^>]+>', '').trim();
         return raw.length() > 255 ? raw.substring(0, 255) : raw;
     }

@@ -96,7 +96,10 @@ function parseContentToRows(text) {
         .slice(1, -1)
         .split('|')
         .map((c) => ({ text: stripInlineMd(c.trim()) }));
-      if (cells.every((c) => /^-+$/.test(c.text))) continue;
+      
+      // Skip Markdown delimiter rows (including alignment colons like ---:) and empty/blank rows
+      if (cells.every((c) => !c.text || /^:?-+:?$/.test(c.text))) continue;
+
       if (tableHeaderCells === null) {
         tableHeaderCells = cells;
         tableStartId = i;
