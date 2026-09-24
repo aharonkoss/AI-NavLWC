@@ -1,5 +1,5 @@
 <!--
-  @description       : Company Detail Research parent container with tab caching
+  @description       : Company Detail Research parent container with eager parallel tab preloading
 -->
 <template>
   <div class="cdr-wrapper">
@@ -40,37 +40,31 @@
       </template>
     </div>
 
-    <!-- Cached Tab Containers -->
+    <!-- Parallel Eager-Loaded Tab Containers -->
     <div class="cdr-tab-container">
-      <!-- Research Library Tab -->
-      <template if:true={visitedTabs.researchLibrary}>
-        <div class={researchLibraryTabClass}>
-          <c-research-library company-id={companyId}></c-research-library>
-        </div>
-      </template>
+      <!-- 1. Research Library (Active on load) -->
+      <div class={researchLibraryTabClass}>
+        <c-research-library company-id={companyId}></c-research-library>
+      </div>
 
-      <!-- Leadership Tab -->
-      <template if:true={visitedTabs.leadership}>
-        <div class={leadershipTabClass}>
-          <c-detail-leadship company-id={companyId}></c-detail-leadship>
-        </div>
-      </template>
+      <!-- 2. Leadership (Preloaded in background on load) -->
+      <div class={leadershipTabClass}>
+        <c-detail-leadship company-id={companyId}></c-detail-leadship>
+      </div>
 
-      <!-- UCC Tab -->
-      <template if:true={visitedTabs.ucc}>
-        <div class={uccTabClass}>
-          <c-detail-ucc company-id={companyId}></c-detail-ucc>
-        </div>
-      </template>
+      <!-- 3. UCC (Preloaded in background on load) -->
+      <div class={uccTabClass}>
+        <c-detail-ucc company-id={companyId}></c-detail-ucc>
+      </div>
 
-      <!-- RMA Tab -->
+      <!-- 4. RMA (Optional / Lazily Loaded) -->
       <template if:true={visitedTabs.rma}>
         <div class={rmaTabClass}>
           <c-detail-rma company-id={companyId}></c-detail-rma>
         </div>
       </template>
 
-      <!-- Equifax Tab -->
+      <!-- 5. Equifax (Optional / Lazily Loaded) -->
       <template if:true={visitedTabs.equifax}>
         <div class={equifaxTabClass}>
           <c-detai-equifax company-id={companyId}></c-detai-equifax>

@@ -1,12 +1,8 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 09-08-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : LWC Dashboard matching React UI
 -->
 <template>
-    <div class="dashboard-wrapper">
+    <div class="app-container">
 
         <!-- Custom Toast Notification -->
         <template if:true={shareMessage}>
@@ -17,187 +13,248 @@
             </div>
         </template>
 
-        <!-- Page Title -->
-        <div class="page-header">
-            <h1 class="page-title">Dashboard</h1>
-        </div>
-
-        <!-- KPI Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-row">
-                    <div class="stat-icon icon-blue"><span class="icon-letter">T</span></div>
-                    <div>
-                        <p class="stat-label">Total</p>
-                        <p class="stat-value">{totalCompanies}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-row">
-                    <div class="stat-icon icon-amber"><span class="icon-letter">P</span></div>
-                    <div>
-                        <p class="stat-label">Processing</p>
-                        <p class="stat-value text-amber">{processing}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-row">
-                    <div class="stat-icon icon-green"><span class="icon-letter">C</span></div>
-                    <div>
-                        <p class="stat-label">Completed</p>
-                        <p class="stat-value text-green">{completed}</p>
-                    </div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-row">
-                    <div class="stat-icon icon-purple"><span class="icon-letter">O</span></div>
-                    <div>
-                        <p class="stat-label">Opened</p>
-                        <p class="stat-value text-purple">{opened}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Companies Section -->
-        <div class="companies-card">
-
-            <!-- Companies Header & Search -->
-            <div class="companies-header">
-                <h2 class="companies-title">
-                    Companies <span class="companies-count">({filteredCount})</span>
-                </h2>
-                <div class="search-wrapper">
-                    <input type="text" placeholder="Search..." value={searchTerm} oninput={handleSearchChange} class="search-input" />
-                </div>
-                <div class="filter-wrapper">
-                    <select value={companyFilter} onchange={handleFilterChange} class="filter-select">
-                        <template for:each={filterOptions} for:item="opt">
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        </template>
-                    </select>
-                </div>
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Page Title -->
+            <div class="title-section">
+                <h1 class="page-title">Dashboard</h1>
             </div>
 
-            <!-- Bulk Share Toolbar -->
-            <template if:true={showShareToolbar}>
-                <div class="share-toolbar">
-                    <div class="toolbar-left">
-                        <input type="checkbox" onchange={handleSelectAll} class="checkbox-main" />
-                        <span class="selection-count">{selectionCountLabel}</span>
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <nav class="tabs-nav">
+                    <button class="tab-btn active">Companies</button>
+                    <button class="tab-btn inactive">Prospect Discovery</button>
+                </nav>
+            </div>
+
+            <!-- KPI Stats 4-Column Grid -->
+            <div class="stats-grid">
+                <!-- Total -->
+                <div class="stat-card">
+                    <div class="stat-content">
+                        <div class="badge-icon badge-blue">
+                            <span class="badge-letter text-blue">T</span>
+                        </div>
+                        <div>
+                            <p class="stat-label">Total</p>
+                            <p class="stat-value">{totalCompanies}</p>
+                        </div>
                     </div>
-                    <div class="toolbar-right">
-                        <select class="teammate-select" onchange={handleTeammateChange} value={shareTargetUserId}>
-                            <option value="">Share with...</option>
-                            <template if:true={teammates.data}>
-                                <template for:each={teammates.data} for:item="tm">
-                                    <option key={tm.value} value={tm.value}>{tm.label}</option>
+                </div>
+
+                <!-- Processing -->
+                <div class="stat-card">
+                    <div class="stat-content">
+                        <div class="badge-icon badge-amber">
+                            <span class="badge-letter text-amber">P</span>
+                        </div>
+                        <div>
+                            <p class="stat-label">Processing</p>
+                            <p class="stat-value text-amber">{processing}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed -->
+                <div class="stat-card">
+                    <div class="stat-content">
+                        <div class="badge-icon badge-green">
+                            <span class="badge-letter text-green">C</span>
+                        </div>
+                        <div>
+                            <p class="stat-label">Completed</p>
+                            <p class="stat-value text-green">{completed}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opened -->
+                <div class="stat-card">
+                    <div class="stat-content">
+                        <div class="badge-icon badge-purple">
+                            <span class="badge-letter text-purple">O</span>
+                        </div>
+                        <div>
+                            <p class="stat-label">Opened</p>
+                            <p class="stat-value text-purple">{opened}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Companies Card -->
+            <div class="companies-card">
+                <!-- Card Header Controls -->
+                <div class="card-header">
+                    <div class="header-controls">
+                        <h2 class="companies-heading">
+                            Companies <span class="companies-count">({filteredCount})</span>
+                        </h2>
+
+                        <!-- Search Box -->
+                        <div class="search-wrapper">
+                            <input 
+                                type="text" 
+                                placeholder="Search..." 
+                                value={searchTerm} 
+                                oninput={handleSearchChange} 
+                                class="search-input" />
+                        </div>
+
+                        <!-- Filter Dropdown -->
+                        <div class="filter-wrapper">
+                            <select class="filter-select" value={companyFilter} onchange={handleFilterChange}>
+                                <template for:each={filterOptions} for:item="opt">
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 </template>
-                            </template>
-                        </select>
-                        <button class="btn-share-primary" onclick={handleShare} disabled={isShareDisabled}>
-                            <span if:false={isSharing}>Share</span>
-                            <span if:true={isSharing} class="spinner-small"></span>
-                        </button>
-                        <button class="btn-cancel" onclick={handleCancelSelection}>Cancel</button>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </template>
 
-            <!-- Companies List -->
-            <div class="companies-list">
-                <template if:true={hasCompanies}>
-                    <template for:each={paginatedCompanies} for:item="company">
-                        <div key={company.companyId} 
-                            class="company-row" 
-                            data-companyid={company.companyId} 
-                            onclick={handleCompanyClick}
-                        >
-                            
-                            <!-- Checkbox -->
-                            <div class="company-check-col" onclick={stopPropagation}>
-                                <input type="checkbox" 
-                                    data-companyid={company.companyId} 
-                                    checked={company.isSelected}
-                                    onchange={handleRowSelect} 
-                                    disabled={company.hasSharedLabel} />
-                            </div>
+                <!-- Dynamic Selection / Share Toolbar -->
+                <div class="selection-bar">
+                    <div class="selection-bar-left">
+                        <input 
+                            type="checkbox" 
+                            class="custom-checkbox" 
+                            checked={isToolbarCheckboxChecked}
+                            onchange={handleSelectAll} />
+                        <span class="selection-label">{selectionBarLabel}</span>
+                    </div>
 
-                            <!-- Company Name + Shared By Label -->
-                            <div class="company-name-col">
-                                <span class="company-name">{company.name}</span>
-                                <template if:true={company.hasSharedLabel}>
-                                    <p class="shared-by-tag">
-                                        <svg class="icon-share-small" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
-                                        {company.sharedByLabel}
-                                    </p>
-                                </template>
-                                <template if:false={company.hasSharedLabel}>
-                                    <p class="company-location">{company.locationDisplay}</p>
-                                </template>
-                            </div>
-
-                            <!-- Submitted Date -->
-                            <div class="company-date-col">
-                                <span class="date-text">{company.createdAtDisplay}</span>
-                            </div>
-
-                            <!-- Dynamic Stage Picklist -->
-                            <div class="company-dropdown-col" onclick={stopPropagation}>
-                                <select class="dropdown-stage" data-companyid={company.companyId} onchange={handleStageChange}>
-                                    <template for:each={company.stageOptions} for:item="opt">
-                                        <option key={opt.value} value={opt.value} selected={opt.isSelected}>
-                                            {opt.label}
-                                        </option>
+                    <!-- Share actions only visible when 1 or more are selected -->
+                    <template if:true={showShareToolbar}>
+                        <div class="selection-bar-right">
+                            <select class="teammate-select" onchange={handleTeammateChange} value={shareTargetUserId}>
+                                <option value="">Share with...</option>
+                                <template if:true={teammates.data}>
+                                    <template for:each={teammates.data} for:item="tm">
+                                        <option key={tm.value} value={tm.value}>{tm.label}</option>
                                     </template>
-                                </select>
-                            </div>
-
-                            <!-- Dynamic Client Type Picklist -->
-                            <div class="company-dropdown-col" onclick={stopPropagation}>
-                                <select class="dropdown-clienttype" data-companyid={company.companyId} onchange={handleClientTypeChange}>
-                                    <template for:each={company.clientTypeOptions} for:item="opt">
-                                        <option key={opt.value} value={opt.value} selected={opt.isSelected}>
-                                            {opt.label}
-                                        </option>
-                                    </template>
-                                </select>
-                            </div>
-
-                            <!-- Status & Current Stage Badge -->
-                            <div class="company-status-col">
-                                <span class={company.statusClass} title={company.statusDisplay}>
-                                    <template if:true={company.isProcessing}>
-                                        <span class="pulse-dot"></span>
-                                    </template>
-                                    {company.statusDisplay}
-                                </span>
-                            </div>
-
-                            <div class="company-actions-col" onclick={stopPropagation}>
-                                <template if:true={company.showUnshareButton}>
-                                    <button class="btn-action btn-unshare" data-companyid={company.companyId} onclick={handleOpenUnshareModal} title="Manage access">
-                                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                    </button>
                                 </template>
-                                <button class="btn-action btn-delete" data-companyid={company.companyId} onclick={handleDelete} title="Delete">
-                                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                </button>
-                            </div>
+                            </select>
+
+                            <button class="btn-share" onclick={handleShare} disabled={isShareDisabled}>
+                                <svg class="icon-share" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                </svg>
+                                <span>Share</span>
+                            </button>
+
+                            <button class="btn-cancel" onclick={handleCancelSelection}>Cancel</button>
                         </div>
                     </template>
-                </template>
+                </div>
 
-                <template if:false={hasCompanies}>
-                    <div class="empty-state">
-                        <p>{emptyMessage}</p>
-                    </div>
-                </template>
+                <!-- Table Rows -->
+                <div class="table-container">
+                    <template if:true={hasCompanies}>
+                        <template for:each={paginatedCompanies} for:item="company">
+                            <div 
+                                key={company.companyId} 
+                                class="company-row" 
+                                data-companyid={company.companyId} 
+                                onclick={handleCompanyClick}>
+                                
+                                <!-- 1. Checkbox -->
+                                <div class="cell-check" onclick={stopPropagation}>
+                                    <input 
+                                        type="checkbox" 
+                                        class="custom-checkbox" 
+                                        data-companyid={company.companyId} 
+                                        checked={company.isSelected}
+                                        onchange={handleRowSelect} 
+                                        disabled={company.hasSharedLabel} />
+                                </div>
+
+                                <!-- 2. Company Name & Location -->
+                                <div class="cell-company">
+                                    <a class="company-link" href="#">
+                                        <p class="company-name">{company.name}</p>
+                                        <template if:true={company.hasSharedLabel}>
+                                            <p class="shared-by-tag">
+                                                <svg class="icon-share-mini" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+                                                {company.sharedByLabel}
+                                            </p>
+                                        </template>
+                                        <template if:false={company.hasSharedLabel}>
+                                            <p class="company-location">{company.locationDisplay}</p>
+                                        </template>
+                                    </a>
+                                </div>
+
+                                <!-- 3. Submitted Date -->
+                                <span class="cell-date">{company.createdAtDisplay}</span>
+
+                                <!-- 4. Stage Dropdown -->
+                                <div class="cell-stage" onclick={stopPropagation}>
+                                    <select class="select-stage" data-companyid={company.companyId} onchange={handleStageChange}>
+                                        <template for:each={company.stageOptions} for:item="opt">
+                                            <option key={opt.value} value={opt.value} selected={opt.isSelected}>
+                                                {opt.label}
+                                            </option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <!-- 5. Client Type Dropdown -->
+                                <div class="cell-clienttype" onclick={stopPropagation}>
+                                    <select class="select-type" data-companyid={company.companyId} onchange={handleClientTypeChange}>
+                                        <template for:each={company.clientTypeOptions} for:item="opt">
+                                            <option key={opt.value} value={opt.value} selected={opt.isSelected}>
+                                                {opt.label}
+                                            </option>
+                                        </template>
+                                    </select>
+                                </div>
+
+                                <!-- 6. Signal Badge Button -->
+                                <div class="cell-signal" onclick={stopPropagation}>
+                                    <button class={company.signalBadgeClass} data-companyid={company.companyId} onclick={handleOpenSignals} title="Click to view signals">
+                                        <svg class="icon-bolt" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                        </svg>
+                                        <span>{company.signalCount}</span>
+                                        <template if:true={company.hasAlert}>
+                                            <span class="text-alert">{company.alertText}</span>
+                                        </template>
+                                    </button>
+                                </div>
+
+                                <!-- 7. Status Badge Pill -->
+                                <span class="status-pill">{company.statusDisplay}</span>
+
+                                <!-- 8. Dedicated Unshare Slot (Locked 2rem width) -->
+                                <div class="cell-unshare" onclick={stopPropagation}>
+                                    <template if:true={company.showUnshareButton}>
+                                        <button class="btn-icon btn-unshare" data-companyid={company.companyId} onclick={handleOpenUnshareModal} title="Manage access">
+                                            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                        </button>
+                                    </template>
+                                </div>
+
+                                <!-- 9. Dedicated Delete Button Slot (Locked 2rem width) -->
+                                <div class="cell-delete" onclick={stopPropagation}>
+                                    <button class="btn-icon btn-delete" data-companyid={company.companyId} onclick={handleDelete} title="Delete company">
+                                        <svg class="icon-trash" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </template>
+
+                    <template if:false={hasCompanies}>
+                        <div class="empty-state">
+                            <p>{emptyMessage}</p>
+                        </div>
+                    </template>
+                </div>
             </div>
-        </div>
+        </main>
 
         <!-- Unshare Management Modal -->
         <template if:true={isUnshareModalOpen}>
@@ -236,10 +293,11 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn-modal-close" onclick={handleCloseDeleteModal}>Cancel</button>
-                        <button class="btn-confirm-delete" onclick={handleConfirmDelete}>Ok</button>
+                        <button class="btn-confirm-delete" onclick={handleConfirmDelete}>Delete</button>
                     </div>
                 </div>
             </div>
         </template>
+
     </div>
 </template>

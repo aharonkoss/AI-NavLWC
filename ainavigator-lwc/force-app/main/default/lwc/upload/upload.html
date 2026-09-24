@@ -1,156 +1,182 @@
 <!--
-  @description       : Upload Company List Component
+  @description       : Upload Company List Component matching React Portal
 -->
 <template>
-    <div class="up-wrapper">
+    <div class="main-wrapper">
 
-        <!-- Page header -->
-        <div class="up-header">
-            <h1 class="up-title">Upload Company List</h1>
-            <p class="up-subtitle">
-                Daily limit: {usedToday} / {dailyLimit} companies used
-                <span class="up-remaining">({remaining} remaining)</span>
+        <!-- Error / Success Banners -->
+        <template if:true={error}>
+            <div class="banner banner-error">
+                <svg class="banner-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <span>{error}</span>
+            </div>
+        </template>
+        <template if:true={successMessage}>
+            <div class="banner banner-success">
+                <svg class="banner-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>{successMessage}</span>
+            </div>
+        </template>
+
+        <!-- Page Header & Subtitle -->
+        <div class="header-section">
+            <h1 class="page-title">Upload Company List</h1>
+            <p class="page-subtitle">
+                Daily limit: <span class="font-medium">{usedToday}</span> / <span class="font-medium">{dailyLimit}</span> companies used
+                <span class="remaining-text">({remaining} remaining)</span>
             </p>
         </div>
 
-        <!-- Error / success messages -->
-        <template if:true={error}>
-            <div class="up-banner up-banner-error">⚠ {error}</div>
-        </template>
-        <template if:true={successMessage}>
-            <div class="up-banner up-banner-success">✓ {successMessage}</div>
-        </template>
+        <!-- 2-Column Responsive Layout -->
+        <div class="main-grid">
 
-        <!-- Main layout -->
-        <div class="up-main-grid">
+            <!-- Left Column: File Format, Drop Zone, Default Picklists -->
+            <div class="left-column">
 
-            <!-- Left side: File format + drop zone + defaults -->
-            <div class="up-left">
+                <!-- File Format Tile -->
+                <div class="format-card">
+                    <h3 class="format-title">File Format</h3>
+                    
+                    <p class="format-subtitle">Required columns:</p>
+                    <div class="format-tags-row">
+                        <span><strong>Company Name</strong></span>
+                        <span><strong>Company URL</strong></span>
+                        <span><strong>City</strong> (recommended for UCC data)</span>
+                        <span><strong>State</strong> (recommended for UCC data)</span>
+                    </div>
 
-                <!-- File format card -->
-                <div class="up-card up-card-format">
-                    <h2 class="up-card-title">File Format</h2>
-                    <p class="up-card-caption">Required columns:</p>
-                    <ul class="up-list">
-                        <li><span class="up-field-name">Company Name</span></li>
-                        <li><span class="up-field-name">Company URL</span></li>
-                        <li><span class="up-field-name">City</span> <span class="up-field-note">(recommended for UCC data)</span></li>
-                        <li><span class="up-field-name">State</span> <span class="up-field-note">(recommended for UCC data)</span></li>
-                    </ul>
-                    <p class="up-card-caption">Optional columns:</p>
-                    <ul class="up-list">
-                        <li><span class="up-field-name">Stage</span> (PreCall, Appointment Set, Pre Qualification, Face to Face)</li>
-                        <li><span class="up-field-name">Client Type</span> (Prospect, Existing Customer, Past Customer)</li>
-                    </ul>
-                    <p class="up-card-caption">Download template:</p>
-                    <p class="up-template-links">
-                        <a href="javascript:void(0);" onclick={downloadCsvTemplate}>CSV</a> ·
-                        <a href="javascript:void(0);" onclick={downloadXlsxTemplate}>XLSX</a> ·
-                        <a href="javascript:void(0);" onclick={downloadXlsTemplate}>XLS</a>
-                    </p>
+                    <p class="format-subtitle optional-title">Optional columns:</p>
+                    <div class="format-tags-row">
+                        <span><strong>Stage</strong> (PreCall, Appointment Set, Face To Face, Qualification)</span>
+                        <span><strong>Client Type</strong> (Prospect, Existing Customer, Past Customer)</span>
+                    </div>
+
+                    <div class="template-links-row">
+                        <span class="template-label">Download Template:</span>
+                        <button class="template-link-btn" onclick={downloadCsvTemplate}>CSV</button>
+                        <button class="template-link-btn" onclick={downloadXlsxTemplate}>XLSX</button>
+                        <button class="template-link-btn" onclick={downloadXlsTemplate}>XLS</button>
+                    </div>
                 </div>
 
-                <!-- Drag-and-drop card -->
+                <!-- Drag & Drop Zone -->
                 <div
                     class={dropZoneClass}
                     ondragover={handleDragOver}
                     ondragleave={handleDragLeave}
                     ondrop={handleDrop}
                 >
-                    <p class="up-drop-title">Drag &amp; drop your file here</p>
-                    <p class="up-drop-subtitle">or click to select</p>
-                    <p class="up-drop-note">CSV, XLSX, XLS</p>
                     <input
                         type="file"
-                        accept=".csv,.xlsx,.xls"
+                        accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                         class="up-file-input"
                         onchange={handleFileInputChange}
                     />
+                    
+                    <template if:false={isUploading}>
+                        <div>
+                            <p class="drop-title">Drag &amp; drop your file here</p>
+                            <p class="drop-subtitle">or click to select</p>
+                            <p class="drop-note">CSV, XLSX, XLS</p>
+                        </div>
+                    </template>
+
                     <template if:true={isUploading}>
-                        <div class="up-drop-loading">
-                            <span class="up-spinner"></span>
-                            <span>Uploading...</span>
+                        <div class="drop-loading">
+                            <span class="spinner"></span>
+                            <span>Uploading file...</span>
                         </div>
                     </template>
                 </div>
 
-                <!-- Default stage / client type dropdowns -->
-                <div class="up-defaults-row">
-                    <div class="up-default-group">
-                        <label class="up-label">Default Stage</label>
-                        <select class="up-select-stage" value={defaultStage} onchange={handleStageChange}>
+                <!-- Default Picklists (2 Columns) -->
+                <div class="defaults-grid">
+                    <div class="form-group">
+                        <label class="form-label">Default Stage</label>
+                        <select class="custom-select select-stage" value={defaultStage} onchange={handleStageChange}>
                             <template for:each={stageOptions} for:item="opt">
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                             </template>
                         </select>
                     </div>
-                    <div class="up-default-group">
-                        <label class="up-label">Default Client Type</label>
-                        <select class="up-select-client" value={defaultClientType} onchange={handleClientTypeChange}>
+
+                    <div class="form-group">
+                        <label class="form-label">Default Client Type</label>
+                        <select class="custom-select select-client" value={defaultClientType} onchange={handleClientTypeChange}>
                             <template for:each={clientTypeOptions} for:item="opt">
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
                             </template>
                         </select>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Right side: Previous submissions -->
-            <div class="up-right">
-                <div class="up-prev-header">
-                    <h2 class="up-card-title">Previous Submissions</h2>
-                    <div class="up-prev-search">
+            <!-- Right Column: Previous Submissions -->
+            <div class="right-column">
+                <div class="prev-header">
+                    <h2 class="prev-title">Previous Submissions</h2>
+                    <div class="prev-search-wrapper">
                         <input
                             type="text"
-                            class="up-prev-search-input"
                             placeholder="Search..."
+                            class="prev-search-input"
                             value={searchTerm}
                             oninput={handleSearchChange}
                         />
                         <template if:true={searchTerm}>
-                            <button class="up-prev-clear" onclick={handleSearchClear}>Clear</button>
+                            <button class="prev-search-clear" onclick={handleSearchClear}>×</button>
                         </template>
                     </div>
                 </div>
 
+                <!-- Loading State -->
                 <template if:true={isLoading}>
-                    <div class="up-prev-empty">
-                        <span class="up-spinner"></span>
-                        <span>Loading previous submissions...</span>
+                    <div class="prev-state-box">
+                        <span class="spinner"></span>
+                        <span>Loading submissions...</span>
                     </div>
                 </template>
 
+                <!-- Loaded State -->
                 <template if:false={isLoading}>
                     <template if:true={hasSubmissions}>
-                        <div class="up-prev-list">
+                        <div class="submissions-list">
                             <template for:each={filteredSubmissions} for:item="s">
-                                <div key={s.submissionId} class="up-prev-row">
-                                    <div class="up-prev-main">
-                                        <p class="up-prev-name">{s.displayName}</p>
-                                        <p class="up-prev-meta">
+                                <div key={s.submissionId} class="submission-row">
+                                    <div class="submission-main">
+                                        <p class="submission-name">{s.displayName}</p>
+                                        <p class="submission-meta">
                                             <template if:true={s.totalDisplay}>
                                                 {s.totalDisplay} ·
                                             </template>
                                             ID: {s.shortSubmissionId}
                                         </p>
                                     </div>
-                                    <div class="up-prev-status">
+                                    <div class="submission-status">
                                         <span class={s.statusClass}>{s.statusLabel}</span>
                                     </div>
-                                    <div class="up-prev-date">
+                                    <div class="submission-date">
                                         {s.submittedAtDisplay}
                                     </div>
                                 </div>
                             </template>
                         </div>
                     </template>
+
+                    <!-- Empty State (Matches React Gray Box) -->
                     <template if:false={hasSubmissions}>
-                        <div class="up-prev-empty">
-                            <p>No submissions yet. Upload your first file.</p>
+                        <div class="prev-empty-box">
+                            No submissions yet. Upload your first file.
                         </div>
                     </template>
                 </template>
             </div>
+
         </div>
     </div>
 </template>

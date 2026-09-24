@@ -108,7 +108,7 @@
   width: 100%;
 }
 
-/* Visibility toggle for caching child components */
+/* Visibility toggle for caching child components in DOM */
 .cdr-hidden {
   display: none !important;
 }

@@ -1,12 +1,14 @@
 import { LightningElement, api, track } from 'lwc';
 import getAiNavigatorReport from '@salesforce/apex/CompanyDetailController.getAiNavigatorReport';
+import getCompany from '@salesforce/apex/CompanyDetailController.getCompany';
+import createNote from '@salesforce/apex/CompanyDetailController.createNote';
 
-// In-memory module level cache across tab switches
 const reportCache = new Map();
 
 const TITLE_OVERRIDES = {
   'ucc/lien analysis': 'UCC/Lien Analysis',
-  'dot fleet intelligence': 'DOT Fleet Intelligence'
+  'dot fleet intelligence': 'DOT & Fleet Intelligence',
+  'dot & fleet intelligence': 'DOT & Fleet Intelligence'
 };
 
 const tryParseJson = (text) => {
@@ -42,15 +44,6 @@ function headingToId(text) {
 
 function resolveTitle(rawTitle) {
   return TITLE_OVERRIDES[rawTitle.toLowerCase()] || rawTitle;
-}
-
-function setExpanded(section, expanded) {
-  return {
-    ...section,
-    isExpanded: expanded,
-    chevron: expanded ? 'chevron-down' : 'chevron-right',
-    ariaExpanded: expanded ? 'true' : 'false'
-  };
 }
 
 function stripInlineMd(text) {
@@ -96,8 +89,7 @@ function parseContentToRows(text) {
         .slice(1, -1)
         .split('|')
         .map((c) => ({ text: stripInlineMd(c.trim()) }));
-      
-      // Skip Markdown delimiter rows (including alignment colons like ---:) and empty/blank rows
+
       if (cells.every((c) => !c.text || /^:?-+:?$/.test(c.text))) continue;
 
       if (tableHeaderCells === null) {
@@ -138,6 +130,9 @@ function parseContentToRows(text) {
 
 export default class ResearchLibrary extends LightningElement {
   _companyId;
+  _isConnected = false;
+  _notes = [];
+  _rawSections = [];
 
   @api
   get companyId() {
@@ -147,18 +142,43 @@ export default class ResearchLibrary extends LightningElement {
     const prevCompanyId = this._companyId;
     this._companyId = value;
 
-    if (value && value !== prevCompanyId) {
+    if (value && value !== prevCompanyId && this._isConnected) {
       this.loadReport();
+      this.fetchCompanyDetails();
     }
   }
+
+  @api companyName;
 
   @track parsedSections = [];
   @track sources = [];
   @track isLoading = false;
   @track error = null;
+  @track _dynamicCompanyName = '';
 
   connectedCallback() {
-    this.loadReport();
+    this._isConnected = true;
+    if (this._companyId) {
+      this.loadReport();
+      this.fetchCompanyDetails();
+    }
+  }
+
+  disconnectedCallback() {
+    this._isConnected = false;
+  }
+
+  fetchCompanyDetails() {
+    if (!this._companyId) return;
+    getCompany({ companyId: this._companyId })
+      .then((res) => {
+        if (!res) return;
+        const comp = typeof res === 'string' ? JSON.parse(res) : res;
+        this._dynamicCompanyName = comp.name || comp.Name || '';
+      })
+      .catch((e) => {
+        console.warn('Could not fetch company info:', e);
+      });
   }
 
   loadReport() {
@@ -167,17 +187,16 @@ export default class ResearchLibrary extends LightningElement {
       return;
     }
 
-    // 1. Instant Cache Hit Check
     if (reportCache.has(this._companyId)) {
       const cached = reportCache.get(this._companyId);
-      this.parsedSections = cached.parsedSections ? JSON.parse(JSON.stringify(cached.parsedSections)) : [];
+      this._rawSections = cached.rawSections ? JSON.parse(JSON.stringify(cached.rawSections)) : [];
       this.sources = cached.sources ? [...cached.sources] : [];
       this.error = cached.error || null;
+      this.buildSectionsViewModel();
       this.isLoading = false;
       return;
     }
 
-    // 2. Fetch from Apex if not cached
     this.isLoading = true;
     this.error = null;
 
@@ -185,7 +204,7 @@ export default class ResearchLibrary extends LightningElement {
       .then((json) => {
         if (!json) {
           this.error = 'Report not yet available for this company.';
-          reportCache.set(this._companyId, { parsedSections: [], sources: [], error: this.error });
+          reportCache.set(this._companyId, { rawSections: [], sources: [], error: this.error });
           return;
         }
 
@@ -204,32 +223,32 @@ export default class ResearchLibrary extends LightningElement {
         }
 
         if (reportObj && reportObj.sections && Array.isArray(reportObj.sections)) {
-          this.parsedSections = reportObj.sections.map((sec, idx) => ({
+          this._rawSections = reportObj.sections.map((sec, idx) => ({
             id: sec.id || `sec-${idx}`,
-            title: sec.title,
-            content: sec.content,
-            renderedRows: parseContentToRows(sec.content),
-            isExpanded: idx === 0,
-            chevron: idx === 0 ? 'chevron-down' : 'chevron-right',
-            ariaExpanded: idx === 0 ? 'true' : 'false'
+            title: resolveTitle(sec.title || ''),
+            content: sec.content || '',
+            renderedRows: parseContentToRows(sec.content || ''),
+            isExpanded: idx === 0
           }));
         } else {
           const textToParse = reportText || (typeof reportObj === 'string' ? reportObj : '');
-          this.parsedSections = this.parseReportIntoSections(textToParse);
+          this._rawSections = this.parseReportIntoSections(textToParse);
         }
 
         const rawCitations = reportObj?.citations || data.citations || data.sources || [];
         this.sources = this.formatSources(rawCitations);
 
-        // Save into Cache
         reportCache.set(this._companyId, {
-          parsedSections: this.parsedSections,
+          rawSections: this._rawSections,
           sources: this.sources,
           error: null
         });
+
+        this.buildSectionsViewModel();
       })
       .catch((err) => {
         this.error = `Report Load Failed: ${err?.body?.message || err?.message}`;
+        this._rawSections = [];
         this.parsedSections = [];
         this.sources = [];
       })
@@ -262,9 +281,7 @@ export default class ResearchLibrary extends LightningElement {
         id,
         title: resolveTitle(rawTitle),
         startIndex: index,
-        isExpanded: isFirst,
-        chevron: isFirst ? 'chevron-down' : 'chevron-right',
-        ariaExpanded: isFirst ? 'true' : 'false'
+        isExpanded: isFirst
       });
     });
 
@@ -273,6 +290,7 @@ export default class ResearchLibrary extends LightningElement {
         {
           id: 'full-report',
           title: 'Full Report',
+          content: text,
           renderedRows: parseContentToRows(text),
           isExpanded: true
         }
@@ -283,6 +301,7 @@ export default class ResearchLibrary extends LightningElement {
       const start = sec.startIndex + 1;
       const end = i < sections.length - 1 ? sections[i + 1].startIndex : lines.length;
       const content = lines.slice(start, end).join('\n').trim();
+      sec.content = content;
       sec.renderedRows = parseContentToRows(content);
     });
     return sections;
@@ -296,24 +315,114 @@ export default class ResearchLibrary extends LightningElement {
     }));
   }
 
+  buildSectionsViewModel() {
+    const noteTitles = new Set(
+      (this._notes || []).map((n) => (n.title || '').trim().toLowerCase())
+    );
+
+    this.parsedSections = (this._rawSections || []).map((sec) => {
+      const titleLower = (sec.title || '').trim().toLowerCase();
+      const isCompanyOverview =
+        titleLower === 'company overview' || titleLower === 'company profile';
+
+      // Check if note exists for this section (including Company Profile mapping)
+      const hasNote =
+        noteTitles.has(titleLower) ||
+        (isCompanyOverview && noteTitles.has('company profile'));
+
+      const noteBtnClass = hasNote
+        ? 'cdr-section-action-btn cdr-btn-checked'
+        : 'cdr-section-action-btn cdr-btn-plus';
+
+      const noteBtnTitle = hasNote
+        ? `View note for ${sec.title}`
+        : `Add ${sec.title} to notes`;
+
+      return {
+        ...sec,
+        hasNote,
+        noteBtnClass,
+        noteBtnTitle,
+        chevronSvgClass: sec.isExpanded
+          ? 'cdr-chevron-svg cdr-chevron-svg--open'
+          : 'cdr-chevron-svg',
+        ariaExpanded: sec.isExpanded ? 'true' : 'false',
+        stateLabel: sec.isExpanded ? 'collapse' : 'expand'
+      };
+    });
+  }
+
   handleToggle(event) {
     const id = event.currentTarget.dataset.id;
-    this.parsedSections = this.parsedSections.map((s) =>
-      s.id === id ? setExpanded(s, !s.isExpanded) : s
+    this._rawSections = this._rawSections.map((s) =>
+      s.id === id ? { ...s, isExpanded: !s.isExpanded } : s
     );
+    this.buildSectionsViewModel();
   }
 
   handleExpandAll() {
-    this.parsedSections = this.parsedSections.map((s) => setExpanded(s, true));
+    this._rawSections = this._rawSections.map((s) => ({ ...s, isExpanded: true }));
+    this.buildSectionsViewModel();
   }
 
   handleCollapseAll() {
-    this.parsedSections = this.parsedSections.map((s) => setExpanded(s, false));
+    this._rawSections = this._rawSections.map((s) => ({ ...s, isExpanded: false }));
+    this.buildSectionsViewModel();
+  }
+
+  // ─── Section Plus / Check Button Action (Creates Note & Opens Drawer) ───
+  handleSectionNoteClick(event) {
+    event.stopPropagation();
+    const id = event.currentTarget.dataset.id;
+    const sec = this.parsedSections.find((s) => s.id === id);
+    if (!sec) return;
+
+    const notesWin = this.template.querySelector('c-notes-window');
+
+    // If note already exists, simply open the drawer
+    if (sec.hasNote) {
+      if (notesWin) {
+        notesWin.openDrawer();
+      }
+      return;
+    }
+
+    // Auto-create section note in API
+    createNote({
+      companyId: this._companyId,
+      title: sec.title,
+      content: sec.content || sec.title,
+      sourceTab: 'Research Library',
+      sourceSection: sec.title
+    })
+      .then(() => {
+        if (notesWin) {
+          notesWin.openDrawer();
+          notesWin.refreshNotes();
+        }
+      })
+      .catch((err) => {
+        console.error('Error creating section note:', err);
+        if (notesWin) {
+          notesWin.openDrawer();
+        }
+      });
+  }
+
+  // ─── Real-Time Updates from <c-notes-window> ───
+  handleNotesUpdated(event) {
+    this._notes = event.detail.notes || [];
+    this.buildSectionsViewModel();
+  }
+
+  get displayCompanyName() {
+    return this.companyName || this._dynamicCompanyName || 'Company';
   }
 
   get hasSections() {
     return this.parsedSections && this.parsedSections.length > 0;
   }
+
   get hasSources() {
     return this.sources && this.sources.length > 0;
   }

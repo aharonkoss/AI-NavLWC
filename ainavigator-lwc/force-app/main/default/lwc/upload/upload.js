@@ -13,7 +13,7 @@ import getPicklistOptions from '@salesforce/apex/UploadController.getPicklistOpt
 import uploadFile from '@salesforce/apex/UploadController.uploadFile';
 
 export default class Upload extends LightningElement {
-    @track settings = { dailyLimit: 5, usedToday: 0, remaining: 5 };
+    @track settings = { dailyLimit: 50, usedToday: 0, remaining: 50 };
     @track submissions = [];
     @track isLoading = true;
     @track isUploading = false;
@@ -180,11 +180,11 @@ export default class Upload extends LightningElement {
 
     getStatusClass(status) {
         const map = {
-            completed:  'up-status-pill up-status-completed',
-            processing: 'up-status-pill up-status-processing',
-            failed:     'up-status-pill up-status-failed'
+            completed:  'status-pill status-completed',
+            processing: 'status-pill status-processing',
+            failed:     'status-pill status-failed'
         };
-        return map[status] || 'up-status-pill up-status-processing';
+        return map[status] || 'status-pill status-processing';
     }
 
     get usedToday()      { return this.settings.usedToday || 0; }
@@ -205,7 +205,7 @@ export default class Upload extends LightningElement {
     }
 
     get dropZoneClass() {
-        return 'up-card up-drop-card' + (this.hoverDrop ? ' up-drop-card-hover' : '');
+        return 'drop-card' + (this.hoverDrop ? ' drop-card-hover' : '');
     }
 
     handleStageChange(event)      { this.defaultStage = event.target.value; }

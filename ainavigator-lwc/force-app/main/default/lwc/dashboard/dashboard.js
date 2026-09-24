@@ -223,12 +223,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             .catch(error => console.error('Error loading signals for', companyId, error));
     }
 
-    // Consolidated mapCompany method
     mapCompany(c, signals) {
         const displayStatus = c.status || 'pending';
         const isCompleted = displayStatus === 'completed';
 
-        // Keep existing stage/clientType or fallback to first option from schema
         const currentStage = c.stage || (this.stageOptions.length > 0 ? this.stageOptions[0].value : '');
         const currentClientType = c.clientType || (this.clientTypeOptions.length > 0 ? this.clientTypeOptions[0].value : '');
 
@@ -237,7 +235,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
         const statusLabel = displayStatus ? displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1) : 'Unknown';
         
-        let statusDisplay = statusLabel;
+        let statusDisplay = displayStatus;
         if (!isCompleted && c.currentStage) {
             statusDisplay = `${statusLabel}: ${c.currentStage}`;
         }
@@ -257,7 +255,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             statusDisplay: statusDisplay,
             isProcessing: !isCompleted && (displayStatus === 'processing' || displayStatus === 'pending'),
             
-            // Dynamic Picklist Options for HTML template (template for:each={company.stageOptions})
             stageOptions: this.stageOptions.map(opt => ({
                 ...opt,
                 isSelected: opt.value === currentStage
@@ -267,7 +264,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                 isSelected: opt.value === currentClientType
             })),
 
-            // Sharing UI Logic
             isSelected: this.selectedCompanyIds.has(c.companyId),
             hasSharedLabel: !!c.sharedByName, 
             sharedByLabel: `Shared by ${c.sharedByName}`,
@@ -275,16 +271,13 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             showShareButton: !c.isShared && !c.sharedByName && displayStatus === 'completed',
             
             hasSignals: signalSummary !== null,
-            signalBadgeLabel: signalSummary
-                ? (signalSummary.warningCount > 0
-                    ? `${signalSummary.count} (${signalSummary.warningCount})`
-                    : `${signalSummary.count}`)
-                : 'Signals',
-            signalBadgeClass: 'signal-badge ' + (signalSummary ? this.getSignalBadgeClass(signalSummary.maxPriority) : 'signal-default')
+            signalCount: signalSummary ? signalSummary.count : 0,
+            hasAlert: signalSummary ? signalSummary.warningCount > 0 : false,
+            alertText: signalSummary && signalSummary.warningCount > 0 ? `(${signalSummary.warningCount}!)` : '',
+            signalBadgeClass: 'signal-badge ' + (signalSummary ? this.getSignalBadgeClass(signalSummary.maxPriority, signalSummary.warningCount) : 'signal-blue')
         };
     }
 
-    // --- Picklist Change Handlers ---
     handleStageChange(event) {
         event.stopPropagation();
         const companyId = event.target.dataset.companyid;
@@ -335,7 +328,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             });
     }
 
-    // --- Selection Handlers ---
     handleRowSelect(event) {
         event.stopPropagation(); 
         const companyId = event.target.dataset.companyid; 
@@ -370,7 +362,25 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         this.selectedCompanyIds = new Set(this.selectedCompanyIds);
     }
 
-    // --- Sharing Actions ---
+    get isAllSelected() {
+        const eligible = this.paginatedCompanies.filter(c => c.status === 'completed' && !c.sharedByName);
+        return eligible.length > 0 && eligible.every(c => this.selectedCompanyIds.has(c.companyId));
+    }
+
+    get isToolbarCheckboxChecked() {
+        return this.isAllSelected;
+    }
+
+    get showShareToolbar() {
+        return this.selectedCompanyIds.size > 0;
+    }
+
+    get selectionBarLabel() {
+        return this.selectedCompanyIds.size > 0 
+            ? `${this.selectedCompanyIds.size} selected` 
+            : 'Select all';
+    }
+
     handleTeammateChange(event) {
         this.shareTargetUserId = event.target.value;
     }
@@ -459,19 +469,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             : 'custom-toast';
     }
 
-    get showShareToolbar() {
-        return this.selectedCompanyIds.size > 0;
-    }
-
-    get selectionCountLabel() {
-        return `${this.selectedCompanyIds.size} selected`;
-    }
-
     get isShareDisabled() {
         return !this.shareTargetUserId || this.isSharing;
     }
 
-    // --- Helper Logic ---
     getSignalSummary(signals) {
         if (!signals || signals.length === 0) return null;
         const nonNeutral = signals.filter(s => s.signalType !== 'Neutral');
@@ -498,9 +499,10 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return 1;
     }
 
-    getSignalBadgeClass(priority) {
-        const map = { 5: 'signal-p5', 4: 'signal-p4', 3: 'signal-p3', 2: 'signal-p2', 1: 'signal-p1' };
-        return map[priority] || 'signal-p1';
+    getSignalBadgeClass(priority, warningCount) {
+        if (warningCount > 0) return 'signal-yellow';
+        if (priority >= 4) return 'signal-red';
+        return 'signal-blue';
     }
 
     getStatusClass(status) {
@@ -513,7 +515,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         return map[status] || 'status-badge status-pending';
     }
 
-    // --- Dynamic KPI Stats Getters ---
     get totalCompanies() { 
         return this._companies.length > 0 ? this._companies.length : (this.stats.totalCompanies || 0); 
     }
@@ -533,7 +534,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             : (this.stats.opened || 0); 
     }
 
-    // Dynamic Filter Options driven by schema picklists
     get filterOptions() {
         const baseBefore = [
             { label: 'All',           value: 'all' },
@@ -614,12 +614,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     get isFirstPage()    { return this.currentPage === 1; }
     get isLastPage()     { return this.currentPage === this.totalPages; }
     get filteredCount()  { return this.filteredCompanies.length; }
-
-    get paginationLabel() {
-        const start = (this.currentPage - 1) * this.ITEMS_PER_PAGE + 1;
-        const end = Math.min(this.currentPage * this.ITEMS_PER_PAGE, this.filteredCompanies.length);
-        return `${start}–${end} of ${this.filteredCompanies.length}`;
-    }
 
     get emptyMessage() {
         if (this.searchTerm) return `No companies found matching "${this.searchTerm}"`;

@@ -89,10 +89,11 @@ global with sharing class AzureEchoService {
             res.headers.put(CORR_HEADER, correlationId);
 
             // ── 7. Log success (synchronous — no @future) ───────────────────
-           /* logRequest(
+            // FIXED: Uncommented success log request
+            logRequest(
                 correlationId, 'POST', requestBody, responseBody,
                 200, 'Success', null, sourceIp, bodyBytes
-            );*/
+            );
 
         } catch (Exception e) {
             // ── 8. Catch-all — log and return 500 ───────────────────────────
@@ -147,12 +148,13 @@ global with sharing class AzureEchoService {
                            ? 'Rejected'
                            : 'Error';
 
-       /* logRequest(
+        // FIXED: Uncommented error log request
+        logRequest(
             correlationId, 'POST', requestBody, responseBody,
             statusCode, logStatus,
             String.isNotBlank(internalError) ? internalError : userMessage,
             sourceIp, bodyBytes
-        );*/
+        );
     }
 
 

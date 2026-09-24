@@ -7,7 +7,7 @@ import getNotificationSignals from '@salesforce/apex/AI_Navigator_HeaderControll
 
 const POLLING_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 
-export default class AiNavigatorHeader extends LightningElement {
+export default class NavigationHeader extends LightningElement {
     @api activeTab = 'dashboard';
     @api companySelected = false;
     @api selectedCompanyName = '';
@@ -39,7 +39,8 @@ export default class AiNavigatorHeader extends LightningElement {
     }
 
     startPolling() {
-        this.stopPolling(); // Clear any existing timer
+        this.stopPolling();
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
         this.pollingTimer = setInterval(() => {
             this.fetchNotifications(true);
         }, POLLING_INTERVAL_MS);
@@ -62,7 +63,6 @@ export default class AiNavigatorHeader extends LightningElement {
             if (responseStr) {
                 const data = JSON.parse(responseStr);
                 
-                // Priority fallback: totalNewSignals -> totalSignals -> count -> array length
                 this.notificationCount = data.totalNewSignals ?? data.totalSignals ?? data.count ?? 0;
                 
                 const rawNotifications = data.notifications || [];
@@ -72,7 +72,7 @@ export default class AiNavigatorHeader extends LightningElement {
                     priorityClass: this.getPriorityBadgeClass(item.priority)
                 }));
             }
-       } catch (error) {
+        } catch (error) {
             const errorDetails = error?.body?.message || error?.message || JSON.stringify(error);
             console.error('🚨 Detailed Notification Error:', errorDetails);
         } finally {
@@ -239,6 +239,7 @@ export default class AiNavigatorHeader extends LightningElement {
     handleTabClick(event) {
         const selectedTab = event.currentTarget.dataset.tab;
         this.isDropdownOpen = false;
+        this.showNotificationsMenu = false;
         this.dispatchEvent(new CustomEvent('tabchange', {
             detail: { tabId: selectedTab }
         }));
@@ -266,22 +267,30 @@ export default class AiNavigatorHeader extends LightningElement {
         this.dispatchEvent(new CustomEvent('clearcompany'));
     }
 
-    toggleDropdown() {
+    toggleDropdown(event) {
+        if (event) event.stopPropagation();
         if (this.isCallPlanDisabled) return;
         this.isDropdownOpen = !this.isDropdownOpen;
+        if (this.isDropdownOpen) {
+            this.showNotificationsMenu = false;
+        }
     }
 
     closeDropdown() {
         this.isDropdownOpen = false;
     }
 
-    toggleNotifications() {
+    // Toggle Notifications (Click on Bell opens/closes it; closes Call Plan if open)
+    toggleNotifications(event) {
+        if (event) event.stopPropagation();
         this.showNotificationsMenu = !this.showNotificationsMenu;
         if (this.showNotificationsMenu) {
+            this.isDropdownOpen = false;
             this.fetchNotifications();
         }
     }
 
+    // Closes popover when clicking off (backdrop)
     closeNotifications() {
         this.showNotificationsMenu = false;
     }

@@ -1,210 +1,351 @@
 :host {
     display: block;
-    max-width: 1200px; /* Restricts the layout to a professional centered width */
-    margin: 0 auto;    /* Centers the entire container on the screen */
-    width: 100%;
-}
-/* ── Wrapper ── */
-.input-wrapper {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 24px 28px;
-    background-color: #f3f4f6;
-    min-height: 100vh;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-/* ── Page Header ── */
-.input-page-header { margin-bottom: 20px; }
-.input-page-title {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 4px 0;
-}
-.input-page-subtitle { font-size: 0.875rem; color: #6b7280; margin: 0; }
-
-/* ── Success Toast ── */
-.success-toast {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    border-radius: 8px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    gap: 12px;
-}
-.success-toast-left { display: flex; align-items: flex-start; gap: 10px; flex: 1; }
-.success-icon {
-    width: 22px; height: 22px;
-    background: #16a34a;
-    color: #fff;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-.success-text { font-size: 0.875rem; color: #15803d; margin: 0; line-height: 1.5; }
-.success-dismiss {
-    background: none; border: none; color: #6b7280;
-    cursor: pointer; font-size: 0.875rem; padding: 0 4px;
-    flex-shrink: 0;
-}
-.success-dismiss:hover { color: #374151; }
-
-/* ── Error Toast ── */
-.error-toast {
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    padding: 10px 16px;
-    margin-bottom: 16px;
-    font-size: 0.875rem;
-    color: #dc2626;
-}
-
-/* ── Form Card ── */
-.form-card {
-    background: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    border: 1px solid #f0f0f0;
-    padding: 24px;
-}
-
-/* ── Form Layout ── */
-.form-row-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    margin-bottom: 18px;
-}
-.form-group { display: flex; flex-direction: column; }
-.form-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 6px;
-}
-.required { color: #ef4444; margin-left: 2px; }
-
-/* ── Input Fields ── */
-.input-field {
-    padding: 9px 12px;
-    font-size: 0.875rem;
-    border: 1.5px solid #d1d5db;
-    border-radius: 8px;
-    outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
-    background: #fff;
+    background-color: #f9fafb; /* bg-gray-50 */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     color: #111827;
     width: 100%;
+}
+
+* {
     box-sizing: border-box;
 }
-.input-field:focus {
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+
+/* ==========================================================================
+   Centered Canvas Layout
+   ========================================================================== */
+.page-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem; /* py-8 px-4 */
+    background-color: #f9fafb; /* bg-gray-50 */
 }
+
+/* ==========================================================================
+   Header Section with Building Icon
+   ========================================================================== */
+.header-section {
+    text-align: center;
+    margin-bottom: 1rem; /* mb-4 = 16px */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.icon-circle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem; /* w-12 = 48px */
+    height: 3rem; /* h-12 = 48px */
+    background-color: #dbeafe; /* bg-blue-100 */
+    border-radius: 9999px; /* rounded-full */
+    margin-bottom: 0.5rem; /* mb-2 = 8px */
+}
+
+.building-icon {
+    width: 1.5rem; /* h-6 = 24px */
+    height: 1.5rem; /* w-6 = 24px */
+    color: #2563eb; /* text-blue-600 */
+}
+
+.page-title {
+    font-size: 1.25rem; /* text-xl = 20px */
+    font-weight: 700;
+    color: #111827; /* text-gray-900 */
+    line-height: 1.75rem;
+    margin: 0;
+}
+
+.page-subtitle {
+    font-size: 0.875rem; /* text-sm = 14px */
+    color: #6b7280; /* text-gray-500 */
+    margin-top: 0.25rem; /* mt-1 = 4px */
+    margin-bottom: 0;
+}
+
+/* ==========================================================================
+   Form Card (w-full max-w-lg bg-white rounded-xl shadow-lg border p-6)
+   ========================================================================== */
+.card-wrapper {
+    width: 100%;
+    max-width: 32rem; /* max-w-lg = 512px */
+}
+
+.form-card {
+    background-color: #ffffff;
+    border-radius: 0.75rem; /* rounded-xl = 12px */
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+    padding: 1.5rem; /* p-6 = 24px */
+}
+
+/* 2-Column Grid Rows (grid grid-cols-2 gap-4 mb-4) */
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem; /* gap-4 = 16px */
+    margin-bottom: 1rem; /* mb-4 = 16px */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem; /* text-sm = 14px */
+    font-weight: 600; /* font-semibold */
+    color: #374151; /* text-gray-700 */
+    margin-bottom: 0.25rem; /* mb-1 = 4px */
+    line-height: 1.25rem;
+}
+
+.required {
+    color: #ef4444; /* text-red-500 */
+}
+
+/* ==========================================================================
+   Custom Inputs (border-2 rounded-lg hover:border-gray-300 focus:ring-2)
+   ========================================================================== */
+.custom-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem; /* px-3 py-2 */
+    font-size: 0.875rem; /* text-sm = 14px */
+    line-height: 1.25rem;
+    height: 2.375rem;
+    border: 2px solid #e5e7eb; /* border-2 border-gray-200 */
+    border-radius: 0.5rem; /* rounded-lg = 8px */
+    outline: none;
+    background-color: #ffffff;
+    color: #111827;
+    transition: all 0.15s ease-in-out;
+}
+
+.custom-input:hover {
+    border-color: #d1d5db; /* hover:border-gray-300 */
+}
+
+.custom-input:focus {
+    border-color: #3b82f6; /* focus:border-blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* focus:ring-2 focus:ring-blue-500 */
+}
+
+.custom-input::placeholder {
+    color: #9ca3af;
+}
+
+/* Validation Borders */
 .input-error {
     border-color: #ef4444 !important;
-    box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
 }
+
 .input-valid {
     border-color: #22c55e !important;
-    box-shadow: 0 0 0 3px rgba(34,197,94,0.1) !important;
 }
 
-/* ── URL Input ── */
-.url-input-wrapper { position: relative; display: flex; align-items: center; }
-.url-input-wrapper .input-field { padding-right: 32px; }
-.url-indicator {
+/* ==========================================================================
+   URL Field Wrapper & Indicators
+   ========================================================================== */
+.relative-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.relative-input-wrapper .custom-input {
+    padding-right: 2rem; /* pr-8 */
+}
+
+.url-badge {
     position: absolute;
-    right: 10px;
-    font-size: 0.8rem;
+    right: 0.75rem;
+    font-size: 0.875rem;
     font-weight: 700;
 }
-.url-valid-icon   { color: #16a34a; }
-.url-invalid-icon { color: #dc2626; }
 
-/* ── Field Error / Hint ── */
+.url-valid { color: #16a34a; }
+.url-invalid { color: #ef4444; }
+
+/* Field Error & Hint */
 .field-error {
     font-size: 0.75rem;
     color: #dc2626;
-    margin: 4px 0 0 0;
+    margin: 0.25rem 0 0 0;
 }
+
 .field-hint {
     font-size: 0.75rem;
     color: #9ca3af;
-    margin: 4px 0 0 0;
+    margin: 0.25rem 0 0 0;
 }
 
-/* ── Stage / ClientType Dropdowns ── */
-.dropdown-stage-input {
-    padding: 9px 10px;
-    font-size: 0.875rem;
-    border: 2px solid #bfdbfe;
-    border-radius: 8px;
-    background: #eff6ff;
-    color: #1d4ed8;
-    cursor: pointer;
-    outline: none;
-    transition: border-color 0.15s;
+/* ==========================================================================
+   Custom Styled Picklists (Stage & Client Type)
+   ========================================================================== */
+.custom-select {
     width: 100%;
-}
-.dropdown-stage-input:hover  { border-color: #93c5fd; }
-.dropdown-stage-input:focus  { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
-
-.dropdown-clienttype-input {
-    padding: 9px 10px;
-    font-size: 0.875rem;
-    border: 2px solid #bbf7d0;
-    border-radius: 8px;
-    background: #f0fdf4;
-    color: #15803d;
-    cursor: pointer;
+    padding: 0.5rem 0.75rem; /* px-3 py-2 */
+    font-size: 0.875rem; /* text-sm = 14px */
+    line-height: 1.25rem;
+    height: 2.375rem;
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 0.5rem; /* rounded-lg = 8px */
     outline: none;
-    transition: border-color 0.15s;
-    width: 100%;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
 }
-.dropdown-clienttype-input:hover { border-color: #86efac; }
-.dropdown-clienttype-input:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
 
-/* ── Submit Row ── */
-.form-submit-row { margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 20px; }
+/* Stage Select (border-2 border-blue-200 bg-blue-50 text-blue-700) */
+.select-stage {
+    border-color: #bfdbfe; /* border-blue-200 */
+    background-color: #eff6ff; /* bg-blue-50 */
+    color: #1d4ed8; /* text-blue-700 */
+}
+
+.select-stage:hover {
+    border-color: #93c5fd; /* hover:border-blue-300 */
+}
+
+.select-stage:focus {
+    border-color: #3b82f6; /* focus:border-blue-500 */
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* focus:ring-2 focus:ring-blue-500 */
+}
+
+/* Client Type Select (border-2 border-green-200 bg-green-50 text-green-700) */
+.select-client {
+    border-color: #bbf7d0; /* border-green-200 */
+    background-color: #f0fdf4; /* bg-green-50 */
+    color: #15803d; /* text-green-700 */
+}
+
+.select-client:hover {
+    border-color: #86efac; /* hover:border-green-300 */
+}
+
+.select-client:focus {
+    border-color: #22c55e; /* focus:border-green-500 */
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.5); /* focus:ring-2 focus:ring-green-500 */
+}
+
+/* ==========================================================================
+   Submit Button (w-full py-2.5 bg-blue-600 text-white rounded-lg shadow-sm)
+   ========================================================================== */
 .submit-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 28px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #fff;
-    background: #2563eb;
+    width: 100%;
+    padding: 0.625rem 1rem; /* py-2.5 = 10px */
+    background-color: #2563eb; /* bg-blue-600 */
+    color: #ffffff;
+    font-size: 0.875rem; /* text-sm = 14px */
+    font-weight: 600; /* font-semibold */
     border: none;
-    border-radius: 8px;
+    border-radius: 0.5rem; /* rounded-lg = 8px */
     cursor: pointer;
-    transition: background 0.15s;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* shadow-sm */
+    transition: all 0.15s ease-in-out;
 }
-.submit-btn:hover:not(:disabled) { background: #1d4ed8; }
-.submit-btn:disabled { opacity: 0.65; cursor: not-allowed; }
-.submit-btn-loading { background: #3b82f6; }
 
-/* ── Button Spinner ── */
-.btn-spinner {
-    width: 14px; height: 14px;
-    border: 2px solid rgba(255,255,255,0.4);
-    border-top-color: #fff;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    display: inline-block;
+.submit-btn:hover:not(:disabled) {
+    background-color: #1d4ed8; /* hover:bg-blue-700 */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* hover:shadow-md */
 }
-@keyframes spin { to { transform: rotate(360deg); } }
 
-.submit-hint {
-    font-size: 0.78rem;
-    color: #9ca3af;
-    margin: 10px 0 0 0;
+.submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.submit-btn-loading {
+    background-color: #3b82f6;
+}
+
+.btn-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-plus-icon {
+    width: 1rem; /* h-4 w-4 = 16px */
+    height: 1rem;
+    margin-right: 0.5rem; /* mr-2 = 8px */
+}
+
+.footer-subtext {
+    margin-top: 0.75rem; /* mt-3 = 12px */
+    margin-bottom: 0;
+    text-align: center;
+    font-size: 0.75rem; /* text-xs = 12px */
+    color: #9ca3af; /* text-gray-400 */
+}
+
+/* ==========================================================================
+   Toasts & Spinner
+   ========================================================================== */
+.toast {
+    width: 100%;
+    max-width: 32rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.toast-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.toast-icon {
+    font-weight: 700;
+}
+
+.toast-text {
+    margin: 0;
+    line-height: 1.25rem;
+}
+
+.toast-dismiss {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.toast-success {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+
+.toast-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+.spinner {
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #ffffff;
+    border-radius: 9999px;
+    animation: spin 0.8s linear infinite;
+    margin-right: 0.5rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }

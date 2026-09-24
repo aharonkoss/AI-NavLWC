@@ -2,7 +2,7 @@
  * AzureCompanyCallbackService
  *
  * Direct HTTP callback endpoint. Azure calls this to update
- * specific Company__c records with research results, Azure IDs,
+ * specific AI_Navigator_Company__c records with research results, Azure IDs,
  * scores, or status changes.
  *
  * Endpoint : /services/apexrest/ainavigator/v1/companies/callback
@@ -19,7 +19,7 @@
  *   "correlationId" : "SF-..."                 // optional
  * }
  */
-@RestResource(urlMapping='/ainavigator/v1/companies/callback')
+@RestResource(urlMapping='/ainavigator/v1/events/callback')
 global without sharing class AzureCompanyCallbackService {
 
     private static final String CORR_HEADER = 'X-Correlation-Id';
@@ -91,9 +91,15 @@ global without sharing class AzureCompanyCallbackService {
             for (Map<String, Object> item : updateItems) {
                 String rawKey = getStringValue(item, new List<String>{'companyId', 'salesforceId', 'id'});
                 if (String.isNotBlank(rawKey)) {
-                    if ((rawKey.length() == 15 || rawKey.length() == 18) && rawKey.startsWith('a06')) {
+                    if (rawKey.length() == 15 || rawKey.length() == 18) {
                         try {
-                            salesforceIds.add((Id) rawKey);
+                            // FIXED: Dynamically evaluate SObjectType to support any namespaced/unnamespaced prefix
+                            Id parsedId = (Id) rawKey;
+                            if (parsedId.getSObjectType() == AI_Navigator_Company__c.SObjectType) {
+                                salesforceIds.add(parsedId);
+                            } else {
+                                correlationKeys.add(rawKey);
+                            }
                         } catch (Exception idEx) {
                             correlationKeys.add(rawKey);
                         }
@@ -259,6 +265,7 @@ global without sharing class AzureCompanyCallbackService {
 
     private static void logError(String correlationId, String errorMessage, String requestBody) {
         try {
+            // FIXED: Instantiating correct custom object API name
             insert new AI_Navigator_Request_Log__c(
                 HTTP_Method__c       = 'POST',
                 Endpoint_Name__c     = 'AzureCompanyCallbackService',

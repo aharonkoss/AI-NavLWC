@@ -1,12 +1,7 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 08-31-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : LWC Navigation Header for AI Navigator with Popover Notification Window
 -->
 <template>
-    <!-- LWC Navigation Header for AI Navigator -->
     <div class="slds-box slds-box_xx-small slds-theme_default slds-m-bottom_small slds-p-around_none bg-white header-container" id="ai-nav-hdr-root">
         <div class="slds-grid slds-grid_vertical-align-center slds-p-around_medium flex-container">
             <!-- Brand Logo Area -->
@@ -95,15 +90,74 @@
                             </template>
                         </div>
 
-                        <!-- Notification Bell -->
-                        <div class="notification-trigger" onclick={toggleNotifications}>
-                            <span class="bell-icon">
-                                <svg class="bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                                </svg>
-                            </span>
-                            <template if:true={hasNotifications}>
-                                <span class="notification-badge">{notificationCount}</span>
+                        <!-- Notification Bell & Popup Dropdown -->
+                        <div class="notification-wrapper">
+                            <div class="notification-trigger" onclick={toggleNotifications} title="Signal Notifications">
+                                <span class="bell-icon">
+                                    <svg class="bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                    </svg>
+                                </span>
+                                <template if:true={hasNotifications}>
+                                    <span class="notification-badge">{notificationCount}</span>
+                                </template>
+                            </div>
+
+                            <!-- Popover Notification Window (Visible on Bell Click) -->
+                            <template if:true={showNotificationsMenu}>
+                                <!-- Click-off Backdrop -->
+                                <div class="dropdown-backdrop" onclick={closeNotifications}></div>
+
+                                <div class="notification-dropdown">
+                                    <!-- Header -->
+                                    <div class="notification-header">
+                                        <p class="notification-title">Signal Notifications</p>
+                                    </div>
+
+                                    <!-- Loading State -->
+                                    <template if:true={isLoadingNotifications}>
+                                        <div class="notification-loading">
+                                            <div class="spinner-small"></div>
+                                            <span>Fetching signals...</span>
+                                        </div>
+                                    </template>
+
+                                    <!-- Content Area -->
+                                    <template if:false={isLoadingNotifications}>
+                                        <template if:true={hasFeedItems}>
+                                            <div class="notification-feed-list">
+                                                <template for:each={notificationsList} for:item="item">
+                                                    <div
+                                                        key={item.companyId}
+                                                        class="notification-feed-item"
+                                                        data-company-id={item.companyId}
+                                                        data-company-name={item.companyName}
+                                                        onclick={handleNotificationItemClick}
+                                                    >
+                                                        <div class="feed-item-top">
+                                                            <strong class="feed-company-name">{item.companyName}</strong>
+                                                            <template if:true={item.priority}>
+                                                                <span class={item.priorityClass}>{item.priority}</span>
+                                                            </template>
+                                                        </div>
+                                                        <p class="feed-signal-name">{item.latestSignalName}</p>
+                                                        <span class="feed-time">{item.formattedDate}</span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+
+                                        <!-- Empty State (Matches Screenshot) -->
+                                        <template if:false={hasFeedItems}>
+                                            <div class="notification-empty">
+                                                <svg class="empty-inbox-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                                </svg>
+                                                <p class="empty-title">No recent signals yet</p>
+                                            </div>
+                                        </template>
+                                    </template>
+                                </div>
                             </template>
                         </div>
 
@@ -116,72 +170,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- Notification Banner Feed overlay inside LWC -->
-        <template if:true={showNotificationsMenu}>
-            <div class="alerts-feed-wrapper slds-p-horizontal_medium slds-p-bottom_medium">
-                <div class="alerts-feed-content slds-p-around_medium">
-                    <div class="slds-grid slds-grid_align-spread slds-m-bottom_small border-b">
-                        <div class="feed-title text-indigo-900 font-bold">
-                            Active Signals Feed ({notificationCount} New)
-                        </div>
-                        <button class="close-feed" onclick={closeNotifications}>&times; Close Feed</button>
-                    </div>
-
-                    <template if:true={isLoadingNotifications}>
-                        <div class="slds-p-around_medium slds-text-align_center text-gray-500">
-                            <div class="slds-spinner_container">
-                                <div role="status" class="slds-spinner slds-spinner_x-small slds-spinner_brand">
-                                    <span class="slds-assistive-text">Loading notifications...</span>
-                                    <div class="slds-spinner__dot-a"></div>
-                                    <div class="slds-spinner__dot-b"></div>
-                                </div>
-                            </div>
-                            <span class="slds-m-left_small">Fetching signals...</span>
-                        </div>
-                    </template>
-
-                    <template if:false={isLoadingNotifications}>
-                        <div class="feed-items slds-p-vertical_x-small">
-                            <template if:true={hasFeedItems}>
-                                <template for:each={notificationsList} for:item="item">
-                                    <div 
-                                        key={item.companyId} 
-                                        class="feed-item slds-m-bottom_x-small feed-item-clickable"
-                                        data-company-id={item.companyId}
-                                        data-company-name={item.companyName}
-                                        onclick={handleNotificationItemClick}
-                                    >
-                                        <div class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center">
-                                            <div class="feed-item-main">
-                                                <span class="bullet-alert orange">•</span>
-                                                <strong class="company-name">{item.companyName}</strong>: {item.latestSignalName}
-                                                <span class="signal-summary-tag">({item.signalSummary})</span>
-                                            </div>
-                                            <div class="feed-item-meta">
-                                                <template if:true={item.priority}>
-                                                    <span class={item.priorityClass}>{item.priority}</span>
-                                                </template>
-                                                <span class="feed-timestamp">{item.formattedDate}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
-                            </template>
-
-                            <template if:false={hasFeedItems}>
-                                <div class="feed-empty-state">No new notification signals found.</div>
-                            </template>
-                        </div>
-                    </template>
-
-                    <div class="slds-grid slds-grid_align-spread slds-m-top_small border-t slds-p-top_x-small">
-                        <button class="refresh-feed" onclick={fetchNotifications}>↻ Refresh</button>
-                        <button class="mark-read shadow-sm btn-clear" onclick={markAllRead}>Mark all as read</button>
-                    </div>
-                </div>
-            </div>
-        </template>
 
         <!-- Company Context Ribbon -->
         <template if:true={showCompanyRibbon}>

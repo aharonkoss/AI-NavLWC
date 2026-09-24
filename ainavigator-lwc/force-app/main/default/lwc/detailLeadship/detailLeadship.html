@@ -1,5 +1,5 @@
 <!--
-  @description       : Leadership & Executive drawer component with in-memory data caching
+  @description       : Leadership & Executive component with in-memory caching and Notes child component
 -->
 <template>
   <div class="cdr-subtab-container leadership">
@@ -60,7 +60,7 @@
             <template for:each={leadershipExecutives} for:item="exec">
               <div key={exec.id} class="ldr-exec-card leader-card">
                 
-                <!-- 1. Hero Profile Header (Fix #1: Uses .ldr-hero-subcard .leader-profile WITHOUT .ldr-subcard) -->
+                <!-- 1. Hero Profile Header -->
                 <div class="ldr-hero-subcard leader-profile">
                   <div class="ldr-avatar-wrap">
                     <template if:true={exec.hasProfilePic}>
@@ -328,7 +328,7 @@
                   </div>
                 </template>
 
-                <!-- 4. Employment History (Fix #2: Uses {job.rowClass} to bind to controller data) -->
+                <!-- 4. Employment History -->
                 <template if:true={exec.hasJobHistory}>
                   <div class="ldr-subcard contact-panel">
                     <div class="ldr-section-header contact-panel-heading">
@@ -445,185 +445,12 @@
       </template>
     </div>
 
-    <!-- Floating Circular Notes Button -->
-    <template if:false={isNotesOpen}>
-      <button
-        class="ldr-floating-notes-btn"
-        title="Open Notes"
-        onclick={toggleNotesDrawer}
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-        <template if:true={notesCount}>
-          <span class="ldr-floating-badge">{notesCount}</span>
-        </template>
-      </button>
-    </template>
-
-    <!-- Slide-in Notes Drawer -->
-    <template if:true={isNotesOpen}>
-      <div class="ldr-notes-drawer" style={drawerStyle}>
-        <div class="ldr-resize-handle" onmousedown={startResize}></div>
-
-        <div class="ldr-drawer-header">
-          <div class="ldr-drawer-header-left">
-            <span class="ldr-drawer-icon" aria-hidden="true">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-              </svg>
-            </span>
-            <span class="ldr-drawer-title">My Notes</span>
-            <span class="ldr-notes-count-badge">{notesCount}</span>
-          </div>
-          <div class="ldr-drawer-header-right">
-            <span class="ldr-drawer-width-label">{drawerWidth}px</span>
-            <button class="ldr-drawer-btn" title="Print Notes" onclick={handlePrintNotes}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <polyline points="6 9 6 2 18 2 18 9" />
-                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
-                <rect x="6" y="14" width="12" height="8" />
-              </svg>
-            </button>
-            <button class="ldr-drawer-btn" title="Close" onclick={toggleNotesDrawer}>
-              &#10005;
-            </button>
-          </div>
-        </div>
-
-        <div class="ldr-drawer-body">
-          <div class="ldr-drawer-company-row">
-            <strong>Company:</strong> {displayCompanyName}
-          </div>
-
-          <template if:false={isAddingNote}>
-            <button class="ldr-add-note-dash-btn" onclick={handleOpenAddNoteForm}>
-              <span class="ldr-add-note-plus">+</span> Add New Note
-            </button>
-          </template>
-
-          <template if:true={isAddingNote}>
-            <div class="ldr-note-form-card">
-              <input
-                type="text"
-                class="ldr-note-title-input"
-                placeholder="Note title (optional)"
-                value={newNoteTitle}
-                oninput={handleNoteTitleChange}
-              />
-              <div class="ldr-note-editor-wrapper">
-                <textarea
-                  class="ldr-note-textarea"
-                  rows="4"
-                  placeholder="Enter your note..."
-                  oninput={handleNoteContentChange}
-                >{newNoteContent}</textarea>
-                <div class="ldr-note-toolbar">
-                  <button type="button" class="ldr-tool-btn" title="Bold" onclick={handleToolBold}><strong>B</strong></button>
-                  <button type="button" class="ldr-tool-btn" title="Italic" onclick={handleToolItalic}><em>/</em></button>
-                  <button type="button" class="ldr-tool-btn" title="List" onclick={handleToolBullet}>&#9776;</button>
-                </div>
-              </div>
-              <div class="ldr-note-form-actions">
-                <button type="button" class="ldr-btn-cancel" onclick={handleCancelNoteForm}>Cancel</button>
-                <button type="button" class="ldr-btn-save" disabled={isSavingNote} onclick={handleSaveNote}>
-                  <template if:true={isSavingNote}>Saving...</template>
-                  <template if:false={isSavingNote}>Save Note</template>
-                </button>
-              </div>
-            </div>
-          </template>
-
-          <template if:true={isLoadingNotes}>
-            <div class="ldr-notes-loading">
-              <div class="cdr-spinner"></div>
-              <span>Loading notes...</span>
-            </div>
-          </template>
-
-          <div class="ldr-notes-list">
-            <template for:each={notesList} for:item="note">
-              <div key={note.id} class="ldr-note-accordion-item">
-                <div class="ldr-note-accordion-header" data-id={note.id} onclick={toggleNoteAccordion}>
-                  <div class="ldr-note-header-left">
-                    <span class={note.chevronClass}></span>
-                    <span class="ldr-note-item-title">{note.title}</span>
-                  </div>
-                  <div class="ldr-note-item-date">{note.formattedDate}</div>
-                </div>
-
-                <template if:true={note.isExpanded}>
-                  <div class="ldr-note-accordion-body">
-                    <div class="ldr-note-tag-wrapper">
-                      <span class="ldr-note-tag-badge">{note.tagLabel}</span>
-                    </div>
-
-                    <template if:false={note.isEditing}>
-                      <div class="ldr-note-body-content-box">
-                        <p class="ldr-note-body-text">{note.content}</p>
-                      </div>
-                      <div class="ldr-note-action-icons">
-                        <button class="ldr-note-icon-btn" title="Edit Note" data-id={note.id} onclick={handleStartEditNote}>
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                          </svg>
-                        </button>
-                        <button class="ldr-note-icon-btn" title="Delete Note" data-id={note.id} onclick={handleDeleteNote}>
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                          </svg>
-                        </button>
-                      </div>
-                    </template>
-
-                    <template if:true={note.isEditing}>
-                      <div class="ldr-note-inline-edit">
-                        <textarea class="ldr-note-textarea" rows="4" data-id={note.id} oninput={handleInlineContentChange}>{note.editContent}</textarea>
-                        <div class="ldr-note-form-actions">
-                          <button type="button" class="ldr-btn-cancel" data-id={note.id} onclick={handleCancelInlineEdit}>Cancel</button>
-                          <button type="button" class="ldr-btn-save" data-id={note.id} onclick={handleSaveInlineEdit}>Save</button>
-                        </div>
-                      </div>
-                    </template>
-                  </div>
-                </template>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div class="ldr-drawer-footer">
-          <span>Drag left edge to resize</span>
-          <span class="ldr-footer-divider">|</span>
-          <span>Notes saved per company</span>
-        </div>
-      </div>
-    </template>
+    <!-- Reusable Notes Window Child Component -->
+    <c-notes-window
+      company-id={companyId}
+      company-name={displayCompanyName}
+      source-tab="Leadership"
+      onnotesupdated={handleNotesUpdated}
+    ></c-notes-window>
   </div>
 </template>

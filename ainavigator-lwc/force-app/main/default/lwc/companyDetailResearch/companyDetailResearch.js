@@ -9,15 +9,21 @@ const RESEARCH_SUBTABS = [
 ];
 
 export default class CompanyDetailResearch extends LightningElement {
-  @api companyId;
+  _companyId;
+
+  @api
+  get companyId() {
+    return this._companyId;
+  }
+  set companyId(value) {
+    this._companyId = value ? String(value).trim() : value;
+  }
+
   @track activeResearchSection = 'researchLibrary';
   @track isDownloadingPdf = false;
 
-  // Tracks which tabs have been visited/rendered so they remain cached in DOM
+  // Track optional tabs (RMA & Equifax) if clicked
   @track visitedTabs = {
-    researchLibrary: true,
-    leadership: false,
-    ucc: false,
     rma: false,
     equifax: false
   };
@@ -31,7 +37,7 @@ export default class CompanyDetailResearch extends LightningElement {
     }));
   }
 
-  // Active tab state getters for styling & class toggling
+  // Active tab state getters
   get isResearchLibraryTab() {
     return this.activeResearchSection === 'researchLibrary';
   }
@@ -48,7 +54,7 @@ export default class CompanyDetailResearch extends LightningElement {
     return this.activeResearchSection === 'equifax';
   }
 
-  // Visibility class getters that keep instances alive without re-rendering
+  // Visibility class getters — keeps child components mounted & running
   get researchLibraryTabClass() {
     return `cdr-tab-pane ${this.isResearchLibraryTab ? 'cdr-tab-pane--active' : 'cdr-hidden'}`;
   }
@@ -75,8 +81,7 @@ export default class CompanyDetailResearch extends LightningElement {
       const selectedTab = event.currentTarget.dataset.id;
       this.activeResearchSection = selectedTab;
 
-      // Mark tab as visited to lazily instantiate and cache it
-      if (!this.visitedTabs[selectedTab]) {
+      if (this.visitedTabs[selectedTab] === false) {
         this.visitedTabs = {
           ...this.visitedTabs,
           [selectedTab]: true
@@ -86,12 +91,12 @@ export default class CompanyDetailResearch extends LightningElement {
   }
 
   handleDownloadPdf() {
-    if (!this.companyId || this.isDownloadingPdf) return;
+    if (!this._companyId || this.isDownloadingPdf) return;
 
     this.isDownloadingPdf = true;
 
     getTabPdfDownloadUrl({
-      companyId: this.companyId,
+      companyId: this._companyId,
       tabName: this.activeResearchSection
     })
       .then((json) => {

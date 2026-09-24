@@ -18,8 +18,8 @@ export default class InputForm extends LightningElement {
     stageOptions = [
         { label: 'PreCall',           value: 'PreCall' },
         { label: 'Appointment Set',   value: 'Appointment Set' },
-        { label: 'Pre Qualification', value: 'Pre Qualification' },
-        { label: 'Face to Face',      value: 'Face to Face' }
+        { label: 'Face To Face',      value: 'Face To Face' },
+        { label: 'Qualification',     value: 'Qualification' }
     ];
 
     clientTypeOptions = [
@@ -33,21 +33,21 @@ export default class InputForm extends LightningElement {
 
     // ── Computed classes ───────────────────────────────────────────
     get companyNameInputClass() {
-        return `input-field${this.errors.companyName ? ' input-error' : ''}`;
+        return `custom-input${this.errors.companyName ? ' input-error' : ''}`;
     }
     get websiteInputClass() {
-        return `input-field${this.errors.website ? ' input-error' : this.urlValid === true ? ' input-valid' : ''}`;
+        return `custom-input${this.errors.website ? ' input-error' : this.urlValid === true ? ' input-valid' : ''}`;
     }
     get cityInputClass() {
-        return `input-field${this.errors.city ? ' input-error' : ''}`;
+        return `custom-input${this.errors.city ? ' input-error' : ''}`;
     }
     get stateInputClass() {
-        return `input-field${this.errors.state ? ' input-error' : ''}`;
+        return `custom-input${this.errors.state ? ' input-error' : ''}`;
     }
     get showUrlValid()   { return this.urlValid === true && this.website && this.website !== 'https://'; }
     get showUrlInvalid() { return this.urlValid === false && this.website && this.website !== 'https://'; }
     get showUrlError()   { return !!this.errors.website; }
-    get showUrlHint()    { return !this.errors.website && this.urlValid === false && this.website !== 'https://'; }
+    get showUrlHint()    { return !this.errors.website && this.urlValid === false && this.website && this.website !== 'https://'; }
     get submitBtnClass() { return `submit-btn${this.isSubmitting ? ' submit-btn-loading' : ''}`; }
 
     // ── URL Validation ──────────────────────────────────────────────
@@ -177,6 +177,7 @@ export default class InputForm extends LightningElement {
             }));
 
             // Auto-clear success toast after 6 seconds
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
             setTimeout(() => { this.submitSuccess = false; }, 6000);
         })
         .catch(error => {

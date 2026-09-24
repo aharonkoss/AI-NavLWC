@@ -1,0 +1,326 @@
+<!--
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 09-14-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+-->
+<template>
+  <!-- Floating Circular Button -->
+  <template if:false={isNotesOpen}>
+    <button
+      class="nw-floating-btn"
+      title="Open Notes"
+      onclick={handleOpenDrawer}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
+      <template if:true={notesCount}>
+        <span class="nw-floating-badge">{notesCount}</span>
+      </template>
+    </button>
+  </template>
+
+  <!-- Slide-in Notes Drawer & Backdrop -->
+  <template if:true={isNotesOpen}>
+    <!-- Soft Gray Backdrop Overlay (Matches Image #1) -->
+    <div class="nw-drawer-backdrop" onclick={handleCloseDrawer}></div>
+
+    <div class="nw-drawer" style={drawerStyle}>
+      <!-- Drag Resize Handle -->
+      <div class="nw-resize-handle" onmousedown={startResize}></div>
+
+      <!-- Drawer Header -->
+      <div class="nw-drawer-header">
+        <div class="nw-drawer-header-left">
+          <span class="nw-drawer-icon" aria-hidden="true">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+            </svg>
+          </span>
+          <span class="nw-drawer-title">My Notes</span>
+          <span class="nw-count-badge">{notesCount}</span>
+        </div>
+        <div class="nw-drawer-header-right">
+          <span class="nw-width-label">{drawerWidth}px</span>
+          <button class="nw-header-btn" title="Print Preview" onclick={handleOpenPrintPreview}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polyline points="6 9 6 2 18 2 18 9" />
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+              <rect x="6" y="14" width="12" height="8" />
+            </svg>
+          </button>
+          <button class="nw-header-btn" title="Close" onclick={handleCloseDrawer}>
+            &#10005;
+          </button>
+        </div>
+      </div>
+
+      <!-- Drawer Body -->
+      <div class="nw-drawer-body">
+        <div class="nw-company-row">
+          <strong>Company:</strong> {displayCompanyName}
+        </div>
+
+        <!-- Add Note Dashed Button -->
+        <template if:false={isAddingNote}>
+          <button class="nw-add-dash-btn" onclick={handleOpenAddForm}>
+            <span class="nw-add-plus">+</span> Add New Note
+          </button>
+        </template>
+
+        <!-- Add Note Form Card -->
+        <template if:true={isAddingNote}>
+          <div class="nw-note-form-card">
+            <input
+              type="text"
+              class="nw-input-title"
+              placeholder="Note title (optional)"
+              value={newNoteTitle}
+              oninput={handleNoteTitleChange}
+            />
+
+            <div class="nw-editor-wrapper">
+              <textarea
+                class="nw-textarea"
+                rows="4"
+                placeholder="Enter your note..."
+                oninput={handleNoteContentChange}
+              >{newNoteContent}</textarea>
+
+              <div class="nw-toolbar">
+                <button type="button" class="nw-tool-btn" title="Bold" onclick={handleToolBold}>
+                  <strong>B</strong>
+                </button>
+                <button type="button" class="nw-tool-btn" title="Italic" onclick={handleToolItalic}>
+                  <em>/</em>
+                </button>
+                <button type="button" class="nw-tool-btn" title="List" onclick={handleToolBullet}>
+                  &#9776;
+                </button>
+              </div>
+            </div>
+
+            <div class="nw-form-actions">
+              <button type="button" class="nw-btn-cancel" onclick={handleCancelAddForm}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                class="nw-btn-save"
+                disabled={isSavingNote}
+                onclick={handleSaveNewNote}
+              >
+                <template if:true={isSavingNote}>Saving...</template>
+                <template if:false={isSavingNote}>Save Note</template>
+              </button>
+            </div>
+          </div>
+        </template>
+
+        <!-- Loading State -->
+        <template if:true={isLoadingNotes}>
+          <div class="nw-loading">
+            <div class="nw-spinner"></div>
+            <span>Loading notes...</span>
+          </div>
+        </template>
+
+        <!-- Notes Accordion List -->
+        <div class="nw-notes-list">
+          <template for:each={notesList} for:item="note">
+            <div key={note.id} class="nw-accordion-item">
+              <div
+                class="nw-accordion-header"
+                data-id={note.id}
+                onclick={toggleAccordion}
+              >
+                <div class="nw-accordion-header-left">
+                  <span class={note.chevronClass}></span>
+                  <span class="nw-item-title">{note.title}</span>
+                </div>
+                <div class="nw-item-date">{note.formattedDate}</div>
+              </div>
+
+              <!-- Expanded Body -->
+              <template if:true={note.isExpanded}>
+                <div class="nw-accordion-body">
+                  <div class="nw-tag-wrap">
+                    <span class="nw-tag-badge">{note.tagLabel}</span>
+                  </div>
+
+                  <!-- View Mode -->
+                  <template if:false={note.isEditing}>
+                    <div class="nw-content-box">
+                      <p class="nw-content-text">{note.content}</p>
+                    </div>
+                    <div class="nw-action-icons">
+                      <button
+                        class="nw-icon-btn"
+                        title="Edit Note"
+                        data-id={note.id}
+                        onclick={handleStartEdit}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        class="nw-icon-btn"
+                        title="Delete Note"
+                        data-id={note.id}
+                        onclick={handleDelete}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </template>
+
+                  <!-- Inline Edit Mode -->
+                  <template if:true={note.isEditing}>
+                    <div class="nw-inline-edit">
+                      <textarea
+                        class="nw-textarea"
+                        rows="4"
+                        data-id={note.id}
+                        oninput={handleInlineChange}
+                      >{note.editContent}</textarea>
+                      <div class="nw-form-actions">
+                        <button
+                          type="button"
+                          class="nw-btn-cancel"
+                          data-id={note.id}
+                          onclick={handleCancelInlineEdit}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          class="nw-btn-save"
+                          data-id={note.id}
+                          onclick={handleSaveInlineEdit}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Drawer Footer -->
+      <div class="nw-drawer-footer">
+        <span>Drag left edge to resize</span>
+        <span class="nw-footer-divider">|</span>
+        <span>Notes saved per company</span>
+      </div>
+    </div>
+  </template>
+
+  <!-- Print Preview Modal -->
+  <template if:true={isPrintPreviewOpen}>
+    <div class="nw-modal-backdrop">
+      <div class="nw-modal-container">
+        <!-- Modal Top Bar -->
+        <div class="nw-modal-header">
+          <h2 class="nw-modal-title">Print Preview</h2>
+          <div class="nw-modal-header-actions">
+            <button class="nw-modal-print-btn" onclick={handleExecutePrint}>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+              <span>Print</span>
+            </button>
+            <button class="nw-modal-close-btn" onclick={handleClosePrintPreview}>
+              &#10005;
+            </button>
+          </div>
+        </div>
+
+        <!-- Printable Document Body -->
+        <div class="nw-modal-body">
+          <div class="nw-print-page">
+            <!-- Document Header -->
+            <div class="nw-doc-header">
+              <div class="nw-doc-header-left">
+                <h1 class="nw-doc-title">Research Notes</h1>
+                <div class="nw-doc-company">{displayCompanyName}</div>
+              </div>
+              <div class="nw-doc-header-right">
+                <div class="nw-doc-date">{printCurrentDate}</div>
+                <div class="nw-doc-prepared">Prepared by: {currentUserEmail}</div>
+              </div>
+            </div>
+
+            <div class="nw-doc-divider"></div>
+
+            <!-- Grouped Sections -->
+            <template for:each={printGroupedSections} for:item="group">
+              <div key={group.category} class="nw-doc-group">
+                <div class="nw-doc-category-title">{group.category}</div>
+
+                <template for:each={group.notes} for:item="note">
+                  <div key={note.id} class="nw-doc-note-item">
+                    <div class="nw-doc-note-top">
+                      <span class="nw-doc-note-title">{note.title}</span>
+                      <div class="nw-doc-note-meta-right">
+                        <span class="nw-doc-tag-badge">{note.tagLabel}</span>
+                        <span class="nw-doc-note-date">{note.printFormattedDate}</span>
+                      </div>
+                    </div>
+                    <div class="nw-doc-note-body">
+                      <p class="nw-doc-note-content">{note.content}</p>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <!-- Document Footer -->
+            <div class="nw-doc-footer">
+              <div class="nw-doc-footer-brand">Generated by AI Navigator</div>
+              <div class="nw-doc-footer-conf">Confidential - For Internal Use Only</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+</template>

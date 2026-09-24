@@ -1,145 +1,192 @@
 <!--
-  @description       : Research Library with in-memory caching and instant tab transitions
+  @description       : Research Library matching React/Tailwind design with section note actions and c-notes-window integration
 -->
 <template>
-  <div class="cdr-tab-body">
-    <!-- Loading Spinner -->
-    <template if:true={isLoading}>
-      <div class="cdr-loading">
-        <div class="cdr-spinner"></div>
-        <span>Loading AI Navigator Report...</span>
-      </div>
-    </template>
-
-    <!-- Error Banner -->
-    <template if:true={error}>
-      <div class="cdr-error">
-        <span class="cdr-error-icon">&#9888;</span>
-        <span>{error}</span>
-      </div>
-    </template>
-
-    <!-- Report Accordion View -->
-    <template if:false={isLoading}>
-      <template if:true={hasSections}>
-        <div class="cdr-report-card">
-          <div class="cdr-report-header">
-            <div class="cdr-report-header-left">
-              <span class="cdr-report-icon">&#128196;</span>
-              <span class="cdr-report-title">AI Navigator Report</span>
-            </div>
-            <div class="cdr-report-header-right">
-              <button class="cdr-link-btn" onclick={handleExpandAll}>Expand All</button>
-              <span class="cdr-divider">|</span>
-              <button class="cdr-link-btn" onclick={handleCollapseAll}>Collapse All</button>
-            </div>
-          </div>
+  <div class="cdr-tab-container">
+    <div class="cdr-tab-body">
+      <!-- Loading Spinner -->
+      <template if:true={isLoading}>
+        <div class="cdr-loading">
+          <div class="cdr-spinner"></div>
+          <span>Loading AI Navigator Report...</span>
         </div>
+      </template>
 
-        <div class="cdr-accordion">
-          <template for:each={parsedSections} for:item="sec">
-            <div key={sec.id} class="cdr-accordion-item">
-              <button
-                class="cdr-accordion-header"
-                data-id={sec.id}
-                onclick={handleToggle}
-                aria-expanded={sec.ariaExpanded}
-              >
-                <div class="cdr-accordion-header-left">
-                  <span class={sec.chevron}></span>
-                  <span class="cdr-accordion-title">{sec.title}</span>
-                </div>
-                <template if:true={sec.isExpanded}>
-                  <span class="cdr-collapse-hint">Click to collapse</span>
-                </template>
-                <template if:false={sec.isExpanded}>
-                  <span class="cdr-collapse-hint">Click to expand</span>
-                </template>
-              </button>
+      <!-- Error Banner -->
+      <template if:true={error}>
+        <div class="cdr-error">
+          <span class="cdr-error-icon">&#9888;</span>
+          <span>{error}</span>
+        </div>
+      </template>
 
-              <template if:true={sec.isExpanded}>
-                <div class="cdr-accordion-body">
-                  <template for:each={sec.renderedRows} for:item="row">
-                    <template if:true={row.isTable}>
-                      <div key={row.id} class="cdr-table-wrapper">
-                        <table class="cdr-table">
-                          <thead>
-                            <tr>
-                              <template for:each={row.headerCells} for:item="cell">
-                                <th key={cell.text} class="cdr-th">{cell.text}</th>
-                              </template>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <template for:each={row.bodyRows} for:item="brow">
-                              <tr key={brow.id}>
-                                <template for:each={brow.cells} for:item="cell">
-                                  <td key={cell.text} class="cdr-td">{cell.text}</td>
+      <!-- Main Report Accordion View -->
+      <template if:false={isLoading}>
+        <template if:true={hasSections}>
+          <div class="cdr-report-card">
+            <!-- Card Header -->
+            <div class="cdr-report-header">
+              <div class="cdr-report-header-left">
+                <svg class="cdr-report-header-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h2 class="cdr-report-title">AI Navigator Report</h2>
+              </div>
+              <div class="cdr-report-header-right">
+                <button class="cdr-link-btn" onclick={handleExpandAll}>Expand All</button>
+                <span class="cdr-divider">|</span>
+                <button class="cdr-link-btn" onclick={handleCollapseAll}>Collapse All</button>
+              </div>
+            </div>
+
+            <!-- Accordion List -->
+            <div class="cdr-accordion-divide">
+              <template for:each={parsedSections} for:item="sec">
+                <div key={sec.id} class="cdr-accordion-item">
+                  <div class="cdr-section-row">
+                    <!-- Toggle Button (Chevron + Title) -->
+                    <button
+                      type="button"
+                      class="cdr-section-toggle-btn"
+                      data-id={sec.id}
+                      onclick={handleToggle}
+                      aria-expanded={sec.ariaExpanded}
+                    >
+                      <svg class={sec.chevronSvgClass} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                      </svg>
+                      <span class="cdr-section-title-text">{sec.title}</span>
+                    </button>
+
+                    <!-- Section Actions (+ / Checkmark Button & Expand Label) -->
+                    <div class="cdr-section-action-group">
+                      <!-- Note Add / Checked Button -->
+                      <button
+                        type="button"
+                        class={sec.noteBtnClass}
+                        title={sec.noteBtnTitle}
+                        data-id={sec.id}
+                        onclick={handleSectionNoteClick}
+                      >
+                        <template if:true={sec.hasNote}>
+                          <svg class="cdr-action-icon cdr-icon-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                        </template>
+                        <template if:false={sec.hasNote}>
+                          <svg class="cdr-action-icon cdr-icon-plus" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                          </svg>
+                        </template>
+                      </button>
+
+                      <!-- Expand / Collapse Label -->
+                      <span class="cdr-state-label">{sec.stateLabel}</span>
+                    </div>
+                  </div>
+
+                  <!-- Expanded Content Body -->
+                  <template if:true={sec.isExpanded}>
+                    <div class="cdr-accordion-body">
+                      <template for:each={sec.renderedRows} for:item="row">
+                        <!-- Table Render -->
+                        <template if:true={row.isTable}>
+                          <div key={row.id} class="cdr-table-wrapper">
+                            <table class="cdr-table">
+                              <thead>
+                                <tr>
+                                  <template for:each={row.headerCells} for:item="cell">
+                                    <th key={cell.text} class="cdr-th">{cell.text}</th>
+                                  </template>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <template for:each={row.bodyRows} for:item="brow">
+                                  <tr key={brow.id}>
+                                    <template for:each={brow.cells} for:item="cell">
+                                      <td key={cell.text} class="cdr-td">{cell.text}</td>
+                                    </template>
+                                  </tr>
                                 </template>
-                              </tr>
-                            </template>
-                          </tbody>
-                        </table>
-                      </div>
-                    </template>
+                              </tbody>
+                            </table>
+                          </div>
+                        </template>
 
-                    <template if:true={row.isBullet}>
-                      <div key={row.id} class="cdr-bullet-row">
-                        <span class="cdr-bullet-dot">&#8226;</span>
-                        <span class="cdr-bullet-text">{row.html}</span>
-                      </div>
-                    </template>
+                        <!-- Bullet Point -->
+                        <template if:true={row.isBullet}>
+                          <div key={row.id} class="cdr-bullet-row">
+                            <span class="cdr-bullet-dot">&#8226;</span>
+                            <span class="cdr-bullet-text">{row.html}</span>
+                          </div>
+                        </template>
 
-                    <template if:true={row.isHeading}>
-                      <template if:true={row.isH3}>
-                        <h3 key={row.id} class="cdr-subheading cdr-subheading--h3">{row.text}</h3>
+                        <!-- Headings -->
+                        <template if:true={row.isHeading}>
+                          <template if:true={row.isH3}>
+                            <h3 key={row.id} class="cdr-subheading cdr-subheading--h3">{row.text}</h3>
+                          </template>
+                          <template if:false={row.isH3}>
+                            <h4 key={row.id} class="cdr-subheading cdr-subheading--h4">{row.text}</h4>
+                          </template>
+                        </template>
+
+                        <!-- Paragraph -->
+                        <template if:true={row.isText}>
+                          <p key={row.id} class="cdr-para">{row.html}</p>
+                        </template>
+
+                        <!-- Spacer -->
+                        <template if:true={row.isSpacer}>
+                          <div key={row.id} class="cdr-spacer"></div>
+                        </template>
                       </template>
-                      <template if:false={row.isH3}>
-                        <h4 key={row.id} class="cdr-subheading cdr-subheading--h4">{row.text}</h4>
-                      </template>
-                    </template>
-
-                    <template if:true={row.isText}>
-                      <p key={row.id} class="cdr-para">{row.html}</p>
-                    </template>
-
-                    <template if:true={row.isSpacer}>
-                      <div key={row.id} class="cdr-spacer"></div>
-                    </template>
+                    </div>
                   </template>
                 </div>
               </template>
             </div>
-          </template>
-        </div>
-      </template>
+          </div>
+        </template>
 
-      <!-- Empty State -->
-      <template if:false={hasSections}>
-        <template if:false={error}>
-          <div class="cdr-empty">
-            <span class="cdr-empty-icon">&#128196;</span>
-            <p>Research report not yet available for this company.</p>
+        <!-- Empty State -->
+        <template if:false={hasSections}>
+          <template if:false={error}>
+            <div class="cdr-empty">
+              <span class="cdr-empty-icon">&#128196;</span>
+              <p>Research report not yet available for this company.</p>
+            </div>
+          </template>
+        </template>
+
+        <!-- Sources Panel -->
+        <template if:true={hasSources}>
+          <div class="cdr-sources-panel">
+            <h3 class="cdr-sources-header">Sources</h3>
+            <div class="cdr-sources-list">
+              <template for:each={sources} for:item="src">
+                <a
+                  key={src.idx}
+                  class="cdr-source-link"
+                  href={src.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  [{src.idx}] {src.url}
+                </a>
+              </template>
+            </div>
           </div>
         </template>
       </template>
+    </div>
 
-      <!-- Sources Panel -->
-      <template if:true={hasSources}>
-        <div class="cdr-sources-panel">
-          <div class="cdr-sources-header">Sources</div>
-          <ul class="cdr-sources-list">
-            <template for:each={sources} for:item="src">
-              <li key={src.idx} class="cdr-source-item">
-                <span class="cdr-source-num">[{src.idx}]</span>
-                <a class="cdr-source-link" href={src.url} target="_blank" rel="noopener noreferrer">
-                  {src.label}
-                </a>
-              </li>
-            </template>
-          </ul>
-        </div>
-      </template>
-    </template>
+    <!-- Reusable Notes Window Child Component -->
+    <c-notes-window
+      company-id={companyId}
+      company-name={displayCompanyName}
+      source-tab="Research Library"
+      onnotesupdated={handleNotesUpdated}
+    ></c-notes-window>
   </div>
 </template>

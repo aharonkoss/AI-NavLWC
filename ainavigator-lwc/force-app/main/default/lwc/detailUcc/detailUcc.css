@@ -1,3 +1,9 @@
+.cdr-subtab-container {
+  position: relative;
+  width: 100%;
+  min-height: 550px;
+}
+
 .cdr-subtab-content {
   padding: 1rem;
 }

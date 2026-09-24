@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from 'lwc';
 import getUccFilings from '@salesforce/apex/CompanyDetailController.getUccFilings';
+import getCompany from '@salesforce/apex/CompanyDetailController.getCompany';
 
 // In-Memory Module Level Cache across tab switches
 const uccCache = new Map();
@@ -37,7 +38,6 @@ function buildUccViewModel(raw) {
     };
   }
 
-  // 1. Array Extraction
   let rawFilings = [];
   if (Array.isArray(raw.uccFilings)) {
     rawFilings = raw.uccFilings;
@@ -55,7 +55,6 @@ function buildUccViewModel(raw) {
     rawFilings = raw.data.filings;
   }
 
-  // 2. Business Name Extraction
   const businessName =
     raw.business?.name ||
     raw.companyName ||
@@ -63,20 +62,17 @@ function buildUccViewModel(raw) {
     raw.company_name ||
     null;
 
-  // 3. Total Count
   const totalFilings =
     raw.totalFilings !== undefined && raw.totalFilings !== null
       ? raw.totalFilings
       : rawFilings.length;
 
-  // 4. Sort Newest First
   const sorted = [...rawFilings].sort((a, b) => {
     const ta = new Date(a.filedDate || a.filingDate || 0).getTime();
     const tb = new Date(b.filedDate || b.filingDate || 0).getTime();
     return tb - ta;
   });
 
-  // 5. Transform Filings
   const filings = sorted.map((f, idx) => {
     const statusRaw = (f.status || '').toLowerCase();
     let statusClass = 'ucc-badge ucc-badge--neutral';
@@ -93,7 +89,6 @@ function buildUccViewModel(raw) {
       statusDisplay = 'Unknown';
     }
 
-    // Secured Parties
     let securedParties = [];
     const rawSec = f.securedParties || f.secured_parties || f.securedParty;
     if (Array.isArray(rawSec) && rawSec.length > 0) {
@@ -116,7 +111,6 @@ function buildUccViewModel(raw) {
       ];
     }
 
-    // Debtors
     let debtors = [];
     const rawDeb = f.debtors || f.debtor || f.debtorParties;
     if (Array.isArray(rawDeb) && rawDeb.length > 0) {
@@ -170,6 +164,7 @@ function buildUccViewModel(raw) {
 
 export default class DetailUcc extends LightningElement {
   _companyId;
+  _isConnected = false;
 
   @api
   get companyId() {
@@ -178,20 +173,43 @@ export default class DetailUcc extends LightningElement {
   set companyId(value) {
     const hasChanged = this._companyId !== value;
     this._companyId = value;
-    if (value && hasChanged) {
+    if (value && hasChanged && this._isConnected) {
       this.loadUccData();
+      this.fetchCompanyDetails();
     }
   }
 
+  @api companyName;
+
+  @track _dynamicCompanyName = '';
   @track _viewModel = null;
   @track _isLoading = false;
   @track _error = null;
   @track _uccLoaded = false;
 
   connectedCallback() {
+    this._isConnected = true;
     if (this._companyId) {
       this.loadUccData();
+      this.fetchCompanyDetails();
     }
+  }
+
+  disconnectedCallback() {
+    this._isConnected = false;
+  }
+
+  fetchCompanyDetails() {
+    if (!this._companyId) return;
+    getCompany({ companyId: this._companyId })
+      .then((res) => {
+        if (!res) return;
+        const comp = typeof res === 'string' ? JSON.parse(res) : res;
+        this._dynamicCompanyName = comp.name || comp.Name || '';
+      })
+      .catch((e) => {
+        console.warn('Could not fetch company info:', e);
+      });
   }
 
   loadUccData(forceRefresh = false) {
@@ -200,7 +218,6 @@ export default class DetailUcc extends LightningElement {
       return;
     }
 
-    // 1. Instant Cache Hit Check
     if (!forceRefresh && uccCache.has(this._companyId)) {
       this._viewModel = uccCache.get(this._companyId);
       this._error = null;
@@ -235,7 +252,6 @@ export default class DetailUcc extends LightningElement {
         }
 
         this._viewModel = buildUccViewModel(parsedData);
-        // Save to Cache
         uccCache.set(this._companyId, this._viewModel);
       })
       .catch((err) => {
@@ -248,6 +264,11 @@ export default class DetailUcc extends LightningElement {
   }
 
   // ─── Template Getters ───
+
+  get displayCompanyName() {
+    return this.companyName || this._dynamicCompanyName || 'Company';
+  }
+
   get isLoading() {
     return this._isLoading;
   }

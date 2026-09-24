@@ -1,409 +1,292 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 08-27-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : Discovery Call Insights matching React/Tailwind design with 2-col grid, batch note add, and c-notes-window
 -->
 <template>
-    <div class="cdi-wrapper">
-        <!-- ── Top Header Row ── -->
-        <div class="cdi-header-row">
-            <h1 class="cdi-main-title">Discovery Call Insights</h1>
-            <button
-                class="cdi-download-btn"
-                onclick={handleDownloadPdf}
-                disabled={isDownloadingPdf}
-                title="Download Discovery Call Insights PDF"
-            >
-                <template if:true={isDownloadingPdf}>
-                    <span class="cdi-btn-spinner"></span>
-                    <span>Downloading...</span>
-                </template>
-                <template if:false={isDownloadingPdf}>
-                    <span>Download PDF</span>
-                </template>
-            </button>
-        </div>
-
-        <!-- ── Loading State ── -->
-        <template if:true={isLoading}>
-            <div class="cdi-loading">
-                <div class="cdi-spinner"></div>
-                <span>Loading Discovery Call Insights...</span>
-            </div>
-        </template>
-
-        <!-- ── Error State ── -->
-        <template if:true={error}>
-            <div class="cdi-error-box">
-                <span class="cdi-error-icon">&#9888;</span>
-                <span>{error}</span>
-            </div>
-        </template>
-
-        <!-- ── Main Content Cards (Matches React Portal) ── -->
-        <template if:false={isLoading}>
-            <div class="cdi-content-container">
-
-                <!-- 1. Company Profile Card -->
-                <template if:true={companyProfile}>
-                    <div class="cdi-card">
-                        <div class="cdi-card-header">
-                            <h2 class="cdi-card-title">Company Profile</h2>
-                            <template if:true={isCompanyProfileInNotes}>
-                                <div class="cdi-check-box" title="Added to My Notes">
-                                    <svg class="cdi-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                </div>
-                            </template>
-                            <template if:false={isCompanyProfileInNotes}>
-                                <button
-                                    class="cdi-add-btn"
-                                    onclick={handleAddCompanyProfileToNotes}
-                                    title="Add Company Profile to My Notes"
-                                >
-                                    +
-                                </button>
-                            </template>
-                        </div>
-                        <div class="cdi-card-body">
-                            <template if:true={companyProfile.businessType}>
-                                <p class="cdi-field-para">
-                                    <strong>Business Type:</strong> {companyProfile.businessType}
-                                </p>
-                            </template>
-                            <template if:true={companyProfile.keyCharacteristics}>
-                                <p class="cdi-field-para">
-                                    <strong>Key Characteristics:</strong> {companyProfile.keyCharacteristics}
-                                </p>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- 2. Call Strategy Card -->
-                <template if:true={callStrategy}>
-                    <div class="cdi-card">
-                        <div class="cdi-card-header">
-                            <h2 class="cdi-card-title">Call Strategy</h2>
-                            <template if:true={isCallStrategyInNotes}>
-                                <div class="cdi-check-box" title="Added to My Notes">
-                                    <svg class="cdi-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="20 6 9 17 4 12"></polyline>
-                                    </svg>
-                                </div>
-                            </template>
-                            <template if:false={isCallStrategyInNotes}>
-                                <button
-                                    class="cdi-add-btn"
-                                    onclick={handleAddCallStrategyToNotes}
-                                    title="Add Call Strategy to My Notes"
-                                >
-                                    +
-                                </button>
-                            </template>
-                        </div>
-                        <div class="cdi-card-body">
-                            <!-- Primary Objective -->
-                            <template if:true={callStrategy.primaryObjective}>
-                                <div class="cdi-section-block">
-                                    <div class="cdi-block-label">Primary Objective:</div>
-                                    <p class="cdi-block-text">{callStrategy.primaryObjective}</p>
-                                </div>
-                            </template>
-
-                            <!-- Key Focus Areas -->
-                            <template if:true={hasKeyFocusAreas}>
-                                <div class="cdi-section-block">
-                                    <div class="cdi-block-label">Key Focus Areas:</div>
-                                    <ul class="cdi-bullet-list">
-                                        <template for:each={callStrategy.keyFocusAreas} for:item="item">
-                                            <li key={item} class="cdi-bullet-item">
-                                                <span class="cdi-dot">&#8226;</span>
-                                                <span>{item}</span>
-                                            </li>
-                                        </template>
-                                    </ul>
-                                </div>
-                            </template>
-
-                            <!-- Relationship Approach -->
-                            <template if:true={callStrategy.relationshipApproach}>
-                                <div class="cdi-section-block">
-                                    <div class="cdi-block-label">Relationship Approach:</div>
-                                    <p class="cdi-block-text">{callStrategy.relationshipApproach}</p>
-                                </div>
-                            </template>
-
-                            <!-- Follow-up Actions -->
-                            <template if:true={hasFollowUpActions}>
-                                <div class="cdi-section-block">
-                                    <div class="cdi-block-label">Follow-up Actions:</div>
-                                    <ul class="cdi-bullet-list">
-                                        <template for:each={callStrategy.followUpActions} for:item="item">
-                                            <li key={item} class="cdi-bullet-item">
-                                                <span class="cdi-dot">&#8226;</span>
-                                                <span>{item}</span>
-                                            </li>
-                                        </template>
-                                    </ul>
-                                </div>
-                            </template>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- 3. Dynamic Actionable Insights Cards -->
-                <template if:true={hasInsights}>
-                    <template for:each={insights} for:item="ins">
-                        <div key={ins.title} class="cdi-card">
-                            <div class="cdi-card-header">
-                                <div class="cdi-title-with-badge">
-                                    <h2 class="cdi-card-title">{ins.title}</h2>
-                                    <span class={ins.categoryClass}>{ins.category}</span>
-                                    <span class={ins.priorityClass}>{ins.priority}</span>
-                                </div>
-                                <template if:true={ins.isAddedToNotes}>
-                                    <div class="cdi-check-box" title="Added to My Notes">
-                                        <svg class="cdi-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
-                                        </svg>
-                                    </div>
-                                </template>
-                                <template if:false={ins.isAddedToNotes}>
-                                    <button
-                                        class="cdi-add-btn"
-                                        onclick={handleAddInsightToNotes}
-                                        data-title={ins.title}
-                                        title="Add to My Notes"
-                                    >
-                                        +
-                                    </button>
-                                </template>
-                            </div>
-                            <div class="cdi-card-body">
-                                <template if:true={ins.rawDataTrigger}>
-                                    <div class="cdi-trigger-box">
-                                        <span class="cdi-trigger-label">Trigger:</span>
-                                        <span class="cdi-trigger-text">{ins.rawDataTrigger}</span>
-                                    </div>
-                                </template>
-
-                                <template if:true={ins.insight}>
-                                    <p class="cdi-block-text">{ins.insight}</p>
-                                </template>
-
-                                <template if:true={ins.businessNeed}>
-                                    <div class="cdi-section-block">
-                                        <div class="cdi-block-label">Business Need:</div>
-                                        <p class="cdi-block-text">{ins.businessNeed}</p>
-                                    </div>
-                                </template>
-
-                                <template if:true={ins.hasQuestions}>
-                                    <div class="cdi-section-block">
-                                        <div class="cdi-block-label">Discovery Questions:</div>
-                                        <ul class="cdi-bullet-list">
-                                            <template for:each={ins.discoveryQuestions} for:item="q">
-                                                <li key={q} class="cdi-bullet-item">
-                                                    <span class="cdi-dot">&#8226;</span>
-                                                    <span>{q}</span>
-                                                </li>
-                                            </template>
-                                        </ul>
-                                    </div>
-                                </template>
-
-                                <template if:true={ins.advisoryOpportunity}>
-                                    <div class="cdi-section-block">
-                                        <div class="cdi-block-label">Advisory Opportunity:</div>
-                                        <p class="cdi-block-text">{ins.advisoryOpportunity}</p>
-                                    </div>
-                                </template>
-
-                                <template if:true={ins.expectedOutcome}>
-                                    <div class="cdi-section-block">
-                                        <div class="cdi-block-label">Expected Outcome:</div>
-                                        <p class="cdi-block-text">{ins.expectedOutcome}</p>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </template>
-                </template>
-
-            </div>
-        </template>
-
-        <!-- ── Floating Circular Action Button (FAB) Bottom Right ── -->
-        <div class="cdi-fab-container">
-            <button
-                class="cdi-fab"
-                onclick={handleToggleNotesDrawer}
-                title="Open My Notes"
-            >
-                <svg class="cdi-fab-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-                <template if:true={hasNotes}>
-                    <span class="cdi-fab-badge">{notesCount}</span>
-                </template>
-            </button>
-        </div>
-
-        <!-- ── Slide-Out "My Notes" Drawer ── -->
-        <div class={drawerClass}>
-            <!-- Drawer Header (Blue Banner) -->
-            <div class="cdi-drawer-header">
-                <div class="cdi-drawer-header-left">
-                    <svg class="cdi-drawer-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                    </svg>
-                    <span class="cdi-drawer-title">My Notes</span>
-                    <span class="cdi-drawer-count">{notesCount}</span>
-                </div>
-                <div class="cdi-drawer-header-right">
-                    <span class="cdi-width-tag">480px</span>
-                    <button class="cdi-icon-btn" onclick={handlePrintNotes} title="Print Notes">
-                        <svg class="cdi-top-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                            <rect x="6" y="14" width="12" height="8"></rect>
-                        </svg>
-                    </button>
-                    <button class="cdi-icon-btn" onclick={handleCloseNotesDrawer} title="Close">
-                        <svg class="cdi-top-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Drawer Body -->
-            <div class="cdi-drawer-body">
-                <div class="cdi-drawer-company-label">
-                    <strong>Company:</strong> {companyDisplayName}
-                </div>
-
-                <!-- Add New Note Dashed Button -->
-                <template if:false={isEditingNote}>
-                    <button class="cdi-dashed-add-btn" onclick={handleOpenNewNoteForm}>
-                        <span class="cdi-plus-glyph">+</span> Add New Note
-                    </button>
-                </template>
-
-                <!-- Note Composer Form (Matches Screenshots 3 & 4) -->
-                <template if:true={isEditingNote}>
-                    <div class="cdi-composer-card">
-                        <input
-                            type="text"
-                            class="cdi-composer-title-input"
-                            placeholder="Note title (optional)"
-                            value={currentNoteTitle}
-                            oninput={handleNoteTitleChange}
-                        />
-                        <textarea
-                            class="cdi-composer-textarea"
-                            placeholder="Write your notes here..."
-                            rows="4"
-                            oninput={handleNoteContentChange}
-                        >{currentNoteContent}</textarea>
-
-                        <!-- Formatting Toolbar & Actions -->
-                        <div class="cdi-composer-toolbar">
-                            <div class="cdi-toolbar-tools">
-                                <button class="cdi-tool-btn" onclick={handleFormatBold} title="Bold"><strong>B</strong></button>
-                                <button class="cdi-tool-btn" onclick={handleFormatItalic} title="Italic"><em>/</em></button>
-                                <button class="cdi-tool-btn" onclick={handleFormatBullet} title="Bullet List">&#8801;</button>
-                            </div>
-                            <div class="cdi-composer-actions">
-                                <button class="cdi-btn-cancel" onclick={handleCancelNoteEdit}>Cancel</button>
-                                <button class="cdi-btn-save" onclick={handleSaveNote} disabled={isSavingNote}>
-                                    <template if:true={isSavingNote}>Saving...</template>
-                                    <template if:false={isSavingNote}>Save Note</template>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <!-- Notes List Loading Spinner -->
-                <template if:true={isLoadingNotes}>
-                    <div class="cdi-notes-loading">
-                        <div class="cdi-spinner"></div>
-                        <span>Loading notes...</span>
-                    </div>
-                </template>
-
-                <!-- Notes List (Matches Screenshot 5) -->
-                <template if:false={isLoadingNotes}>
-                    <div class="cdi-notes-list">
-                        <template for:each={notesList} for:item="note">
-                            <div key={note.id} class="cdi-note-card">
-                                <!-- Accordion Header -->
-                                <div class="cdi-note-card-header" data-id={note.id} onclick={handleToggleNoteExpand}>
-                                    <div class="cdi-note-header-left">
-                                        <span class={note.chevronClass}>&#8250;</span>
-                                        <span class="cdi-note-item-title">{note.title}</span>
-                                    </div>
-                                    <span class="cdi-note-timestamp">{note.timestamp}</span>
-                                </div>
-
-                                <!-- Expanded Content -->
-                                <template if:true={note.isExpanded}>
-                                    <div class="cdi-note-card-expanded">
-                                        <template if:true={note.isUserCreated}>
-                                            <div class="cdi-badge-row">
-                                                <span class="cdi-user-badge">User Created</span>
-                                            </div>
-                                        </template>
-                                        
-                                        <div class="cdi-note-text-container">
-                                            <p class="cdi-note-body-text">{note.content}</p>
-                                        </div>
-
-                                        <div class="cdi-note-actions-row">
-                                            <button class="cdi-action-icon-btn" data-id={note.id} onclick={handleEditNote} title="Edit Note">
-                                                <svg class="cdi-action-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                                </svg>
-                                            </button>
-                                            <button class="cdi-action-icon-btn cdi-delete-btn" data-id={note.id} onclick={handleDeleteNote} title="Delete Note">
-                                                <svg class="cdi-action-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-                        </template>
-
-                        <template if:false={hasNotes}>
-                            <div class="cdi-notes-empty">
-                                No notes saved yet. Click "+ Add New Note" or the "+" on any section.
-                            </div>
-                        </template>
-                    </div>
-                </template>
-            </div>
-
-            <!-- Drawer Footer -->
-            <div class="cdi-drawer-footer">
-                <span>Drag left edge to resize | Notes saved per company</span>
-            </div>
-        </div>
-
-        <!-- Optional Backdrop Overlay -->
-        <template if:true={isNotesDrawerOpen}>
-            <div class="cdi-backdrop" onclick={handleCloseNotesDrawer}></div>
-        </template>
+  <div class="cdi-wrapper">
+    <!-- ── Header Bar ── -->
+    <div class="cdi-header-card">
+      <div class="cdi-header-content">
+        <h2 class="cdi-main-title">Discovery Call Insights</h2>
+        <button
+          class="cdi-download-btn"
+          onclick={handleDownloadPdf}
+          disabled={isDownloadingPdf}
+          title="Download Discovery Call Insights PDF"
+        >
+          <template if:true={isDownloadingPdf}>
+            <span class="cdi-btn-spinner"></span>
+            <span>Downloading...</span>
+          </template>
+          <template if:false={isDownloadingPdf}>
+            <span>Download PDF</span>
+          </template>
+        </button>
+      </div>
     </div>
+
+    <!-- ── Loading State ── -->
+    <template if:true={isLoading}>
+      <div class="cdi-loading">
+        <div class="cdi-spinner"></div>
+        <span>Loading Discovery Call Insights...</span>
+      </div>
+    </template>
+
+    <!-- ── Error Banner ── -->
+    <template if:true={error}>
+      <div class="cdi-error-box">
+        <span class="cdi-error-icon">&#9888;</span>
+        <span>{error}</span>
+      </div>
+    </template>
+
+    <!-- ── Main Content Cards ── -->
+    <template if:false={isLoading}>
+      <div class="cdi-content-container">
+
+        <!-- 1. Company Profile Card -->
+        <template if:true={companyProfile}>
+          <div class="cdi-card">
+            <div class="cdi-card-header">
+              <h3 class="cdi-card-title">Company Profile</h3>
+              <button
+                type="button"
+                class={companyProfileBtnClass}
+                onclick={handleAddCompanyProfileToNotes}
+                title={companyProfileBtnTitle}
+              >
+                <template if:true={isCompanyProfileInNotes}>
+                  <svg class="cdi-action-icon cdi-icon-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </template>
+                <template if:false={isCompanyProfileInNotes}>
+                  <svg class="cdi-action-icon cdi-icon-plus" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                </template>
+              </button>
+            </div>
+            <div class="cdi-card-body">
+              <template if:true={companyProfile.businessType}>
+                <div class="cdi-field-row">
+                  <span class="cdi-field-label">Business Type: </span>
+                  <span class="cdi-field-text">{companyProfile.businessType}</span>
+                </div>
+              </template>
+              <template if:true={companyProfile.keyCharacteristics}>
+                <div class="cdi-field-row">
+                  <span class="cdi-field-label">Key Characteristics: </span>
+                  <span class="cdi-field-text">{companyProfile.keyCharacteristics}</span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <!-- 2. Call Strategy Card -->
+        <template if:true={callStrategy}>
+          <div class="cdi-card">
+            <div class="cdi-card-header">
+              <h3 class="cdi-card-title">Call Strategy</h3>
+              <button
+                type="button"
+                class={callStrategyBtnClass}
+                onclick={handleAddCallStrategyToNotes}
+                title={callStrategyBtnTitle}
+              >
+                <template if:true={isCallStrategyInNotes}>
+                  <svg class="cdi-action-icon cdi-icon-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </template>
+                <template if:false={isCallStrategyInNotes}>
+                  <svg class="cdi-action-icon cdi-icon-plus" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                </template>
+              </button>
+            </div>
+            <div class="cdi-card-body">
+              <!-- Primary Objective -->
+              <template if:true={callStrategy.primaryObjective}>
+                <div class="cdi-sub-block">
+                  <h4 class="cdi-sub-title">Primary Objective:</h4>
+                  <p class="cdi-sub-text">{callStrategy.primaryObjective}</p>
+                </div>
+              </template>
+
+              <!-- Key Focus Areas -->
+              <template if:true={hasKeyFocusAreas}>
+                <div class="cdi-sub-block">
+                  <h4 class="cdi-sub-title">Key Focus Areas:</h4>
+                  <ul class="cdi-bullet-list">
+                    <template for:each={callStrategy.keyFocusAreas} for:item="item">
+                      <li key={item} class="cdi-bullet-item">
+                        <span class="cdi-bullet-dot">•</span>
+                        <span>{item}</span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+
+              <!-- Relationship Approach -->
+              <template if:true={callStrategy.relationshipApproach}>
+                <div class="cdi-sub-block">
+                  <h4 class="cdi-sub-title">Relationship Approach:</h4>
+                  <p class="cdi-sub-text">{callStrategy.relationshipApproach}</p>
+                </div>
+              </template>
+
+              <!-- Follow-up Actions -->
+              <template if:true={hasFollowUpActions}>
+                <div class="cdi-sub-block">
+                  <h4 class="cdi-sub-title">Follow-up Actions:</h4>
+                  <ul class="cdi-bullet-list">
+                    <template for:each={callStrategy.followUpActions} for:item="item">
+                      <li key={item} class="cdi-bullet-item">
+                        <span class="cdi-bullet-dot">•</span>
+                        <span>{item}</span>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <!-- 3. Strategic Insights Section with Select-All & 2-Col Grid -->
+        <template if:true={hasInsights}>
+          <div class="cdi-insights-section">
+            <!-- Section Header Bar (Title with Count + Select-All Button) -->
+            <div class="cdi-section-header-row">
+              <h3 class="cdi-section-heading">{strategicInsightsHeading}</h3>
+              <button
+                type="button"
+                class={allInsightsBtnClass}
+                onclick={handleAddAllInsightsToNotes}
+                title={allInsightsBtnTitle}
+              >
+                <template if:true={allInsightsInNotes}>
+                  <svg class="cdi-action-icon cdi-icon-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </template>
+                <template if:false={allInsightsInNotes}>
+                  <svg class="cdi-action-icon cdi-icon-plus" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                  </svg>
+                </template>
+              </button>
+            </div>
+
+            <!-- 2-Column Responsive Grid -->
+            <div class="cdi-grid-2col">
+              <template for:each={insights} for:item="ins">
+                <div key={ins.title} class="cdi-card cdi-tile-card">
+                  <!-- Tile Top Action & Badges Row -->
+                  <div class="cdi-tile-top-row">
+                    <button
+                      type="button"
+                      class={ins.noteBtnClass}
+                      onclick={handleAddInsightToNotes}
+                      data-title={ins.title}
+                      title={ins.noteBtnTitle}
+                    >
+                      <template if:true={ins.isAddedToNotes}>
+                        <svg class="cdi-action-icon cdi-icon-check" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      </template>
+                      <template if:false={ins.isAddedToNotes}>
+                        <svg class="cdi-action-icon cdi-icon-plus" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                      </template>
+                    </button>
+
+                    <div class="cdi-badge-group">
+                      <span class={ins.categoryClass}>{ins.category}</span>
+                      <span class={ins.priorityClass}>{ins.priority}</span>
+                    </div>
+                  </div>
+
+                  <!-- Tile Heading -->
+                  <h4 class="cdi-tile-title">{ins.title}</h4>
+
+                  <!-- Data Trigger Box -->
+                  <template if:true={ins.rawDataTrigger}>
+                    <div class="cdi-trigger-box">
+                      <span class="cdi-trigger-label">Data Trigger: </span>
+                      <span class="cdi-trigger-text">{ins.rawDataTrigger}</span>
+                    </div>
+                  </template>
+
+                  <!-- Insight Narrative -->
+                  <template if:true={ins.insight}>
+                    <p class="cdi-insight-text">{ins.insight}</p>
+                  </template>
+
+                  <!-- Business Need -->
+                  <template if:true={ins.businessNeed}>
+                    <div class="cdi-field-block">
+                      <span class="cdi-field-label">Business Need: </span>
+                      <span class="cdi-field-value">{ins.businessNeed}</span>
+                    </div>
+                  </template>
+
+                  <!-- Discovery Questions -->
+                  <template if:true={ins.hasQuestions}>
+                    <div class="cdi-questions-block">
+                      <h5 class="cdi-questions-title">Discovery Questions</h5>
+                      <ul class="cdi-questions-list">
+                        <template for:each={ins.discoveryQuestions} for:item="q">
+                          <li key={q} class="cdi-question-item">{q}</li>
+                        </template>
+                      </ul>
+                    </div>
+                  </template>
+
+                  <!-- Rationale -->
+                  <template if:true={ins.rationale}>
+                    <div class="cdi-field-block">
+                      <span class="cdi-field-label">Rationale: </span>
+                      <span class="cdi-field-value cdi-text-muted">{ins.rationale}</span>
+                    </div>
+                  </template>
+
+                  <!-- Advisory Opportunity Box -->
+                  <template if:true={ins.advisoryOpportunity}>
+                    <div class="cdi-advisory-box">
+                      <h5 class="cdi-advisory-title">Advisory Opportunity</h5>
+                      <p class="cdi-advisory-text">{ins.advisoryOpportunity}</p>
+                    </div>
+                  </template>
+
+                  <!-- Expected Outcome Box -->
+                  <template if:true={ins.expectedOutcome}>
+                    <div class="cdi-outcome-box">
+                      <h5 class="cdi-outcome-title">Expected Outcome</h5>
+                      <p class="cdi-outcome-text">{ins.expectedOutcome}</p>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
+      </div>
+    </template>
+
+    <!-- Reusable Notes Window Child Component -->
+    <c-notes-window
+      company-id={companyId}
+      company-name={companyDisplayName}
+      source-tab="Discovery Call Insights"
+      onnotesupdated={handleNotesUpdated}
+    ></c-notes-window>
+  </div>
 </template>

@@ -1,9 +1,24 @@
 /**
  * @description       : Handles company submission and Lead creation with State Picklist support
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
- * @last modified on  : 09-07-2026
 **/
 public with sharing class InputController {
+
+    private static final Map<String, String> STATE_CODE_TO_NAME = new Map<String, String>{
+        'AL' => 'Alabama', 'AK' => 'Alaska', 'AZ' => 'Arizona', 'AR' => 'Arkansas',
+        'CA' => 'California', 'CO' => 'Colorado', 'CT' => 'Connecticut', 'DE' => 'Delaware',
+        'FL' => 'Florida', 'GA' => 'Georgia', 'HI' => 'Hawaii', 'ID' => 'Idaho',
+        'IL' => 'Illinois', 'IN' => 'Indiana', 'IA' => 'Iowa', 'KS' => 'Kansas',
+        'KY' => 'Kentucky', 'LA' => 'Louisiana', 'ME' => 'Maine', 'MD' => 'Maryland',
+        'MA' => 'Massachusetts', 'MI' => 'Michigan', 'MN' => 'Minnesota', 'MS' => 'Mississippi',
+        'MO' => 'Missouri', 'MT' => 'Montana', 'NE' => 'Nebraska', 'NV' => 'Nevada',
+        'NH' => 'New Hampshire', 'NJ' => 'New Jersey', 'NM' => 'New Mexico', 'NY' => 'New York',
+        'NC' => 'North Carolina', 'ND' => 'North Dakota', 'OH' => 'Ohio', 'OK' => 'Oklahoma',
+        'OR' => 'Oregon', 'PA' => 'Pennsylvania', 'RI' => 'Rhode Island', 'SC' => 'South Carolina',
+        'SD' => 'South Dakota', 'TN' => 'Tennessee', 'TX' => 'Texas', 'UT' => 'Utah',
+        'VT' => 'Vermont', 'VA' => 'Virginia', 'WA' => 'Washington', 'WV' => 'West Virginia',
+        'WI' => 'Wisconsin', 'WY' => 'Wyoming', 'DC' => 'District of Columbia'
+    };
 
     @AuraEnabled
     public static String submitCompany(
@@ -19,7 +34,7 @@ public with sharing class InputController {
         try {
             Id currentUserId = UserInfo.getUserId();
 
-            // 1. Check if a company with the same Website already exists OWNED by the current user
+            // 1. Check if a company with the same Website already exists OWNED by current user
             List<AI_Navigator_Company__c> existingCompanies = [
                 SELECT Id, Name, Website__c, City__c, State__c, Stage_List__c, Client_Type_List__c, 
                        Status__c, Correlation_Id__c, CreatedDate, Is_Hidden__c
@@ -32,7 +47,6 @@ public with sharing class InputController {
                 AI_Navigator_Company__c existingCompany = existingCompanies[0];
                 correlationId = existingCompany.Correlation_Id__c;
                 
-                // Unhide and refresh properties
                 existingCompany.Is_Hidden__c = false;
                 existingCompany.Name = companyName;
                 existingCompany.City__c = city;
@@ -43,7 +57,6 @@ public with sharing class InputController {
                 
                 update existingCompany;
 
-                // Check if a Lead exists for this Company. If not, create one.
                 if (isCalledFromLead == null || !isCalledFromLead) {
                     List<Lead> existingLeads = [
                         SELECT Id FROM Lead 
@@ -81,7 +94,7 @@ public with sharing class InputController {
                 });
             }
 
-            // 2. Standard creation process (No existing record found)
+            // 2. Standard creation process
             correlationId = AI_Navigator_Event_Publisher.generateCorrelationId();
 
             AI_Navigator_Company__c company = new AI_Navigator_Company__c(
@@ -129,27 +142,26 @@ public with sharing class InputController {
         }
     }
 
-    // ── Helper: Safe State & Country mapping ─────────────────────────────────
+    // ── Safe Address Mapping Helper ──────────────────────────────────────────
     private static void populateLeadAddress(Lead leadRecord, String stateInput) {
         if (String.isBlank(stateInput)) {
             leadRecord.Country = 'United States';
             return;
         }
 
-        String cleanState = stateInput.trim();
-        
-        if (cleanState.length() == 2) {
-            // ISO 2-letter Code (e.g., 'AZ', 'CA', 'NY')
+        String inputUpper = stateInput.trim().toUpperCase();
+
+        // Check if user entered a 2-letter code (e.g., 'TN', 'AZ')
+        if (STATE_CODE_TO_NAME.containsKey(inputUpper)) {
             leadRecord.CountryCode = 'US';
-            leadRecord.StateCode   = cleanState.toUpperCase();
+            leadRecord.StateCode   = inputUpper;
         } else {
-            // Full Name (e.g., 'Arizona', 'California')
+            // User entered a full state name (e.g., 'Tennessee')
             leadRecord.Country = 'United States';
-            leadRecord.State   = cleanState;
+            leadRecord.State   = stateInput.trim();
         }
     }
 
-    // ── Private: Log only when an error occurs ──────────────────────────────
     private static void logError(String endpointName, String httpMethod, String correlationId, String errorMessage) {
         try {
             insert new AI_Navigator_Request_Log__c(

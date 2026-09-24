@@ -3,6 +3,7 @@
     display: block;
     width: 100% !important;
     max-width: none !important;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 }
 
 /* Header Container */
@@ -169,7 +170,7 @@
     margin-left: 2px;
 }
 
-/* Dropdown Menu structures */
+/* Call Plan Dropdown */
 .dropdown-wrapper {
     position: relative;
 }
@@ -192,6 +193,7 @@
     margin-left: 6px;
 }
 
+/* Click-off Backdrop for all popups */
 .dropdown-backdrop {
     position: fixed;
     top: 0;
@@ -244,12 +246,18 @@
     gap: 0.5rem;
 }
 
-/* Notification Bell */
+/* ==========================================================================
+   Notification Bell & Popover Window (React Tailwind Exact Match)
+   ========================================================================== */
+.notification-wrapper {
+    position: relative;
+}
+
 .notification-trigger {
     position: relative;
     cursor: pointer;
-    padding: 0.375rem;
-    border-radius: 0.25rem;
+    padding: 0.375rem; /* p-1.5 */
+    border-radius: 0.25rem; /* rounded = 4px */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -257,7 +265,7 @@
 }
 
 .notification-trigger:hover {
-    background-color: #3b82f6;
+    background-color: #3b82f6; /* hover:bg-blue-500 */
 }
 
 .bell-icon {
@@ -292,7 +300,152 @@
     box-shadow: none !important;
 }
 
-/* User Avatar */
+/* Popover Dropdown Card (absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20 max-h-96 overflow-y-auto) */
+.notification-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 0.5rem; /* mt-2 = 8px */
+    width: 20rem; /* w-80 = 320px */
+    background-color: #ffffff; /* bg-white */
+    border-radius: 0.5rem; /* rounded-lg = 8px */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    padding-top: 0.25rem; /* py-1 */
+    padding-bottom: 0.25rem;
+    max-height: 24rem; /* max-h-96 = 384px */
+    overflow-y: auto;
+    z-index: 1001; /* Above backdrop */
+}
+
+/* Header (px-4 py-2 border-b border-gray-100 flex justify-between items-center) */
+.notification-header {
+    padding: 0.5rem 1rem; /* py-2 = 8px, px-4 = 16px */
+    border-bottom: 1px solid #f3f4f6; /* border-gray-100 */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-title {
+    font-size: 0.875rem; /* text-sm = 14px */
+    font-weight: 600; /* font-semibold */
+    color: #111827; /* text-gray-900 */
+    margin: 0;
+}
+
+/* Empty State (px-4 py-6 text-center text-sm text-gray-500) */
+.notification-empty {
+    padding: 1.5rem 1rem; /* py-6 = 24px, px-4 = 16px */
+    text-align: center;
+    font-size: 0.875rem; /* text-sm = 14px */
+    color: #6b7280; /* text-gray-500 */
+}
+
+/* Tray Icon (w-8 h-8 mx-auto mb-2 text-gray-300) */
+.empty-inbox-svg {
+    width: 2rem; /* w-8 = 32px */
+    height: 2rem; /* h-8 = 32px */
+    margin: 0 auto 0.5rem auto; /* mx-auto mb-2 */
+    color: #d1d5db; /* text-gray-300 */
+    display: block;
+}
+
+.empty-title {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+/* Loading State */
+.notification-loading {
+    padding: 1.5rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.spinner-small {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(156, 163, 175, 0.4);
+    border-top-color: #2563eb;
+    animation: slds-spin 0.8s linear infinite;
+}
+
+/* Populated Feed Items */
+.notification-feed-list {
+    padding: 0.25rem 0;
+}
+
+.notification-feed-item {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    transition: background-color 150ms;
+}
+
+.notification-feed-item:last-child {
+    border-bottom: none;
+}
+
+.notification-feed-item:hover {
+    background-color: #f9fafb;
+}
+
+.feed-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.125rem;
+}
+
+.feed-company-name {
+    font-size: 0.8125rem;
+    color: #111827;
+}
+
+.feed-signal-name {
+    font-size: 0.75rem;
+    color: #4b5563;
+    margin: 0 0 0.125rem 0;
+}
+
+.feed-time {
+    font-size: 0.6875rem;
+    color: #9ca3af;
+}
+
+.priority-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.priority-high {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.priority-medium {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+.priority-low {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+/* ==========================================================================
+   User Avatar
+   ========================================================================== */
 .user-avatar-container {
     display: flex;
     align-items: center;
@@ -330,143 +483,9 @@
     font-family: inherit !important;
 }
 
-/* Alerts Panel / Feed */
-.alerts-feed-wrapper {
-    background-color: #ffffff;
-}
-
-.alerts-feed-content {
-    background-color: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.75rem;
-}
-
-.feed-title {
-    font-size: 13px;
-}
-
-.close-feed {
-    background: none;
-    border: none;
-    font-size: 16px;
-    color: #94a3b8;
-    cursor: pointer;
-}
-
-.close-feed:hover {
-    color: #475569;
-}
-
-.feed-item {
-    font-size: 11px;
-    color: #475569;
-    padding: 6px 8px;
-    border-radius: 4px;
-    transition: background-color 150ms;
-}
-
-.feed-item-clickable {
-    cursor: pointer;
-}
-
-.feed-item-clickable:hover {
-    background-color: #f1f5f9;
-}
-
-.feed-item-main {
-    flex-grow: 1;
-}
-
-.company-name {
-    color: #1e293b;
-}
-
-.signal-summary-tag {
-    color: #64748b;
-    font-size: 10px;
-    margin-left: 4px;
-}
-
-.feed-item-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-    margin-left: 8px;
-}
-
-.feed-timestamp {
-    font-size: 10px;
-    color: #94a3b8;
-}
-
-.priority-badge {
-    font-size: 9px;
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.priority-high {
-    background-color: #fee2e2;
-    color: #dc2626;
-}
-
-.priority-medium {
-    background-color: #fef3c7;
-    color: #d97706;
-}
-
-.priority-low {
-    background-color: #f1f5f9;
-    color: #475569;
-}
-
-.feed-empty-state {
-    font-size: 11px;
-    color: #94a3b8;
-    padding: 8px 0;
-    text-align: center;
-}
-
-.bullet-alert {
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.orange {
-    color: #f59e0b;
-}
-
-.refresh-feed {
-    font-size: 11px;
-    color: #64748b;
-    cursor: pointer;
-    background: none;
-    border: none;
-}
-
-.refresh-feed:hover {
-    color: #2563eb;
-    text-decoration: underline;
-}
-
-.mark-read {
-    font-size: 11px;
-    color: #2563eb;
-    font-weight: bold;
-    cursor: pointer;
-    background: none;
-    border: none;
-}
-
-.mark-read:hover {
-    color: #1d4ed8;
-    text-decoration: underline;
-}
-
-/* Context Ribbon */
+/* ==========================================================================
+   Context Ribbon
+   ========================================================================== */
 .context-ribbon {
     background-color: #ffffff !important;
     border: 1px solid #e5e7eb !important;
@@ -573,12 +592,10 @@
 }
 
 @keyframes slds-ping {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(2.5);
-        opacity: 0;
-    }
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes slds-spin {
+    to { transform: rotate(360deg); }
 }
