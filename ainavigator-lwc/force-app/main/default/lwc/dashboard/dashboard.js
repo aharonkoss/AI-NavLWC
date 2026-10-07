@@ -1,9 +1,10 @@
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
 
-// Apex Picklist Imports
+// Apex Picklist & Metadata Config Imports
 import getStageOptions from '@salesforce/apex/DashboardController.getStageOptions';
 import getClientTypeOptions from '@salesforce/apex/DashboardController.getClientTypeOptions';
+import getProspectFilterConfigs from '@salesforce/apex/DashboardController.getProspectFilterConfigs';
 
 // Other Apex Imports
 import getDashboardStats from '@salesforce/apex/DashboardController.getDashboardStats';
@@ -17,9 +18,21 @@ import shareCompanies from '@salesforce/apex/DashboardController.shareCompanies'
 import getSharedUsers from '@salesforce/apex/DashboardController.getSharedUsers';
 import unshareCompany from '@salesforce/apex/DashboardController.unshareCompany';
 
+// Prospect Discovery Apex Imports
+import startProspectDiscovery from '@salesforce/apex/DashboardController.startProspectDiscovery';
+import getProspectDiscoveryStatus from '@salesforce/apex/DashboardController.getProspectDiscoveryStatus';
+import addProspectCompany from '@salesforce/apex/DashboardController.addProspectCompany';
+
 const POLLING_INTERVAL_MS = 5000;
+const PROSPECT_POLLING_INTERVAL_MS = 15000; // Poll every 15 seconds
 
 export default class Dashboard extends NavigationMixin(LightningElement) {
+    // Current Active Tab: 'companies' | 'prospects'
+    @track activeTab = 'companies';
+
+    // =========================================================================
+    // Tab 1: Companies State
+    // =========================================================================
     @track stats = { totalCompanies: 0, processing: 0, completed: 0, opened: 0 };
     @track _companies = [];
     @track _companySignals = {};
@@ -29,47 +42,687 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
     @track currentPage = 1;
     ITEMS_PER_PAGE = 10;
 
-    // Picklist Options from Apex Schema
+    // Picklists
     @track stageOptions = [];
     @track clientTypeOptions = [];
 
-    // --- Sharing State ---
+    // Sharing State
     @track selectedCompanyIds = new Set();
     @track shareTargetUserId = '';
     @track isSharing = false;
     @track shareMessage = null;
     
-    // --- Unshare Modal State ---
+    // Unshare Modal
     @track isUnshareModalOpen = false;
     @track currentUnshareCompanyId = '';
     @track currentUnshareCompanyName = '';
     @track sharedWithUsersList = [];
     
-    // --- Delete Modal State ---
+    // Delete Modal
     @track isDeleteModalOpen = false;
     @track companyToDeleteId = '';
     @track companyToDeleteName = '';
 
-    // --- Polling Tracking ---
+    // Polling
     pollingIntervalId = null;
     isPollingActive = false;
 
-    // Fetch teammates
+    // =========================================================================
+    // Tab 2: Prospect Discovery State & Dynamic Filters (from Custom Metadata)
+    // =========================================================================
+    @track isProspectSearching = false;
+    @track showProspectFilters = false;
+    @track prospectLastUpdated = '';
+    prospectPollingIntervalId = null;
+    isProspectPollingActive = false;
+
+    // Dropdown open states
+    @track isRevenueMenuOpen = false;
+    @track isEmployeesMenuOpen = false;
+    @track isAgeMenuOpen = false;
+    @track isStatesMenuOpen = false;
+    @track isIndustriesMenuOpen = false;
+
+    // "Do Not Call" Filter (Dropdown: Yes / No)
+    @track doNotCallValue = 'No';
+
+    // Filter Options dynamically loaded from AI_Navigator_Prospect_Filter_Option__mdt
+    @track revenueOptions = [];
+    @track employeeOptions = [];
+    @track ageOptions = [];
+    @track stateOptions = [];
+    @track industryOptions = [];
+    @track opportunitySignalChips = [];
+
+    // Location Targeting Custom Pills
+    @track locationType = 'City';
+    @track locationInputText = '';
+    @track locationPills = [];
+
+    // Industry Targeting Custom Pills
+    @track industryInputText = '';
+    @track industryPills = [];
+
+    // Live Prospects & Insights
+    @track prospects = [];
+    @track marketInsights = {
+        trends: '',
+        competition: '',
+        timing: ''
+    };
+    @track industriesToWatch = [];
+
     @wire(getTeammates)
     teammates;
 
     connectedCallback() {
         this.loadStats();
         this.loadPicklistOptions();
+        this.loadProspectFilterConfigs();
         window.addEventListener('companysubmitted', this.handleCompanySubmitted);
     }
 
     disconnectedCallback() {
         window.removeEventListener('companysubmitted', this.handleCompanySubmitted);
         this.stopPolling();
+        this.stopProspectPolling();
     }
 
-    // Load Apex picklist values first, then companies
+    // =========================================================================
+    // Dynamic Filter Configs from AI_Navigator_Prospect_Filter_Option__mdt
+    // =========================================================================
+    loadProspectFilterConfigs() {
+        getProspectFilterConfigs()
+            .then(resultJson => {
+                const grouped = JSON.parse(resultJson);
+                if (grouped.Revenue && grouped.Revenue.length > 0) {
+                    this.revenueOptions = grouped.Revenue.map(o => ({ id: o.id, label: o.label, checked: false }));
+                }
+                if (grouped.Employees && grouped.Employees.length > 0) {
+                    this.employeeOptions = grouped.Employees.map(o => ({ id: o.id, label: o.label, checked: false }));
+                }
+                if (grouped.Company_Age && grouped.Company_Age.length > 0) {
+                    this.ageOptions = grouped.Company_Age.map(o => ({ id: o.id, label: o.label, checked: false }));
+                }
+                if (grouped.State && grouped.State.length > 0) {
+                    this.stateOptions = grouped.State.map(o => ({ id: o.id, label: o.label, checked: false }));
+                }
+                if (grouped.Industry && grouped.Industry.length > 0) {
+                    this.industryOptions = grouped.Industry.map(o => ({ id: o.id, label: o.label, checked: false }));
+                }
+                if (grouped.Signal && grouped.Signal.length > 0) {
+                    this.opportunitySignalChips = grouped.Signal.map(o => ({
+                        id: o.id,
+                        label: o.label,
+                        active: false,
+                        classes: 'chip-btn'
+                    }));
+                }
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error loading custom metadata filter configs:', error);
+            });
+    }
+
+    // =========================================================================
+    // Tab Navigation & Auto-Fetch on Tab Selection
+    // =========================================================================
+    get isCompaniesTab() {
+        return this.activeTab === 'companies';
+    }
+
+    get isProspectTab() {
+        return this.activeTab === 'prospects';
+    }
+
+    get companiesTabClass() {
+        return `tab-btn ${this.isCompaniesTab ? 'active' : 'inactive'}`;
+    }
+
+    get prospectsTabClass() {
+        return `tab-btn ${this.isProspectTab ? 'active' : 'inactive'}`;
+    }
+
+    handleTabChange(event) {
+        this.activeTab = event.currentTarget.dataset.tab;
+        if (this.activeTab === 'prospects') {
+            this.fetchProspectStatusOnTabLoad();
+        }
+    }
+
+    // Shows spinner and queries discovery status whenever the tab is selected
+    fetchProspectStatusOnTabLoad() {
+        if (this.isProspectPollingActive) {
+            return;
+        }
+
+        // Show spinner immediately on tab click
+        this.isProspectSearching = true;
+
+        getProspectDiscoveryStatus()
+            .then(resultJson => {
+                const data = JSON.parse(resultJson);
+                console.log('[Dashboard Log] Tab change prospect status:', data);
+
+                if (data.status === 'completed' || data.success === true) {
+                    this.isProspectSearching = false;
+                    this.prospectLastUpdated = new Date().toLocaleString('en-US', {
+                        month: 'numeric', day: 'numeric', year: 'numeric',
+                        hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+                    });
+                    if (data.recommendations) {
+                        this.processProspectRecommendations(data.recommendations);
+                    } else {
+                        this.prospects = [];
+                    }
+                } else if (data.status === 'processing') {
+                    // Backend search in progress; keep spinner active and poll every 15 seconds
+                    this.isProspectSearching = true;
+                    this.startProspectPolling();
+                } else {
+                    this.isProspectSearching = false;
+                    this.prospects = [];
+                }
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error fetching prospect status on tab change:', error);
+                this.isProspectSearching = false;
+            });
+    }
+
+    // =========================================================================
+    // Tab 2: Prospect Discovery & Filter Actions
+    // =========================================================================
+    get prospectsCount() {
+        return this.prospects ? this.prospects.length : 0;
+    }
+
+    get hasProspects() {
+        return this.prospects && this.prospects.length > 0;
+    }
+
+    get hasMarketInsights() {
+        return this.marketInsights && (this.marketInsights.trends || this.marketInsights.competition || this.marketInsights.timing);
+    }
+
+    get hasIndustriesToWatch() {
+        return this.industriesToWatch && this.industriesToWatch.length > 0;
+    }
+
+    get doNotCallOptions() {
+        return [
+            { label: 'No', value: 'No' },
+            { label: 'Yes', value: 'Yes' }
+        ];
+    }
+
+    handleDoNotCallChange(event) {
+        this.doNotCallValue = event.target.value;
+    }
+
+    get revenueLabel() {
+        const checked = this.revenueOptions.filter(o => o.checked);
+        if (checked.length === 0) return 'Based on Portfolio';
+        return `${checked.length} Selected`;
+    }
+
+    get employeesLabel() {
+        const checked = this.employeeOptions.filter(o => o.checked);
+        if (checked.length === 0) return 'Based on Portfolio';
+        return `${checked.length} Selected`;
+    }
+
+    get ageLabel() {
+        const checked = this.ageOptions.filter(o => o.checked);
+        if (checked.length === 0) return 'Any Age';
+        return `${checked.length} Selected`;
+    }
+
+    get statesLabel() {
+        const checked = this.stateOptions.filter(o => o.checked);
+        if (checked.length === 0) return 'Based on Portfolio';
+        if (checked.length <= 2) return checked.map(o => o.label).join(', ');
+        return `${checked.length} Selected`;
+    }
+
+    get industriesLabel() {
+        const checked = this.industryOptions.filter(o => o.checked);
+        if (checked.length === 0) return 'Based on Portfolio';
+        if (checked.length <= 2) return checked.map(o => o.label).join(', ');
+        return `${checked.length} Selected`;
+    }
+
+    get hasLocationPills() {
+        return this.locationPills && this.locationPills.length > 0;
+    }
+
+    get hasIndustryPills() {
+        return this.industryPills && this.industryPills.length > 0;
+    }
+
+    handleToggleFilters() {
+        this.showProspectFilters = !this.showProspectFilters;
+        this.closeMenus();
+    }
+
+    handleResetFilters() {
+        this.revenueOptions = this.revenueOptions.map(o => ({ ...o, checked: false }));
+        this.employeeOptions = this.employeeOptions.map(o => ({ ...o, checked: false }));
+        this.ageOptions = this.ageOptions.map(o => ({ ...o, checked: false }));
+        this.stateOptions = this.stateOptions.map(o => ({ ...o, checked: false }));
+        this.industryOptions = this.industryOptions.map(o => ({ ...o, checked: false }));
+        this.doNotCallValue = 'No';
+        this.locationPills = [];
+        this.locationInputText = '';
+        this.industryPills = [];
+        this.industryInputText = '';
+        this.opportunitySignalChips = this.opportunitySignalChips.map(c => ({
+            ...c,
+            active: false,
+            classes: 'chip-btn'
+        }));
+    }
+
+    toggleRevenueMenu(e) { e.stopPropagation(); this.isRevenueMenuOpen = !this.isRevenueMenuOpen; this.isEmployeesMenuOpen = false; this.isAgeMenuOpen = false; this.isStatesMenuOpen = false; this.isIndustriesMenuOpen = false; }
+    toggleEmployeesMenu(e) { e.stopPropagation(); this.isEmployeesMenuOpen = !this.isEmployeesMenuOpen; this.isRevenueMenuOpen = false; this.isAgeMenuOpen = false; this.isStatesMenuOpen = false; this.isIndustriesMenuOpen = false; }
+    toggleAgeMenu(e) { e.stopPropagation(); this.isAgeMenuOpen = !this.isAgeMenuOpen; this.isRevenueMenuOpen = false; this.isEmployeesMenuOpen = false; this.isStatesMenuOpen = false; this.isIndustriesMenuOpen = false; }
+    toggleStatesMenu(e) { e.stopPropagation(); this.isStatesMenuOpen = !this.isStatesMenuOpen; this.isRevenueMenuOpen = false; this.isEmployeesMenuOpen = false; this.isAgeMenuOpen = false; this.isIndustriesMenuOpen = false; }
+    toggleIndustriesMenu(e) { e.stopPropagation(); this.isIndustriesMenuOpen = !this.isIndustriesMenuOpen; this.isRevenueMenuOpen = false; this.isEmployeesMenuOpen = false; this.isAgeMenuOpen = false; this.isStatesMenuOpen = false; }
+
+    closeMenus() {
+        this.isRevenueMenuOpen = false;
+        this.isEmployeesMenuOpen = false;
+        this.isAgeMenuOpen = false;
+        this.isStatesMenuOpen = false;
+        this.isIndustriesMenuOpen = false;
+    }
+
+    handleRevenueChange(e) {
+        const id = e.target.dataset.id;
+        this.revenueOptions = this.revenueOptions.map(o => o.id === id ? { ...o, checked: e.target.checked } : o);
+    }
+
+    handleEmployeeChange(e) {
+        const id = e.target.dataset.id;
+        this.employeeOptions = this.employeeOptions.map(o => o.id === id ? { ...o, checked: e.target.checked } : o);
+    }
+
+    handleAgeChange(e) {
+        const id = e.target.dataset.id;
+        this.ageOptions = this.ageOptions.map(o => o.id === id ? { ...o, checked: e.target.checked } : o);
+    }
+
+    handleStateOptionChange(e) {
+        const id = e.target.dataset.id;
+        this.stateOptions = this.stateOptions.map(o => o.id === id ? { ...o, checked: e.target.checked } : o);
+    }
+
+    handleIndustryOptionChange(e) {
+        const id = e.target.dataset.id;
+        this.industryOptions = this.industryOptions.map(o => o.id === id ? { ...o, checked: e.target.checked } : o);
+    }
+
+    handleLocationTypeChange(e) {
+        this.locationType = e.target.value;
+    }
+
+    handleLocationInputChange(e) {
+        this.locationInputText = e.target.value;
+    }
+
+    handleAddLocation() {
+        if (!this.locationInputText || !this.locationInputText.trim()) return;
+        const textVal = this.locationInputText.trim();
+        const typeVal = this.locationType.toLowerCase();
+
+        const newPill = {
+            id: 'loc-' + Date.now(),
+            label: `${textVal} (${typeVal})`,
+            type: typeVal,
+            value: textVal
+        };
+
+        if (typeVal === 'radius') {
+            newPill.radiusMiles = 25;
+        }
+
+        this.locationPills = [...this.locationPills, newPill];
+        this.locationInputText = '';
+    }
+
+    handleRemoveLocationPill(e) {
+        const pillId = e.currentTarget.dataset.id;
+        this.locationPills = this.locationPills.filter(p => p.id !== pillId);
+    }
+
+    handleIndustryInputChange(e) {
+        this.industryInputText = e.target.value;
+    }
+
+    handleAddIndustry() {
+        if (!this.industryInputText || !this.industryInputText.trim()) return;
+        const val = this.industryInputText.trim();
+        const isNaics = /^\d+$/.test(val);
+
+        const newPill = {
+            id: 'ind-' + Date.now(),
+            label: val,
+            type: isNaics ? 'naics' : 'custom',
+            value: val
+        };
+
+        this.industryPills = [...this.industryPills, newPill];
+        this.industryInputText = '';
+    }
+
+    handleRemoveIndustryPill(e) {
+        const pillId = e.currentTarget.dataset.id;
+        this.industryPills = this.industryPills.filter(p => p.id !== pillId);
+    }
+
+    handleToggleSignalChip(e) {
+        const id = e.currentTarget.dataset.id;
+        this.opportunitySignalChips = this.opportunitySignalChips.map(c => {
+            if (c.id === id) {
+                const active = !c.active;
+                return { ...c, active, classes: `chip-btn ${active ? 'chip-active' : ''}` };
+            }
+            return c;
+        });
+    }
+
+    // -------------------------------------------------------------------------
+    // Prospect Discovery Search & Polling
+    // -------------------------------------------------------------------------
+    buildFiltersPayload() {
+        const revenueRanges = this.revenueOptions.filter(o => o.checked).map(o => o.id);
+        const employeeRanges = this.employeeOptions.filter(o => o.checked).map(o => o.id);
+        const companyAges = this.ageOptions.filter(o => o.checked).map(o => o.id);
+
+        const locations = [
+            ...this.stateOptions.filter(s => s.checked).map(s => ({ type: 'state', value: s.id })),
+            ...this.locationPills.map(p => {
+                const loc = { type: p.type || 'city', value: p.value || p.label };
+                if (p.type === 'radius' && p.radiusMiles) {
+                    loc.radiusMiles = p.radiusMiles;
+                }
+                return loc;
+            })
+        ];
+
+        const industries = [
+            ...this.industryOptions.filter(i => i.checked).map(i => ({ type: 'custom', value: i.label })),
+            ...this.industryPills.map(p => ({
+                type: p.type || (/^\d+$/.test(p.value) ? 'naics' : 'custom'),
+                value: p.value || p.label
+            }))
+        ];
+
+        const signals = this.opportunitySignalChips.filter(c => c.active).map(c => c.id);
+
+        return {
+            revenueRanges,
+            employeeRanges,
+            companyAges,
+            locations,
+            industries,
+            signals,
+            doNotCall: this.doNotCallValue === 'Yes'
+        };
+    }
+
+    handleSearch() {
+        this.isProspectSearching = true;
+        this.showProspectFilters = false;
+        this.closeMenus();
+
+        const filters = this.buildFiltersPayload();
+
+        startProspectDiscovery({ filtersJson: JSON.stringify(filters) })
+            .then(resultJson => {
+                console.log('[Dashboard Log] Prospect discovery initiated:', resultJson);
+                this.startProspectPolling();
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error starting prospect discovery:', error);
+                this.isProspectSearching = false;
+                const errorMsg = error?.body?.message || error?.message || 'Server error';
+                this.showCustomToast('Failed to start prospect search: ' + errorMsg, 'error');
+            });
+    }
+
+    handleSearchAgain() {
+        this.handleSearch();
+    }
+
+    startProspectPolling() {
+        this.stopProspectPolling();
+        this.pollProspectStatus();
+        // eslint-disable-next-line @lwc/lwc/no-async-operation
+        this.prospectPollingIntervalId = setInterval(() => {
+            this.pollProspectStatus();
+        }, PROSPECT_POLLING_INTERVAL_MS);
+    }
+
+    stopProspectPolling() {
+        if (this.prospectPollingIntervalId) {
+            clearInterval(this.prospectPollingIntervalId);
+            this.prospectPollingIntervalId = null;
+        }
+    }
+
+    pollProspectStatus() {
+        if (this.isProspectPollingActive) return;
+        this.isProspectPollingActive = true;
+
+        getProspectDiscoveryStatus()
+            .then(resultJson => {
+                const data = JSON.parse(resultJson);
+                console.log('[Dashboard Log] Prospect status response:', data);
+
+                if (data.status === 'completed' || data.success === true) {
+                    this.stopProspectPolling();
+                    this.isProspectSearching = false;
+                    this.prospectLastUpdated = new Date().toLocaleString('en-US', {
+                        month: 'numeric', day: 'numeric', year: 'numeric',
+                        hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true
+                    });
+
+                    if (data.recommendations) {
+                        this.processProspectRecommendations(data.recommendations);
+                    }
+                    this.showCustomToast('Prospect Discovery completed with fresh AI matches', 'success');
+                } else if (data.status === 'failed') {
+                    this.stopProspectPolling();
+                    this.isProspectSearching = false;
+                    this.showCustomToast(
+                        'Prospect discovery failed: ' + (data.message || 'Error executing search.'),
+                        'error'
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('[Dashboard Log] Error polling prospect status:', error);
+            })
+            .finally(() => {
+                this.isProspectPollingActive = false;
+            });
+    }
+
+    processProspectRecommendations(recs) {
+        if (!recs) return;
+
+        const rawProspects = recs.newProspects || recs.prospects || [];
+        if (Array.isArray(rawProspects)) {
+            this.prospects = rawProspects.map((lead, idx) => {
+                const priority = (lead.priority || 'MEDIUM').toUpperCase();
+                let priorityLabel = 'Good Match';
+                let priorityBadgeClass = 'priority-chip chip-good';
+                let cardClass = 'lead-card border-good';
+
+                if (priority === 'CRITICAL' || priority === 'HIGH') {
+                    priorityLabel = 'High Priority';
+                    priorityBadgeClass = 'priority-chip chip-high';
+                    cardClass = 'lead-card border-high';
+                } else if (priority === 'MEDIUM' || priority === 'STRONG') {
+                    priorityLabel = 'Strong Match';
+                    priorityBadgeClass = 'priority-chip chip-strong';
+                    cardClass = 'lead-card border-strong';
+                }
+
+                let city = '';
+                let state = '';
+                if (lead.location) {
+                    const parts = lead.location.split(',');
+                    if (parts.length >= 2) {
+                        city = parts[0].trim();
+                        state = parts[1].trim();
+                    } else {
+                        city = lead.location.trim();
+                    }
+                }
+
+                return {
+                    id: 'prospect-' + idx + '-' + Date.now(),
+                    name: lead.companyName || 'Unknown Company',
+                    website: lead.website || lead.sourceUrl || '',
+                    location: lead.location || '',
+                    city: city,
+                    state: state,
+                    industry: lead.industry || '',
+                    revenue: lead.estimatedRevenue || '',
+                    employees: lead.employeeCount || '',
+                    opportunity: lead.bankingNeedSignal || lead.opportunity || '',
+                    recentActivity: lead.recentActivity || '',
+                    sourceUrl: lead.sourceUrl || lead.website || '',
+                    priorityLabel: priorityLabel,
+                    priorityBadgeClass: priorityBadgeClass,
+                    cardClass: cardClass,
+                    suggestedApproach: lead.recommendedApproach || lead.suggestedApproach || '',
+                    isSubmitting: false
+                };
+            });
+        }
+
+        const rawInsights = recs.searchInsights || recs.marketInsights;
+        if (rawInsights) {
+            this.marketInsights = {
+                trends: rawInsights.marketTrends || rawInsights.trends || '',
+                competition: rawInsights.competitiveAnalysis || rawInsights.competition || '',
+                timing: rawInsights.timingRecommendation || rawInsights.timing || ''
+            };
+        }
+
+        const rawIndustries = recs.topIndustriesToWatch || recs.industriesToWatch;
+        if (Array.isArray(rawIndustries)) {
+            this.industriesToWatch = rawIndustries.map(ind => ({
+                title: ind.industry || ind.title || '',
+                description: ind.reason || ind.description || '',
+                subDescription: ind.growthRate || ind.subDescription || ''
+            }));
+        }
+    }
+
+    handleViewSource(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        const leadId = event.currentTarget.dataset.id;
+        const lead = this.prospects.find(p => p.id === leadId);
+        const targetUrl = lead?.sourceUrl || lead?.website || 'https://www.google.com';
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    // Submits prospect, switches to Companies tab, and initiates live polling
+    handleAddProspectToList(e) {
+        const prospectId = e.currentTarget.dataset.id;
+        const prospect = this.prospects.find(p => p.id === prospectId);
+        if (!prospect || prospect.isSubmitting) return;
+
+        this.prospects = this.prospects.map(p => 
+            p.id === prospectId ? { ...p, isSubmitting: true } : p
+        );
+
+        let city = prospect.city;
+        let state = prospect.state;
+        if ((!city || !state) && prospect.location) {
+            const parts = prospect.location.split(',');
+            if (parts.length >= 2) {
+                city = parts[0].trim();
+                state = parts[1].trim();
+            } else {
+                city = prospect.location.trim();
+            }
+        }
+
+        addProspectCompany({
+            name: prospect.name.trim(),
+            website: prospect.website ? prospect.website.trim() : `https://${prospect.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+            city: city,
+            state: state
+        })
+        .then(resultJson => {
+            const result = JSON.parse(resultJson);
+
+            // A. Remove lead from prospect discovery list
+            this.prospects = this.prospects.filter(p => p.id !== prospectId);
+
+            // B. Add new company to local state with pulsing processing dot
+            const newCompany = this.mapCompany({
+                companyId: result.companyId,
+                azureCompanyId: result.azureCompanyId,
+                correlationId: result.correlationId,
+                name: result.name,
+                city: result.city,
+                state: result.state,
+                stage: result.stage || 'PreCall',
+                clientType: result.clientType || 'Prospect',
+                status: (result.status || 'processing').toLowerCase(),
+                currentStage: 'submitted',
+                createdAt: result.createdAt || new Date().toISOString()
+            });
+
+            const index = this._companies.findIndex(c => c.companyId === newCompany.companyId);
+            if (index !== -1) {
+                this._companies[index] = newCompany;
+            } else {
+                this._companies = [newCompany, ...this._companies];
+            }
+            this._companies = [...this._companies];
+
+            // C. Automatically switch to the Companies tab and hide Prospect Discovery
+            this.activeTab = 'companies';
+
+            // D. Start live polling for status progression
+            this.startPolling();
+
+            // E. Refresh database and stats
+            this.loadStats();
+
+            this.showCustomToast(
+                `${result.name} added to your list and submitted for research.`,
+                'success'
+            );
+        })
+        .catch(error => {
+            console.error('[Dashboard Log] Error adding prospect to list:', error);
+            this.showCustomToast(
+                'Failed to add company: ' + (error.body?.message || error.message || 'Unknown error'),
+                'error'
+            );
+            this.prospects = this.prospects.map(p => 
+                p.id === prospectId ? { ...p, isSubmitting: false } : p
+            );
+        });
+    }
+
+    handleRemoveProspect(e) {
+        const prospectId = e.currentTarget.dataset.id;
+        this.prospects = this.prospects.filter(p => p.id !== prospectId);
+    }
+
+    // =========================================================================
+    // Tab 1: Companies Lifecycle & Apex Polling
+    // =========================================================================
     loadPicklistOptions() {
         Promise.all([getStageOptions(), getClientTypeOptions()])
             .then(([stagesJson, clientTypesJson]) => {
@@ -83,10 +736,8 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             });
     }
 
-    // --- Polling Lifecycle ---
     startPolling() {
         if (this.pollingIntervalId) return;
-
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         this.pollingIntervalId = setInterval(() => {
             this.pollUncompletedCompanies();
@@ -102,7 +753,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     pollUncompletedCompanies() {
         if (this.isPollingActive) return;
-
         const uncompleted = this._companies.filter(c => c.status !== 'completed');
         if (uncompleted.length === 0) {
             this.stopPolling();
@@ -110,7 +760,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         }
 
         this.isPollingActive = true;
-
         const pollPromises = uncompleted.map(comp => {
             return getPipelineStatus({ salesforceCompanyId: comp.companyId })
                 .then(result => {
@@ -145,7 +794,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         Promise.allSettled(pollPromises).finally(() => {
             this.isPollingActive = false;
             this._companies = [...this._companies];
-
             const remaining = this._companies.filter(c => c.status !== 'completed');
             if (remaining.length === 0) {
                 this.stopPolling();
@@ -166,8 +814,8 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             state: payload.state,
             stage: payload.stage,
             clientType: payload.clientType,
-            status: 'pending',
-            currentStage: 'submitted',
+            status: payload.status || 'pending',
+            currentStage: payload.currentStage || 'submitted',
             createdAt: payload.createdAt || new Date().toISOString()
         });
 
@@ -460,7 +1108,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         // eslint-disable-next-line @lwc/lwc/no-async-operation
         setTimeout(() => {
             this.shareMessage = null;
-        }, 4000);
+        }, 5000);
     }
 
     get toastClass() {
@@ -507,12 +1155,12 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
     getStatusClass(status) {
         const map = {
-            completed:  'status-badge status-completed',
-            processing: 'status-badge status-processing',
-            pending:    'status-badge status-pending',
-            failed:     'status-badge status-failed'
+            completed:  'status-pill status-completed',
+            processing: 'status-pill status-processing',
+            pending:    'status-pill status-processing',
+            failed:     'status-pill status-failed'
         };
-        return map[status] || 'status-badge status-pending';
+        return map[status] || 'status-pill status-processing';
     }
 
     get totalCompanies() { 

@@ -1,7 +1,7 @@
 /**
- * @description DashboardController — Pure Salesforce database updates for Stage_List__c 
- *              and Client_Type_List__c on AI_Navigator_Company__c, plus Azure callouts
- *              for sharing, unsharing, retrying, and pipeline status polling.
+ * @description DashboardController — Pure Salesforce database updates, pipeline polling,
+ *              sharing actions, manual company submission, Lead creation with State Picklist support,
+ *              and Azure AI Prospecting Discovery.
  * @group AI Navigator - Apex
  */
 public with sharing class DashboardController {
@@ -33,7 +33,24 @@ public with sharing class DashboardController {
                       ? CONFIG.Named_Credential_Name__c
                       : 'ainavigator__Azure_APIM_Dev');
 
-    private static final Integer TIMEOUT_MS = 30000;
+    private static final Integer TIMEOUT_MS = 60000;
+
+    // US State Code to Full Name Mapping for State/Country Picklist validation
+    private static final Map<String, String> STATE_CODE_TO_NAME = new Map<String, String>{
+        'AL' => 'Alabama', 'AK' => 'Alaska', 'AZ' => 'Arizona', 'AR' => 'Arkansas',
+        'CA' => 'California', 'CO' => 'Colorado', 'CT' => 'Connecticut', 'DE' => 'Delaware',
+        'FL' => 'Florida', 'GA' => 'Georgia', 'HI' => 'Hawaii', 'ID' => 'Idaho',
+        'IL' => 'Illinois', 'IN' => 'Indiana', 'IA' => 'Iowa', 'KS' => 'Kansas',
+        'KY' => 'Kentucky', 'LA' => 'Louisiana', 'ME' => 'Maine', 'MD' => 'Maryland',
+        'MA' => 'Massachusetts', 'MI' => 'Michigan', 'MN' => 'Minnesota', 'MS' => 'Mississippi',
+        'MO' => 'Missouri', 'MT' => 'Montana', 'NE' => 'Nebraska', 'NV' => 'Nevada',
+        'NH' => 'New Hampshire', 'NJ' => 'New Jersey', 'NM' => 'New Mexico', 'NY' => 'New York',
+        'NC' => 'North Carolina', 'ND' => 'North Dakota', 'OH' => 'Ohio', 'OK' => 'Oklahoma',
+        'OR' => 'Oregon', 'PA' => 'Pennsylvania', 'RI' => 'Rhode Island', 'SC' => 'South Carolina',
+        'SD' => 'South Dakota', 'TN' => 'Tennessee', 'TX' => 'Texas', 'UT' => 'Utah',
+        'VT' => 'Vermont', 'VA' => 'Virginia', 'WA' => 'Washington', 'WV' => 'West Virginia',
+        'WI' => 'Wisconsin', 'WY' => 'Wyoming', 'DC' => 'District of Columbia'
+    };
 
     // -------------------------------------------------------------------------
     // getDashboardStats
@@ -156,14 +173,13 @@ public with sharing class DashboardController {
                 Map<String, Object> data = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
                 String returnedStatus = (String) data.get('status');
                 
-                // If status completed on Azure, reflect in Salesforce
                 if (String.isNotBlank(returnedStatus) && returnedStatus.equalsIgnoreCase('completed') && companies[0].Status__c != 'completed') {
                     companies[0].Status__c = 'completed';
                     update companies[0];
                 }
                 return res.getBody();
             } else {
-                throw createHandledException('Azure pipeline status fetch failed (' + res.getStatusCode() + '): ' + res.getBody());
+                throw createHandledException(AzureHttpService.parseErrorResponse(res));
             }
         } catch (AuraHandledException ahe) {
             logError('DashboardController.getPipelineStatus', 'GET', correlationId, ahe.getMessage());
@@ -189,9 +205,8 @@ public with sharing class DashboardController {
     // -------------------------------------------------------------------------
     @AuraEnabled
     public static String shareCompanies(List<String> companyIds, String targetUserId) {
-        String actingUserId = UserInfo.getUserId();
-        String orgId        = UserInfo.getOrganizationId();
-        String correlationId = '';
+        String actingUserId   = UserInfo.getUserId();
+        String correlationId  = '';
         String targetUserId18 = '';
 
         try {
@@ -202,10 +217,8 @@ public with sharing class DashboardController {
                 throw createHandledException('targetUserId is required.');
             }
 
-            // Ensure 18-character recipient User ID
             targetUserId18 = String.valueOf((Id) targetUserId);
 
-            // 1. Query original companies (including Correlation_Id__c)
             List<AI_Navigator_Company__c> originalRecords = [
                 SELECT Id, Name, City__c, State__c, Website__c, Status__c, 
                        Stage_List__c, Client_Type_List__c, Azure_Company_Id__c, Correlation_Id__c 
@@ -218,12 +231,10 @@ public with sharing class DashboardController {
                 throw createHandledException('No eligible companies found for sharing.');
             }
 
-            // 2. Use the record's own Correlation_Id__c (with fallback if blank)
             correlationId = String.isNotBlank(originalRecords[0].Correlation_Id__c)
                 ? originalRecords[0].Correlation_Id__c
-                : AiNavigatorEventService.generateCorrelationId();
+                : generateCorrelationId();
 
-            // 3. Build parallel lists: companyIds (Azure UUIDs) and salesforceIds
             List<String> azureCompanyIds = new List<String>();
             List<String> sfCompanyIds    = new List<String>();
 
@@ -238,16 +249,8 @@ public with sharing class DashboardController {
                 throw createHandledException('Selected companies must have an Azure Company ID before sharing.');
             }
 
-            // 4. Build request with AzureHttpService
             HttpRequest req = AzureHttpService.buildRequest('POST', '/v1/user/companies/share', correlationId, actingUserId);
 
-            // 5. Set exact required headers
-            req.setHeader('X-Correlation-Id', correlationId);
-            req.setHeader('X-Client-Id', orgId);
-            req.setHeader('X-User-Id', actingUserId);
-            req.setHeader('Content-Type', 'application/json');
-
-            // 6. Set payload matching API specification
             Map<String, Object> requestPayload = new Map<String, Object>{
                 'companyIds'    => azureCompanyIds,
                 'targetUserId'  => targetUserId18,
@@ -255,24 +258,14 @@ public with sharing class DashboardController {
             };
             req.setBody(JSON.serialize(requestPayload));
 
-            // 7. Send callout
             HttpResponse res = new Http().send(req);
 
             if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
-                System.debug(LoggingLevel.WARN,
-                    'DashboardController.shareCompanies – Azure returned HTTP ' +
-                    res.getStatusCode() + ': ' + res.getBody());
-
-                // Diagnostics appended to error banner
-                String diagnosticInfo = ' [Sent targetUserId: ' + targetUserId18 
-                                      + ' | X-User-Id: ' + actingUserId 
-                                      + ' | X-Client-Id: ' + orgId + ']';
-
-                throw createHandledException('Azure share failed (' + res.getStatusCode() + '): ' 
-                    + res.getBody() + diagnosticInfo);
+                String errorMsg = AzureHttpService.parseErrorResponse(res);
+                System.debug(LoggingLevel.WARN, 'DashboardController.shareCompanies – ' + errorMsg);
+                throw createHandledException('Azure share failed: ' + errorMsg);
             }
 
-            // 8. On Azure success, clone records & create junctions locally
             List<AI_Navigator_Company__c> clones = new List<AI_Navigator_Company__c>();
             for (AI_Navigator_Company__c original : originalRecords) {
                 AI_Navigator_Company__c clone = original.clone(false, true, false, false);
@@ -319,7 +312,7 @@ public with sharing class DashboardController {
 
     @AuraEnabled
     public static void unshareCompany(String sharedCompanyRecordId) {
-        String correlationId = 'UNSHARE-' + DateTime.now().getTime();
+        String correlationId = generateCorrelationId();
         try {
             AI_Navigator_Shared_Company__c sc = [SELECT Id, Source_Company__r.Azure_Company_Id__c, Target_Company__c, User__c 
                                     FROM AI_Navigator_Shared_Company__c WHERE Id = :sharedCompanyRecordId LIMIT 1];
@@ -332,7 +325,7 @@ public with sharing class DashboardController {
             
             HttpResponse res = new Http().send(req);
             if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
-                throw createHandledException('Unshare failed on Azure (' + res.getStatusCode() + '): ' + res.getBody());
+                throw createHandledException('Unshare failed on Azure: ' + AzureHttpService.parseErrorResponse(res));
             }
             delete new AI_Navigator_Company__c(Id = sc.Target_Company__c);
             delete sc;
@@ -434,12 +427,10 @@ public with sharing class DashboardController {
             throw createHandledException('companyId is required');
         }
 
-        String actingUserId = UserInfo.getUserId();
-        String orgId        = UserInfo.getOrganizationId();
+        String actingUserId  = UserInfo.getUserId();
         String correlationId = '';
 
         try {
-            // 1. Query the company record (including Azure Company ID & Correlation ID)
             AI_Navigator_Company__c company = [
                 SELECT Id, Azure_Company_Id__c, Correlation_Id__c
                 FROM   AI_Navigator_Company__c
@@ -448,32 +439,21 @@ public with sharing class DashboardController {
                 LIMIT  1
             ];
 
-            // 2. Determine correlation ID
             correlationId = String.isNotBlank(company.Correlation_Id__c)
                 ? company.Correlation_Id__c
-                : AiNavigatorEventService.generateCorrelationId();
+                : generateCorrelationId();
 
-            // 3. Make the DELETE callout to Azure if the company was synced to Azure
             if (String.isNotBlank(company.Azure_Company_Id__c)) {
                 String path = '/v1/user/companies/' + EncodingUtil.urlEncode(company.Azure_Company_Id__c, 'UTF-8');
-                
                 HttpRequest req = AzureHttpService.buildRequest('DELETE', path, correlationId, actingUserId);
-                req.setHeader('X-Correlation-Id', correlationId);
-                req.setHeader('X-Client-Id', orgId);
-                req.setHeader('X-User-Id', actingUserId);
 
                 HttpResponse res = new Http().send(req);
 
-                // Allow 200-299 success or 404 (already deleted/not found on Azure)
                 if (res.getStatusCode() >= 300 && res.getStatusCode() != 404) {
-                    System.debug(LoggingLevel.WARN,
-                        'DashboardController.deleteCompany – Azure returned HTTP ' +
-                        res.getStatusCode() + ': ' + res.getBody());
-                    throw createHandledException('Azure company deletion failed (' + res.getStatusCode() + '): ' + res.getBody());
+                    throw createHandledException('Azure company deletion failed: ' + AzureHttpService.parseErrorResponse(res));
                 }
             }
 
-            // 4. Clean up any sharing junction records in Salesforce
             List<AI_Navigator_Shared_Company__c> junctions = [
                 SELECT Id 
                 FROM   AI_Navigator_Shared_Company__c 
@@ -484,7 +464,6 @@ public with sharing class DashboardController {
                 delete junctions;
             }
 
-            // 5. Hard delete the company record from Salesforce
             delete company;
 
             return JSON.serialize(new Map<String, Object>{
@@ -586,8 +565,9 @@ public with sharing class DashboardController {
             'message'   => 'Use CompanyDetailController.getAiResearch for full call plan data.'
         });
     }
-// -------------------------------------------------------------------------
-    // getStageOptions
+
+    // -------------------------------------------------------------------------
+    // Picklist Options
     // -------------------------------------------------------------------------
     @AuraEnabled(cacheable=true)
     public static String getStageOptions() {
@@ -608,9 +588,6 @@ public with sharing class DashboardController {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // getClientTypeOptions
-    // -------------------------------------------------------------------------
     @AuraEnabled(cacheable=true)
     public static String getClientTypeOptions() {
         try {
@@ -629,6 +606,336 @@ public with sharing class DashboardController {
             throw createHandledException('Error fetching client type options: ' + e.getMessage());
         }
     }
+
+    // =========================================================================
+    // PROSPECT DISCOVERY ENDPOINTS (Uses ProspectingHttpService)
+    // =========================================================================
+
+    /**
+     * @description Starts a prospecting search for the current user.
+     *              POST /prospecting/v1/user/prospects/ai-recommendations
+     */
+    @AuraEnabled
+    public static String startProspectDiscovery(String filtersJson) {
+        String userId        = UserInfo.getUserId();
+        String correlationId = generateCorrelationId();
+
+        try {
+            String path = '/prospecting/v1/user/prospects/ai-recommendations';
+            HttpRequest req = ProspectingHttpService.buildRequest('POST', path, correlationId, userId);
+
+            // Format body with filters object (avoiding double-wrapping)
+            Map<String, Object> bodyMap = new Map<String, Object>();
+            if (String.isNotBlank(filtersJson)) {
+                Object parsed = JSON.deserializeUntyped(filtersJson);
+                if (parsed instanceof Map<String, Object>) {
+                    Map<String, Object> parsedMap = (Map<String, Object>) parsed;
+                    if (parsedMap.containsKey('filters')) {
+                        bodyMap = parsedMap;
+                    } else {
+                        bodyMap.put('filters', parsedMap);
+                    }
+                } else {
+                    bodyMap.put('filters', parsed);
+                }
+            } else {
+                bodyMap.put('filters', new Map<String, Object>{
+                    'revenueRanges'  => new List<String>(),
+                    'employeeRanges' => new List<String>(),
+                    'companyAges'    => new List<String>(),
+                    'locations'      => new List<Object>(),
+                    'industries'     => new List<Object>(),
+                    'signals'        => new List<String>()
+                });
+            }
+
+            req.setBody(JSON.serialize(bodyMap));
+
+            HttpResponse res = new Http().send(req);
+
+            if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
+                String errorMsg = ProspectingHttpService.parseErrorResponse(res);
+                System.debug(LoggingLevel.WARN, 'startProspectDiscovery error: ' + errorMsg);
+                throw createHandledException(errorMsg);
+            }
+
+            return res.getBody();
+
+        } catch (AuraHandledException ahe) {
+            logError('DashboardController.startProspectDiscovery', 'POST', correlationId, ahe.getMessage());
+            throw ahe;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'DashboardController.startProspectDiscovery – ' + e.getMessage());
+            logError('DashboardController.startProspectDiscovery', 'POST', correlationId, e.getMessage());
+            throw createHandledException('Error starting prospect discovery: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * @description Polls the status endpoint for discovery results.
+     *              GET /prospecting/v1/user/prospects/ai-recommendations/status
+     */
+    @AuraEnabled
+    public static String getProspectDiscoveryStatus() {
+        String userId        = UserInfo.getUserId();
+        String correlationId = generateCorrelationId();
+
+        try {
+            String path = '/prospecting/v1/user/prospects/ai-recommendations/status';
+            HttpRequest req = ProspectingHttpService.buildRequest('GET', path, correlationId, userId);
+
+            HttpResponse res = new Http().send(req);
+
+            if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
+                String errorMsg = ProspectingHttpService.parseErrorResponse(res);
+                System.debug(LoggingLevel.WARN, 'getProspectDiscoveryStatus error: ' + errorMsg);
+                throw createHandledException(errorMsg);
+            }
+
+            return res.getBody();
+
+        } catch (AuraHandledException ahe) {
+            logError('DashboardController.getProspectDiscoveryStatus', 'GET', correlationId, ahe.getMessage());
+            throw ahe;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'DashboardController.getProspectDiscoveryStatus – ' + e.getMessage());
+            logError('DashboardController.getProspectDiscoveryStatus', 'GET', correlationId, e.getMessage());
+            throw createHandledException('Error fetching prospect status: ' + e.getMessage());
+        }
+    }
+
+    /**
+     * @description Adds a prospect lead into Salesforce, calls Azure manual company ingestion,
+     *              and inserts a corresponding Lead record with State/Country Picklist support.
+     *              CALLOUT FIRST, DML SECOND to prevent "uncommitted work pending" error.
+     *              POST /api/v1/user/companies/manual
+     */
+    @AuraEnabled
+    public static String addProspectCompany(String name, String website, String city, String state) {
+        if (String.isBlank(name)) {
+            throw createHandledException('Company name is required.');
+        }
+
+        String userId        = UserInfo.getUserId();
+        String correlationId = generateCorrelationId();
+        String cleanWebsite  = String.isNotBlank(website) ? website.trim() : null;
+
+        try {
+            // 1. QUERY EXISTING COMPANY BY WEBSITE OWNED BY CURRENT USER (SOQL is safe before callout)
+            List<AI_Navigator_Company__c> existingCompanies = new List<AI_Navigator_Company__c>();
+            if (String.isNotBlank(cleanWebsite)) {
+                existingCompanies = [
+                    SELECT Id, Name, Website__c, City__c, State__c, Stage_List__c, Client_Type_List__c, 
+                           Status__c, Correlation_Id__c, CreatedDate, Is_Hidden__c
+                    FROM   AI_Navigator_Company__c
+                    WHERE  OwnerId = :userId AND Website__c = :cleanWebsite
+                    LIMIT  1
+                ];
+            }
+
+            if (!existingCompanies.isEmpty()) {
+                correlationId = String.isNotBlank(existingCompanies[0].Correlation_Id__c)
+                    ? existingCompanies[0].Correlation_Id__c
+                    : correlationId;
+            }
+
+            // 2. MAKE CALLOUT FIRST (Before any DML occurs)
+            String path = '/v1/user/companies/manual';
+            HttpRequest req = AzureHttpService.buildRequest('POST', path, correlationId, userId);
+
+            Map<String, Object> payload = new Map<String, Object>{
+                'name'         => name.trim(),
+                'website'      => cleanWebsite,
+                'city'         => String.isNotBlank(city) ? city.trim() : null,
+                'state'        => String.isNotBlank(state) ? state.trim() : null,
+                'stage'        => 'PreCall',
+                'clientType'   => 'Prospect',
+                'salesforceId' => null
+            };
+            req.setBody(JSON.serialize(payload));
+
+            HttpResponse res = new Http().send(req);
+
+            if (res.getStatusCode() < 200 || res.getStatusCode() >= 300) {
+                throw createHandledException('Azure manual creation failed: ' + AzureHttpService.parseErrorResponse(res));
+            }
+
+            // 3. PARSE AZURE RESPONSE
+            String azureCompanyId = null;
+            if (String.isNotBlank(res.getBody())) {
+                try {
+                    Map<String, Object> resMap = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                    if (resMap.containsKey('azureCompanyId')) {
+                        azureCompanyId = (String) resMap.get('azureCompanyId');
+                    } else if (resMap.containsKey('companyId')) {
+                        azureCompanyId = (String) resMap.get('companyId');
+                    } else if (resMap.containsKey('id')) {
+                        azureCompanyId = (String) resMap.get('id');
+                    }
+                } catch (Exception parseEx) {
+                    System.debug(LoggingLevel.WARN, 'Could not parse response for Azure ID: ' + parseEx.getMessage());
+                }
+            }
+
+            // 4. PERFORM DML (Update existing or Insert new Company)
+            Id targetCompanyId;
+            String companyNameResult;
+            String cityResult;
+            String stateResult;
+            String stageResult;
+            String clientTypeResult;
+            String statusResult;
+
+            if (!existingCompanies.isEmpty()) {
+                AI_Navigator_Company__c existing = existingCompanies[0];
+                existing.Is_Hidden__c        = false;
+                existing.Name                = name.trim();
+                existing.City__c             = String.isNotBlank(city) ? city.trim() : existing.City__c;
+                existing.State__c            = String.isNotBlank(state) ? state.trim() : existing.State__c;
+                existing.Stage_List__c       = 'PreCall';
+                existing.Client_Type_List__c = 'Prospect';
+                existing.Status__c           = 'processing';
+                if (String.isNotBlank(azureCompanyId)) {
+                    existing.Azure_Company_Id__c = azureCompanyId;
+                }
+                update existing;
+
+                targetCompanyId  = existing.Id;
+                companyNameResult = existing.Name;
+                cityResult       = existing.City__c;
+                stateResult      = existing.State__c;
+                stageResult      = existing.Stage_List__c;
+                clientTypeResult = existing.Client_Type_List__c;
+                statusResult     = existing.Status__c;
+            } else {
+                AI_Navigator_Company__c company = new AI_Navigator_Company__c(
+                    Name                 = name.trim(),
+                    Website__c           = cleanWebsite,
+                    City__c              = String.isNotBlank(city) ? city.trim() : null,
+                    State__c             = String.isNotBlank(state) ? state.trim() : null,
+                    Stage_List__c        = 'PreCall',
+                    Client_Type_List__c  = 'Prospect',
+                    Status__c            = 'processing',
+                    Azure_Company_Id__c  = azureCompanyId,
+                    OwnerId              = userId,
+                    Correlation_Id__c    = correlationId
+                );
+                insert company;
+
+                targetCompanyId  = company.Id;
+                companyNameResult = company.Name;
+                cityResult       = company.City__c;
+                stateResult      = company.State__c;
+                stageResult      = company.Stage_List__c;
+                clientTypeResult = company.Client_Type_List__c;
+                statusResult     = company.Status__c;
+            }
+
+            // 5. CREATE CORRESPONDING LEAD WITH SAFE STATE PICKLIST HANDLING
+            List<Lead> existingLeads = [
+                SELECT Id 
+                FROM   Lead 
+                WHERE  AIN_Id__c = :targetCompanyId 
+                AND    IsConverted = false 
+                LIMIT  1
+            ];
+
+            if (existingLeads.isEmpty()) {
+                Lead newLead = new Lead(
+                    LastName  = name.trim(),
+                    Company   = name.trim(),
+                    Website   = cleanWebsite,
+                    City      = String.isNotBlank(city) ? city.trim() : null,
+                    Status    = 'Open - Not Contacted',
+                    AIN_Id__c = targetCompanyId
+                );
+                populateLeadAddress(newLead, state);
+                insert newLead;
+            }
+
+            return JSON.serialize(new Map<String, Object>{
+                'success'        => true,
+                'companyId'      => targetCompanyId,
+                'azureCompanyId' => azureCompanyId,
+                'correlationId'  => correlationId,
+                'name'           => companyNameResult,
+                'city'           => cityResult,
+                'state'          => stateResult,
+                'stage'          => stageResult,
+                'clientType'     => clientTypeResult,
+                'status'         => statusResult,
+                'createdAt'      => Datetime.now().formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'')
+            });
+
+        } catch (AuraHandledException ahe) {
+            logError('DashboardController.addProspectCompany', 'POST', correlationId, ahe.getMessage());
+            throw ahe;
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'DashboardController.addProspectCompany – ' + e.getMessage());
+            logError('DashboardController.addProspectCompany', 'POST', correlationId, e.getMessage());
+            throw createHandledException('Unable to add prospect company: ' + e.getMessage());
+        }
+    }
+    @AuraEnabled(cacheable=true)
+    public static String getProspectFilterConfigs() {
+        // 1. Get running user's group (with fallback to 'Default')
+        User u = [SELECT Prospecting_Group__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
+        String userGroup = String.isNotBlank(u.Prospecting_Group__c) ? u.Prospecting_Group__c : 'Default';
+
+        // 2. Query active records for the user's group, or fallback to Default
+        List<AI_Navigator_Prospect_Filter_Option__mdt> records = [
+            SELECT Label, DeveloperName, Category__c, API_Value__c, Sort_Order__c, User_Group__c
+            FROM   AI_Navigator_Prospect_Filter_Option__mdt
+            WHERE  Is_Active__c = true
+            AND    (User_Group__c = :userGroup OR User_Group__c = 'Default')
+            ORDER BY Sort_Order__c ASC NULLS LAST, Label ASC
+        ];
+
+        // 3. Group by Category so LWC can initialize all 6 filter picklists dynamically
+        Map<String, List<Map<String, Object>>> grouped = new Map<String, List<Map<String, Object>>>{
+            'Revenue'     => new List<Map<String, Object>>(),
+            'Employees'   => new List<Map<String, Object>>(),
+            'Company_Age' => new List<Map<String, Object>>(),
+            'State'       => new List<Map<String, Object>>(),
+            'Industry'    => new List<Map<String, Object>>(),
+            'Signal'      => new List<Map<String, Object>>()
+        };
+
+        for (AI_Navigator_Prospect_Filter_Option__mdt opt : records) {
+            if (grouped.containsKey(opt.Category__c)) {
+                grouped.get(opt.Category__c).add(new Map<String, Object>{
+                    'id'      => opt.API_Value__c,
+                    'label'   => opt.Label,
+                    'checked' => false
+                });
+            }
+        }
+
+        return JSON.serialize(grouped);
+    }
+    // ── Safe Address Mapping Helper (from InputController.cls) ───────────────
+    private static void populateLeadAddress(Lead leadRecord, String stateInput) {
+        if (String.isBlank(stateInput)) {
+            leadRecord.Country = 'United States';
+            return;
+        }
+
+        String inputUpper = stateInput.trim().toUpperCase();
+
+        // Check if user entered a 2-letter code (e.g., 'TN', 'AZ', 'SC')
+        if (STATE_CODE_TO_NAME.containsKey(inputUpper)) {
+            leadRecord.CountryCode = 'US';
+            leadRecord.StateCode   = inputUpper;
+        } else {
+            // User entered a full state name (e.g., 'South Carolina')
+            leadRecord.Country = 'United States';
+            leadRecord.State   = stateInput.trim();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Helper Methods
+    // -------------------------------------------------------------------------
     private static HttpResponse azureCallout(String method, String path, Map<String, Object> body, Integer timeoutMs) {
         HttpRequest req = new HttpRequest();
         req.setEndpoint(NAMED_CRED + path);
@@ -704,8 +1011,8 @@ public with sharing class DashboardController {
     }
 
     private static String generateCorrelationId() {
-        return EncodingUtil.convertToHex(Crypto.generateAesKey(128)).substring(0, 8)
-            + '-' + String.valueOf(DateTime.now().getTime());
+        return 'SF-' + String.valueOf(DateTime.now().getTime()) + '-' 
+            + EncodingUtil.convertToHex(Crypto.generateAesKey(128)).substring(0, 8);
     }
 
     private static AuraHandledException createHandledException(String message) {

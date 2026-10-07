@@ -1,5 +1,5 @@
 <!--
-  @description       : LWC Dashboard matching React UI
+  @description       : LWC Dashboard with Companies and Prospect Discovery tabs
 -->
 <template>
     <div class="app-container">
@@ -23,240 +23,608 @@
             <!-- Tabs -->
             <div class="tabs-container">
                 <nav class="tabs-nav">
-                    <button class="tab-btn active">Companies</button>
-                    <button class="tab-btn inactive">Prospect Discovery</button>
+                    <button class={companiesTabClass} data-tab="companies" onclick={handleTabChange}>Companies</button>
+                    <button class={prospectsTabClass} data-tab="prospects" onclick={handleTabChange}>Prospect Discovery</button>
                 </nav>
             </div>
 
-            <!-- KPI Stats 4-Column Grid -->
-            <div class="stats-grid">
-                <!-- Total -->
-                <div class="stat-card">
-                    <div class="stat-content">
-                        <div class="badge-icon badge-blue">
-                            <span class="badge-letter text-blue">T</span>
+            <!-- ============================================================= -->
+            <!-- TAB 1: COMPANIES VIEW                                         -->
+            <!-- ============================================================= -->
+            <template if:true={isCompaniesTab}>
+                <!-- KPI Stats 4-Column Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="badge-icon badge-blue"><span class="badge-letter text-blue">T</span></div>
+                            <div>
+                                <p class="stat-label">Total</p>
+                                <p class="stat-value">{totalCompanies}</p>
+                            </div>
                         </div>
-                        <div>
-                            <p class="stat-label">Total</p>
-                            <p class="stat-value">{totalCompanies}</p>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="badge-icon badge-amber"><span class="badge-letter text-amber">P</span></div>
+                            <div>
+                                <p class="stat-label">Processing</p>
+                                <p class="stat-value text-amber">{processing}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="badge-icon badge-green"><span class="badge-letter text-green">C</span></div>
+                            <div>
+                                <p class="stat-label">Completed</p>
+                                <p class="stat-value text-green">{completed}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <div class="badge-icon badge-purple"><span class="badge-letter text-purple">O</span></div>
+                            <div>
+                                <p class="stat-label">Opened</p>
+                                <p class="stat-value text-purple">{opened}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Processing -->
-                <div class="stat-card">
-                    <div class="stat-content">
-                        <div class="badge-icon badge-amber">
-                            <span class="badge-letter text-amber">P</span>
-                        </div>
-                        <div>
-                            <p class="stat-label">Processing</p>
-                            <p class="stat-value text-amber">{processing}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Completed -->
-                <div class="stat-card">
-                    <div class="stat-content">
-                        <div class="badge-icon badge-green">
-                            <span class="badge-letter text-green">C</span>
-                        </div>
-                        <div>
-                            <p class="stat-label">Completed</p>
-                            <p class="stat-value text-green">{completed}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Opened -->
-                <div class="stat-card">
-                    <div class="stat-content">
-                        <div class="badge-icon badge-purple">
-                            <span class="badge-letter text-purple">O</span>
-                        </div>
-                        <div>
-                            <p class="stat-label">Opened</p>
-                            <p class="stat-value text-purple">{opened}</p>
+                <!-- Companies Table Card -->
+                <div class="companies-card">
+                    <!-- Card Header Controls -->
+                    <div class="card-header">
+                        <div class="header-controls">
+                            <h2 class="companies-heading">
+                                Companies <span class="companies-count">({filteredCount})</span>
+                            </h2>
+                            <div class="search-wrapper">
+                                <input 
+                                    type="text" 
+                                    placeholder="Search..." 
+                                    value={searchTerm} 
+                                    oninput={handleSearchChange} 
+                                    class="search-input" />
+                            </div>
+                            <div class="filter-wrapper">
+                                <select class="filter-select" value={companyFilter} onchange={handleFilterChange}>
+                                    <template for:each={filterOptions} for:item="opt">
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    </template>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Companies Card -->
-            <div class="companies-card">
-                <!-- Card Header Controls -->
-                <div class="card-header">
-                    <div class="header-controls">
-                        <h2 class="companies-heading">
-                            Companies <span class="companies-count">({filteredCount})</span>
-                        </h2>
-
-                        <!-- Search Box -->
-                        <div class="search-wrapper">
+                    <!-- Dynamic Selection / Share Toolbar -->
+                    <div class="selection-bar">
+                        <div class="selection-bar-left">
                             <input 
-                                type="text" 
-                                placeholder="Search..." 
-                                value={searchTerm} 
-                                oninput={handleSearchChange} 
-                                class="search-input" />
+                                type="checkbox" 
+                                class="custom-checkbox" 
+                                checked={isToolbarCheckboxChecked}
+                                onchange={handleSelectAll} />
+                            <span class="selection-label">{selectionBarLabel}</span>
                         </div>
-
-                        <!-- Filter Dropdown -->
-                        <div class="filter-wrapper">
-                            <select class="filter-select" value={companyFilter} onchange={handleFilterChange}>
-                                <template for:each={filterOptions} for:item="opt">
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                </template>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dynamic Selection / Share Toolbar -->
-                <div class="selection-bar">
-                    <div class="selection-bar-left">
-                        <input 
-                            type="checkbox" 
-                            class="custom-checkbox" 
-                            checked={isToolbarCheckboxChecked}
-                            onchange={handleSelectAll} />
-                        <span class="selection-label">{selectionBarLabel}</span>
-                    </div>
-
-                    <!-- Share actions only visible when 1 or more are selected -->
-                    <template if:true={showShareToolbar}>
-                        <div class="selection-bar-right">
-                            <select class="teammate-select" onchange={handleTeammateChange} value={shareTargetUserId}>
-                                <option value="">Share with...</option>
-                                <template if:true={teammates.data}>
-                                    <template for:each={teammates.data} for:item="tm">
-                                        <option key={tm.value} value={tm.value}>{tm.label}</option>
+                        <template if:true={showShareToolbar}>
+                            <div class="selection-bar-right">
+                                <select class="teammate-select" onchange={handleTeammateChange} value={shareTargetUserId}>
+                                    <option value="">Share with...</option>
+                                    <template if:true={teammates.data}>
+                                        <template for:each={teammates.data} for:item="tm">
+                                            <option key={tm.value} value={tm.value}>{tm.label}</option>
+                                        </template>
                                     </template>
-                                </template>
-                            </select>
-
-                            <button class="btn-share" onclick={handleShare} disabled={isShareDisabled}>
-                                <svg class="icon-share" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
-                                </svg>
-                                <span>Share</span>
-                            </button>
-
-                            <button class="btn-cancel" onclick={handleCancelSelection}>Cancel</button>
-                        </div>
-                    </template>
-                </div>
-
-                <!-- Table Rows -->
-                <div class="table-container">
-                    <template if:true={hasCompanies}>
-                        <template for:each={paginatedCompanies} for:item="company">
-                            <div 
-                                key={company.companyId} 
-                                class="company-row" 
-                                data-companyid={company.companyId} 
-                                onclick={handleCompanyClick}>
-                                
-                                <!-- 1. Checkbox -->
-                                <div class="cell-check" onclick={stopPropagation}>
-                                    <input 
-                                        type="checkbox" 
-                                        class="custom-checkbox" 
-                                        data-companyid={company.companyId} 
-                                        checked={company.isSelected}
-                                        onchange={handleRowSelect} 
-                                        disabled={company.hasSharedLabel} />
-                                </div>
-
-                                <!-- 2. Company Name & Location -->
-                                <div class="cell-company">
-                                    <a class="company-link" href="#">
-                                        <p class="company-name">{company.name}</p>
-                                        <template if:true={company.hasSharedLabel}>
-                                            <p class="shared-by-tag">
-                                                <svg class="icon-share-mini" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
-                                                {company.sharedByLabel}
-                                            </p>
-                                        </template>
-                                        <template if:false={company.hasSharedLabel}>
-                                            <p class="company-location">{company.locationDisplay}</p>
-                                        </template>
-                                    </a>
-                                </div>
-
-                                <!-- 3. Submitted Date -->
-                                <span class="cell-date">{company.createdAtDisplay}</span>
-
-                                <!-- 4. Stage Dropdown -->
-                                <div class="cell-stage" onclick={stopPropagation}>
-                                    <select class="select-stage" data-companyid={company.companyId} onchange={handleStageChange}>
-                                        <template for:each={company.stageOptions} for:item="opt">
-                                            <option key={opt.value} value={opt.value} selected={opt.isSelected}>
-                                                {opt.label}
-                                            </option>
-                                        </template>
-                                    </select>
-                                </div>
-
-                                <!-- 5. Client Type Dropdown -->
-                                <div class="cell-clienttype" onclick={stopPropagation}>
-                                    <select class="select-type" data-companyid={company.companyId} onchange={handleClientTypeChange}>
-                                        <template for:each={company.clientTypeOptions} for:item="opt">
-                                            <option key={opt.value} value={opt.value} selected={opt.isSelected}>
-                                                {opt.label}
-                                            </option>
-                                        </template>
-                                    </select>
-                                </div>
-
-                                <!-- 6. Signal Badge Button -->
-                                <div class="cell-signal" onclick={stopPropagation}>
-                                    <button class={company.signalBadgeClass} data-companyid={company.companyId} onclick={handleOpenSignals} title="Click to view signals">
-                                        <svg class="icon-bolt" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                        </svg>
-                                        <span>{company.signalCount}</span>
-                                        <template if:true={company.hasAlert}>
-                                            <span class="text-alert">{company.alertText}</span>
-                                        </template>
-                                    </button>
-                                </div>
-
-                                <!-- 7. Status Badge Pill -->
-                                <span class="status-pill">{company.statusDisplay}</span>
-
-                                <!-- 8. Dedicated Unshare Slot (Locked 2rem width) -->
-                                <div class="cell-unshare" onclick={stopPropagation}>
-                                    <template if:true={company.showUnshareButton}>
-                                        <button class="btn-icon btn-unshare" data-companyid={company.companyId} onclick={handleOpenUnshareModal} title="Manage access">
-                                            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                                        </button>
-                                    </template>
-                                </div>
-
-                                <!-- 9. Dedicated Delete Button Slot (Locked 2rem width) -->
-                                <div class="cell-delete" onclick={stopPropagation}>
-                                    <button class="btn-icon btn-delete" data-companyid={company.companyId} onclick={handleDelete} title="Delete company">
-                                        <svg class="icon-trash" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                        </svg>
-                                    </button>
-                                </div>
+                                </select>
+                                <button class="btn-share" onclick={handleShare} disabled={isShareDisabled}>
+                                    <svg class="icon-share" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                                    </svg>
+                                    <span>Share</span>
+                                </button>
+                                <button class="btn-cancel" onclick={handleCancelSelection}>Cancel</button>
                             </div>
                         </template>
-                    </template>
+                    </div>
 
-                    <template if:false={hasCompanies}>
-                        <div class="empty-state">
-                            <p>{emptyMessage}</p>
+                    <!-- Table Rows -->
+                    <div class="table-container">
+                        <template if:true={hasCompanies}>
+                            <template for:each={paginatedCompanies} for:item="company">
+                                <div key={company.companyId} class="company-row" data-companyid={company.companyId} onclick={handleCompanyClick}>
+                                    <div class="cell-check" onclick={stopPropagation}>
+                                        <input type="checkbox" class="custom-checkbox" data-companyid={company.companyId} checked={company.isSelected} onchange={handleRowSelect} disabled={company.hasSharedLabel} />
+                                    </div>
+                                    <div class="cell-company">
+                                        <a class="company-link" href="#">
+                                            <p class="company-name">{company.name}</p>
+                                            <template if:true={company.hasSharedLabel}>
+                                                <p class="shared-by-tag">
+                                                    <svg class="icon-share-mini" viewBox="0 0 24 24"><path fill="currentColor" d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+                                                    {company.sharedByLabel}
+                                                </p>
+                                            </template>
+                                            <template if:false={company.hasSharedLabel}>
+                                                <p class="company-location">{company.locationDisplay}</p>
+                                            </template>
+                                        </a>
+                                    </div>
+                                    <span class="cell-date">{company.createdAtDisplay}</span>
+                                    <div class="cell-stage" onclick={stopPropagation}>
+                                        <select class="select-stage" data-companyid={company.companyId} onchange={handleStageChange}>
+                                            <template for:each={company.stageOptions} for:item="opt">
+                                                <option key={opt.value} value={opt.value} selected={opt.isSelected}>{opt.label}</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="cell-clienttype" onclick={stopPropagation}>
+                                        <select class="select-type" data-companyid={company.companyId} onchange={handleClientTypeChange}>
+                                            <template for:each={company.clientTypeOptions} for:item="opt">
+                                                <option key={opt.value} value={opt.value} selected={opt.isSelected}>{opt.label}</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div class="cell-signal" onclick={stopPropagation}>
+                                        <button class={company.signalBadgeClass} data-companyid={company.companyId} onclick={handleOpenSignals} title="Click to view signals">
+                                            <svg class="icon-bolt" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                                            </svg>
+                                            <span>{company.signalCount}</span>
+                                            <template if:true={company.hasAlert}>
+                                                <span class="text-alert">{company.alertText}</span>
+                                            </template>
+                                        </button>
+                                    </div>
+                                    <!-- Status Pill with Live Pulsing Dot -->
+                                    <span class={company.statusClass} title={company.statusDisplay}>
+                                        <template if:true={company.isProcessing}>
+                                            <span class="pulse-dot"></span>
+                                        </template>
+                                        {company.statusDisplay}
+                                    </span>
+                                    <div class="cell-unshare" onclick={stopPropagation}>
+                                        <template if:true={company.showUnshareButton}>
+                                            <button class="btn-icon btn-unshare" data-companyid={company.companyId} onclick={handleOpenUnshareModal} title="Manage access">
+                                                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                            </button>
+                                        </template>
+                                    </div>
+                                    <div class="cell-delete" onclick={stopPropagation}>
+                                        <button class="btn-icon btn-delete" data-companyid={company.companyId} onclick={handleDelete} title="Delete company">
+                                            <svg class="icon-trash" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </template>
+                        <template if:false={hasCompanies}>
+                            <div class="empty-state">
+                                <p>{emptyMessage}</p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
+            <!-- ============================================================= -->
+            <!-- TAB 2: PROSPECT DISCOVERY VIEW                                -->
+            <!-- ============================================================= -->
+            <template if:true={isProspectTab}>
+                <!-- Top "You May Also Like" Hero Card -->
+                <div class="discovery-hero-card">
+                    <div class="hero-left">
+                        <div class="hero-header-row">
+                            <span class="lightbulb-icon">💡</span>
+                            <h2 class="hero-title">You May Also Like</h2>
+                        </div>
+                        <p class="hero-subtitle">Discovery of companies similar to your portfolio with high potential</p>
+                        <template if:false={isProspectSearching}>
+                            <template if:true={prospectLastUpdated}>
+                                <p class="hero-timestamp">Last updated: {prospectLastUpdated}</p>
+                            </template>
+                        </template>
+                    </div>
+
+                    <div class="hero-actions">
+                        <button class="btn-outline-filters" onclick={handleToggleFilters}>
+                            <svg class="icon-funnel" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            <span>Filters</span>
+                        </button>
+
+                        <template if:true={isProspectSearching}>
+                            <button class="btn-searching" disabled>
+                                <span class="spinner-arc"></span>
+                                <span>Searching...</span>
+                            </button>
+                        </template>
+                        <template if:false={isProspectSearching}>
+                            <button class="btn-search-again" onclick={handleSearch}>
+                                <svg class="icon-search-btn" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <span>Search</span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Collapsible Search Filters Panel -->
+                <template if:true={showProspectFilters}>
+                    <div class="filters-card">
+                        <div class="filters-header">
+                            <h3 class="filters-title">Search Filters</h3>
+                            <button class="btn-reset-filters" onclick={handleResetFilters}>Reset All</button>
+                        </div>
+
+                        <!-- Row 1: Revenue, Employees, Company Age, Do Not Call -->
+                        <div class="filters-grid-4" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+                            <!-- Revenue Filter (from Custom Metadata) -->
+                            <div class="filter-dropdown-container">
+                                <label class="filter-label">Revenue</label>
+                                <div class="filter-trigger" onclick={toggleRevenueMenu}>
+                                    <span>{revenueLabel}</span>
+                                    <svg class="icon-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                <template if:true={isRevenueMenuOpen}>
+                                    <div class="dropdown-backdrop" onclick={closeMenus}></div>
+                                    <div class="filter-menu-popover">
+                                        <template for:each={revenueOptions} for:item="opt">
+                                            <label key={opt.id} class="checkbox-option">
+                                                <input type="checkbox" checked={opt.checked} data-id={opt.id} onchange={handleRevenueChange} />
+                                                <span>{opt.label}</span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Employees Filter (from Custom Metadata) -->
+                            <div class="filter-dropdown-container">
+                                <label class="filter-label">Employees</label>
+                                <div class="filter-trigger" onclick={toggleEmployeesMenu}>
+                                    <span>{employeesLabel}</span>
+                                    <svg class="icon-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                <template if:true={isEmployeesMenuOpen}>
+                                    <div class="dropdown-backdrop" onclick={closeMenus}></div>
+                                    <div class="filter-menu-popover">
+                                        <template for:each={employeeOptions} for:item="opt">
+                                            <label key={opt.id} class="checkbox-option">
+                                                <input type="checkbox" checked={opt.checked} data-id={opt.id} onchange={handleEmployeeChange} />
+                                                <span>{opt.label}</span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Company Age Filter (from Custom Metadata) -->
+                            <div class="filter-dropdown-container">
+                                <label class="filter-label">Company Age</label>
+                                <div class="filter-trigger" onclick={toggleAgeMenu}>
+                                    <span>{ageLabel}</span>
+                                    <svg class="icon-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                <template if:true={isAgeMenuOpen}>
+                                    <div class="dropdown-backdrop" onclick={closeMenus}></div>
+                                    <div class="filter-menu-popover">
+                                        <template for:each={ageOptions} for:item="opt">
+                                            <label key={opt.id} class="checkbox-option">
+                                                <input type="checkbox" checked={opt.checked} data-id={opt.id} onchange={handleAgeChange} />
+                                                <span>{opt.label}</span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Do Not Call Filter (Dropdown: Yes / No) -->
+                            <div class="filter-dropdown-container">
+                                <label class="filter-label">Do Not Call</label>
+                                <select class="filter-trigger" style="width: 100%; cursor: pointer;" onchange={handleDoNotCallChange} value={doNotCallValue}>
+                                    <template for:each={doNotCallOptions} for:item="opt">
+                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Location Targeting with Multi-Select States & Removable Pills -->
+                        <div class="filters-grid-2">
+                            <!-- Portfolio States (from Custom Metadata) -->
+                            <div class="filter-dropdown-container">
+                                <label class="section-sublabel">Location Targeting</label>
+                                <label class="filter-label">Portfolio States</label>
+                                <div class="filter-trigger" onclick={toggleStatesMenu}>
+                                    <span>{statesLabel}</span>
+                                    <svg class="icon-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                <template if:true={isStatesMenuOpen}>
+                                    <div class="dropdown-backdrop" onclick={closeMenus}></div>
+                                    <div class="filter-menu-popover">
+                                        <template for:each={stateOptions} for:item="opt">
+                                            <label key={opt.id} class="checkbox-option">
+                                                <input type="checkbox" checked={opt.checked} data-id={opt.id} onchange={handleStateOptionChange} />
+                                                <span>{opt.label}</span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Add City, County, or Radius with Removable Pills -->
+                            <div class="input-add-container">
+                                <label class="filter-label">Add City, County, or Radius</label>
+                                <div class="combo-input-wrapper">
+                                    <select class="combo-select" onchange={handleLocationTypeChange} value={locationType}>
+                                        <option value="City">City</option>
+                                        <option value="County">County</option>
+                                        <option value="Radius">Radius</option>
+                                    </select>
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. Nashville, TN" 
+                                        class="combo-text-input" 
+                                        value={locationInputText} 
+                                        oninput={handleLocationInputChange} 
+                                    />
+                                    <button class="combo-add-btn" onclick={handleAddLocation}>Add</button>
+                                </div>
+
+                                <!-- Removable Location Pills -->
+                                <template if:true={hasLocationPills}>
+                                    <div class="filter-pills-row">
+                                        <template for:each={locationPills} for:item="pill">
+                                            <span key={pill.id} class="active-filter-pill">
+                                                <span>{pill.label}</span>
+                                                <button class="btn-remove-pill" data-id={pill.id} onclick={handleRemoveLocationPill}>✕</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Industry Targeting with Multi-Select Dropdown & Removable Pills -->
+                        <div class="filters-grid-2">
+                            <!-- Portfolio Industries (from Custom Metadata) -->
+                            <div class="filter-dropdown-container">
+                                <label class="section-sublabel">Industry Targeting</label>
+                                <label class="filter-label">Portfolio Industries</label>
+                                <div class="filter-trigger" onclick={toggleIndustriesMenu}>
+                                    <span>{industriesLabel}</span>
+                                    <svg class="icon-dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                                <template if:true={isIndustriesMenuOpen}>
+                                    <div class="dropdown-backdrop" onclick={closeMenus}></div>
+                                    <div class="filter-menu-popover">
+                                        <template for:each={industryOptions} for:item="opt">
+                                            <label key={opt.id} class="checkbox-option">
+                                                <input type="checkbox" checked={opt.checked} data-id={opt.id} onchange={handleIndustryOptionChange} />
+                                                <span>{opt.label}</span>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Add NAICS Code or Custom Industry with Removable Pills -->
+                            <div class="input-add-container">
+                                <label class="filter-label">Add NAICS Code or Custom Industry</label>
+                                <div class="combo-input-wrapper">
+                                    <input 
+                                        type="text" 
+                                        placeholder="e.g. 236220 or Craft Breweries" 
+                                        class="combo-text-input no-left-radius" 
+                                        value={industryInputText} 
+                                        oninput={handleIndustryInputChange} 
+                                    />
+                                    <button class="combo-add-btn" onclick={handleAddIndustry}>Add</button>
+                                </div>
+
+                                <!-- Removable Industry Pills -->
+                                <template if:true={hasIndustryPills}>
+                                    <div class="filter-pills-row">
+                                        <template for:each={industryPills} for:item="pill">
+                                            <span key={pill.id} class="active-filter-pill">
+                                                <span>{pill.label}</span>
+                                                <button class="btn-remove-pill" data-id={pill.id} onclick={handleRemoveIndustryPill}>✕</button>
+                                            </span>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Opportunity Signals Chips (from Custom Metadata) -->
+                        <div class="signals-filter-row">
+                            <label class="filter-label">Opportunity Signals</label>
+                            <div class="signal-chips-wrapper">
+                                <template for:each={opportunitySignalChips} for:item="chip">
+                                    <button 
+                                        key={chip.id} 
+                                        class={chip.classes} 
+                                        data-id={chip.id} 
+                                        onclick={handleToggleSignalChip}
+                                    >
+                                        {chip.label}
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Loading State When Searching or Loading Prospect Discovery Tab -->
+                <template if:true={isProspectSearching}>
+                    <div class="searching-state-container">
+                        <div class="searching-spinner-arc"></div>
+                        <h3 class="searching-heading">Searching for similar companies...</h3>
+                        <p class="searching-subtext">Using advanced AI research (typically 3-10 minutes)</p>
+                        <p class="searching-detail">Analyzing market data for the best matches</p>
+                    </div>
+                </template>
+
+                <!-- Results State -->
+                <template if:false={isProspectSearching}>
+                    <template if:true={hasProspects}>
+                        <div class="results-header-text">
+                            Showing {prospectsCount} companies similar to your portfolio
+                        </div>
+
+                        <!-- Prospect Lead Cards -->
+                        <div class="prospects-list">
+                            <template for:each={prospects} for:item="lead">
+                                <div key={lead.id} class={lead.cardClass}>
+                                    <!-- Card Header -->
+                                    <div class="lead-card-header">
+                                        <div class="lead-title-box">
+                                            <h3 class="lead-company-name">{lead.name}</h3>
+                                            <span class={lead.priorityBadgeClass}>{lead.priorityLabel}</span>
+                                        </div>
+                                        <div class="lead-actions">
+                                            <button 
+                                                class="btn-add-list" 
+                                                data-id={lead.id} 
+                                                onclick={handleAddProspectToList}
+                                                disabled={lead.isSubmitting}
+                                            >
+                                                <template if:false={lead.isSubmitting}>
+                                                    + Add To My List
+                                                </template>
+                                                <template if:true={lead.isSubmitting}>
+                                                    <span class="btn-spinner-sm"></span> Adding...
+                                                </template>
+                                            </button>
+                                            <button class="btn-remove-lead" data-id={lead.id} onclick={handleRemoveProspect}>✕ Remove</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Lead Meta Details with Matched SVG Icons -->
+                                    <div class="lead-meta-row">
+                                        <!-- Location Pin Icon -->
+                                        <span class="meta-item">
+                                            <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                            </svg>
+                                            <span>{lead.location}</span>
+                                        </span>
+
+                                        <!-- Industry Archway / Portal Icon -->
+                                        <span class="meta-item">
+                                            <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h3m12 0h3M6 21V7a3 3 0 013-3h6a3 3 0 013 3v14"></path>
+                                            </svg>
+                                            <span>{lead.industry}</span>
+                                        </span>
+
+                                        <!-- Revenue Currency Dollar Icon -->
+                                        <span class="meta-item">
+                                            <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span>{lead.revenue}</span>
+                                        </span>
+
+                                        <!-- Employees Users Icon -->
+                                        <span class="meta-item">
+                                            <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"></path>
+                                                <circle cx="9" cy="7" r="4" stroke-width="2"></circle>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"></path>
+                                            </svg>
+                                            <span>{lead.employees}</span>
+                                        </span>
+                                    </div>
+
+                                    <!-- Opportunity Section -->
+                                    <div class="lead-content-section">
+                                        <span class="lead-section-title">Opportunity</span>
+                                        <p class="lead-section-body">{lead.opportunity}</p>
+                                    </div>
+
+                                    <!-- Recent Activity with Matched External "View Source" Link -->
+                                    <div class="lead-activity-row">
+                                        <span><strong>Recent Activity:</strong> {lead.recentActivity}</span>
+                                        <a 
+                                            href={lead.website} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            class="view-source-link" 
+                                            data-id={lead.id} 
+                                            onclick={handleViewSource}
+                                        >
+                                            <svg class="icon-external-link" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                            </svg>
+                                            <span>View Source</span>
+                                        </a>
+                                    </div>
+
+                                    <!-- Suggested Approach Highlight -->
+                                    <div class="lead-approach-highlight">
+                                        <strong>Suggested Approach:</strong> {lead.suggestedApproach}
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </template>
-                </div>
-            </div>
+
+                    <!-- Exact Empty State -->
+                    <template if:false={hasProspects}>
+                        <div class="empty-state">
+                            <p>No prospect recommendations found. Click "Search" to discover companies matching your filters or portfolio</p>
+                        </div>
+                    </template>
+
+                    <!-- Market Insights Section -->
+                    <template if:true={hasMarketInsights}>
+                        <div class="insights-card">
+                            <h3 class="insights-heading">Market Insights</h3>
+                            <div class="insights-grid-3">
+                                <div>
+                                    <h4 class="insights-col-title">MARKET TRENDS</h4>
+                                    <p class="insights-col-body">{marketInsights.trends}</p>
+                                </div>
+                                <div>
+                                    <h4 class="insights-col-title">COMPETITION</h4>
+                                    <p class="insights-col-body">{marketInsights.competition}</p>
+                                </div>
+                                <div>
+                                    <h4 class="insights-col-title">TIMING</h4>
+                                    <p class="insights-col-body">{marketInsights.timing}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Industries to Watch Section -->
+                    <template if:true={hasIndustriesToWatch}>
+                        <div class="industries-card">
+                            <h3 class="insights-heading">Industries to Watch</h3>
+                            <div class="industries-grid-3">
+                                <template for:each={industriesToWatch} for:item="ind">
+                                    <div key={ind.title} class="industry-subcard">
+                                        <h4 class="industry-card-title">{ind.title}</h4>
+                                        <p class="industry-card-desc">{ind.description}</p>
+                                        <p class="industry-card-subdesc">{ind.subDescription}</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </template>
+            </template>
         </main>
 
-        <!-- Unshare Management Modal -->
+        <!-- Modals for Companies Tab -->
         <template if:true={isUnshareModalOpen}>
             <div class="modal-backdrop" onclick={handleCloseUnshareModal}>
                 <div class="modal-content" onclick={stopPropagation}>
@@ -281,7 +649,6 @@
             </div>
         </template>
 
-        <!-- Confirm Delete Modal -->
         <template if:true={isDeleteModalOpen}>
             <div class="modal-backdrop" onclick={handleCloseDeleteModal}>
                 <div class="modal-content" onclick={stopPropagation}>
