@@ -1,51 +1,123 @@
-/* 
-    @description: Controller for Enhanced Signal Digest
-*/
+/**
+ * @description Controller for Enhanced Signal Digest using ProspectingHttpService.
+ *              Fetches digest data directly from Azure without regeneration logic.
+ */
 public with sharing class SignalDigestController {
-    @AuraEnabled(cacheable=true)
-    public static String getEnhancedDigestData(Id companyId) {
-        // Mocking the JSON response to simulate a complex API structure
-        Map<String, Object> data = new Map<String, Object>();
-        
-        // 1. Recent Signals
-        List<Map<String, String>> signals = new List<Map<String, String>>{
-            new Map<String, String>{'date' => 'Aug 14, 2025', 'event' => 'Prisma reaches number 53 in a major industry ranking'},
-            new Map<String, String>{'date' => 'Aug 1, 2025', 'event' => 'Prisma consolidates acquired OneTouchPoint Tempe operations into Phoenix'},
-            new Map<String, String>{'date' => 'Jul 24, 2025', 'event' => 'Prisma\'s rebounding fleet expands on-demand and mail merchandise capacity'},
-            new Map<String, String>{'date' => 'Jul 10, 2025', 'event' => 'Postal rate increases drive e-mail campaign coach and banking requirements'},
-            new Map<String, String>{'date' => 'Jun 12, 2025', 'event' => 'Prisma unveils Phoenix management and compliance infrastructure'},
-            new Map<String, String>{'date' => 'May 20, 2025', 'event' => 'Prisma acquires OneTouchPoint\'s Tempe operations'}
-        };
-        data.put('recentSignals', signals);
 
-        // 2. Signal Interpretation
-        List<Map<String, String>> interpretations = new List<Map<String, String>>{
-            new Map<String, String>{'title' => 'Growth Acceleration', 'impact' => 'high', 'desc' => 'Prisma is not simply adding revenue; the market, absorbing employees, customer programs, and services into an existing production hub...'},
-            new Map<String, String>{'title' => 'Financial Activity', 'impact' => 'high', 'desc' => 'Prisma\'s national footprint encompasses six production markets, while Phoenix is absorbing additional customer programs...'},
-            new Map<String, String>{'title' => 'Cost Pressure', 'impact' => 'high', 'desc' => 'Postal and production cost increases can enlarge the cash outlay required to launch customer campaigns...'},
-            new Map<String, String>{'title' => 'Growth Acceleration', 'impact' => 'medium', 'desc' => 'Prisma appears to be broadening capabilities while increasing scale. A staged capital structure could help Prisma maintain...'}
-        };
-        data.put('interpretations', interpretations);
+    /**
+     * @description Fetches the Enhanced Research Digest via ProspectingHttpService.
+     * @param  salesforceCompanyId  The Salesforce Record Id (AI_Navigator_Company__c.Id)
+     */
+    @AuraEnabled(cacheable=false)
+    public static String getEnhancedDigestData(String salesforceCompanyId) {
+        String correlationId = '';
+        String azureCompanyId = '';
+        String endpointCalled = '';
 
-        // 3. Analysis Blocks
-        data.put('loomingDecision', 'Whether Prisma should accelerate another acquisition or capability investment after integrating the former OneTouchPoint Tempe operation, or pause to consolidate.');
-        data.put('primaryTradeoff', new List<String>{
-            'Growth acceleration versus liquidity and integration discipline.',
-            'Continue acquisition-led expansion now supported by committed acquisition financing.',
-            'Prioritize integration of the former OneTouchPoint Tempe operation and optimization of Prisma\'s network.',
-            'Use a staged approach by funding targeted automation, fulfillment, or promotional product capacity first.'
+        try {
+            // ── 1. Validate Input ───────────────────────────────────────────────
+            if (String.isBlank(salesforceCompanyId)) {
+                return formatErrorJson('salesforceCompanyId is required.', 400, 'N/A', '', salesforceCompanyId, '');
+            }
+
+            // ── 2. Look up Company in Salesforce ────────────────────────────────
+            List<AI_Navigator_Company__c> companies = [
+                SELECT Id, Azure_Company_Id__c, Correlation_Id__c, Status__c
+                FROM AI_Navigator_Company__c
+                WHERE Id = :salesforceCompanyId
+                LIMIT 1
+            ];
+
+            if (companies.isEmpty()) {
+                return formatErrorJson('Company not found for Id: ' + salesforceCompanyId, 404, 'N/A', '', salesforceCompanyId, '');
+            }
+
+            // If company has not completed pipeline research or lacks an Azure GUID, return not_started (legacy)
+            if (companies[0].Status__c != 'completed' || String.isBlank(companies[0].Azure_Company_Id__c)) {
+                return JSON.serialize(new Map<String, Object>{
+                    'companyId'     => companies[0].Azure_Company_Id__c,
+                    'salesforceId'  => companies[0].Id,
+                    'status'        => 'not_started',
+                    'correlationId' => companies[0].Correlation_Id__c
+                });
+            }
+
+            azureCompanyId = companies[0].Azure_Company_Id__c;
+            correlationId = String.isNotBlank(companies[0].Correlation_Id__c) 
+                ? companies[0].Correlation_Id__c 
+                : generateCorrelationId();
+
+            String userId = UserInfo.getUserId();
+
+            // ── 3. Build Request via ProspectingHttpService ─────────────────────
+            String path = '/prospecting/v1/user/companies/' +
+                          EncodingUtil.urlEncode(azureCompanyId, 'UTF-8') +
+                          '/enhanced-research-digest';
+
+            HttpRequest req = ProspectingHttpService.buildRequest('GET', path, correlationId, userId);
+            endpointCalled = req.getEndpoint();
+
+            HttpResponse res = new Http().send(req);
+
+            // ── 4. Evaluate Response ────────────────────────────────────────────
+            if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
+                return res.getBody();
+            } else if (res.getStatusCode() == 404) {
+                // Not generated in Azure (legacy company)
+                return JSON.serialize(new Map<String, Object>{
+                    'companyId'     => azureCompanyId,
+                    'salesforceId'  => companies[0].Id,
+                    'status'        => 'not_started',
+                    'correlationId' => correlationId
+                });
+            } else {
+                String errorMsg = ProspectingHttpService.parseErrorResponse(res);
+                logError('SignalDigestController.getEnhancedDigestData', 'GET', correlationId, errorMsg);
+                return formatErrorJson(errorMsg, res.getStatusCode(), endpointCalled, res.getBody(), salesforceCompanyId, azureCompanyId, correlationId);
+            }
+
+        } catch (Exception e) {
+            String fullErr = e.getMessage() + '\n' + e.getStackTraceString();
+            logError('SignalDigestController.getEnhancedDigestData', 'GET', correlationId, fullErr);
+            return formatErrorJson('Apex Exception: ' + e.getMessage(), 500, endpointCalled, fullErr, salesforceCompanyId, azureCompanyId, correlationId);
+        }
+    }
+
+    // ── Diagnostic Helpers ──────────────────────────────────────────────────
+    private static String formatErrorJson(String message, Integer statusCode, String endpoint, String responseBody, String sfId, String corrId) {
+        return formatErrorJson(message, statusCode, endpoint, responseBody, sfId, '', corrId);
+    }
+
+    private static String formatErrorJson(String message, Integer statusCode, String endpoint, String responseBody, String sfId, String azureId, String corrId) {
+        return JSON.serialize(new Map<String, Object>{
+            'isError'            => true,
+            'status'             => 'error',
+            'errorMessage'       => message,
+            'statusCode'         => statusCode,
+            'endpoint'           => endpoint,
+            'responseBody'       => String.isNotBlank(responseBody) ? responseBody : '(Empty response body)',
+            'salesforceId'       => sfId,
+            'companyId'          => azureId,
+            'correlationId'      => corrId,
+            'timestamp'          => String.valueOf(Datetime.now())
         });
-        data.put('confidenceBuilder', 'With Prisma integrating the former OneTouchPoint Tempe operation, moving up to number 53 in the Printing Impressions 400, what would Prisma need to see in customer retention to feel confident?');
-        data.put('openingStatement', 'I may be off here, but Prisma\'s acquisition of the OneTouchPoint Tempe operation, followed by the transition of those customers and employees into the Phoenix headquarters, suggests Prisma may be balancing growth with integration cost.');
+    }
 
-        // 4. Banker Action Summary
-        List<Map<String, String>> actions = new List<Map<String, String>>{
-            new Map<String, String>{'tag' => 'DISCUSS', 'text' => 'Request a working capital and integration discussion focused on the OneTouchPoint Tempe transition.'},
-            new Map<String, String>{'tag' => 'FINANCE', 'text' => 'Explore an acquisition and capital expenditure financing framework before Prisma makes another strategic investment.'},
-            new Map<String, String>{'tag' => 'REVIEW', 'text' => 'Review treasury concentration, liquidity visibility, and payment controls across Prisma\'s market network.'}
-        };
-        data.put('bankerActions', actions);
+    private static void logError(String endpointName, String httpMethod, String correlationId, String errorMessage) {
+        try {
+            insert new AI_Navigator_Request_Log__c(
+                HTTP_Method__c      = httpMethod,
+                Endpoint_Name__c    = endpointName,
+                Status__c           = 'Failed',
+                Correlation_ID__c   = correlationId,
+                Error_Message__c    = errorMessage != null ? errorMessage.left(32768) : null
+            );
+        } catch (Exception logEx) {
+            System.debug(LoggingLevel.ERROR, 'Log write failed: ' + logEx.getMessage());
+        }
+    }
 
-        return JSON.serialize(data);
+    private static String generateCorrelationId() {
+        return 'SF-' + DateTime.now().getTime() + '-' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)).substring(0, 8);
     }
 }

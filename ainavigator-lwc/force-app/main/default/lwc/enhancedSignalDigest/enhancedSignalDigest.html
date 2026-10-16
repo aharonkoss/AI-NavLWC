@@ -1,114 +1,420 @@
 <!--
-  @description       : 
-  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
-  @group             : 
-  @last modified on  : 08-21-2026
-  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
+  @description       : Enhanced Research Digest matching React Tailwind portal exactly
 -->
 <template>
-    <div class="digest-container slds-p-around_medium">
-        
-        <!-- Executive Summary Section -->
-        <div class="section-card slds-m-bottom_medium">
-            <div class="section-header">
-                <h2>Executive Summary</h2>
+    <div class="digest-wrapper">
+        <!-- ============================================================= -->
+        <!-- HEADER BAR                                                    -->
+        <!-- ============================================================= -->
+        <div class="digest-header">
+            <div>
+                <h2 class="digest-title">Enhanced Research Digest</h2>
+                <template if:true={isCompleted}>
+                    <p class="digest-meta">Generated {generatedDateDisplay} in {generatedDurationDisplay}</p>
+                </template>
             </div>
-            <div class="section-body">
-                <p>Prisma's recent acquisition and operational consolidation in Phoenix marks a significant pivot toward scale...</p>
+
+            <!-- Controls shown ONLY once research is loaded -->
+            <div class="digest-controls">
+                <template if:true={isCompleted}>
+                    <button type="button" class="btn-link" onclick={handleExpandAll}>Expand All</button>
+                    <span class="control-separator">|</span>
+                    <button type="button" class="btn-link" onclick={handleCollapseAll}>Collapse All</button>
+                </template>
             </div>
         </div>
 
-        <!-- Recent Signals Table -->
-        <div class="section-card slds-m-bottom_medium">
-            <div class="section-header slds-grid slds-grid_align-spread">
-                <h2>Recent Signals (Last 1 Year)</h2>
-                <span class="sub-text">7 Signals | 1 Recent Pivot</span>
+        <!-- ============================================================= -->
+        <!-- LOADING SPINNER STATE (Active during API refresh)             -->
+        <!-- ============================================================= -->
+        <template if:true={isLoading}>
+            <div class="loading-container">
+                <div class="spinner-large"></div>
+                <p class="loading-title">Loading Research Digest...</p>
+                <p class="loading-subtext">Fetching the latest company signals and research data</p>
             </div>
-            <div class="section-body slds-p-around_none">
-                <table class="signals-table">
-                    <tbody>
-                        <template for:each={digestData.recentSignals} for:item="sig">
-                            <tr key={sig.event}>
-                                <td class="date-col">{sig.date}</td>
-                                <td class="event-col">{sig.event}</td>
-                                <td class="link-col">🔗</td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+        </template>
 
-        <!-- Signal Interpretation Grid -->
-        <div class="section-card border-gold slds-m-bottom_medium">
-            <div class="section-header">
-                <h2 class="text-gold">Signal Interpretation</h2>
+        <!-- ============================================================= -->
+        <!-- ON-SCREEN ERROR DIAGNOSTIC SCREEN                             -->
+        <!-- ============================================================= -->
+        <template if:true={isError}>
+            <div class="error-card">
+                <div class="error-header-row">
+                    <span class="error-icon">⚠️</span>
+                    <div>
+                        <h3 class="error-title">An Error Occurred While Loading the Digest</h3>
+                        <p class="error-support-prompt">
+                            Please take a screenshot of this entire message and send it to support.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Live Diagnostic Log Box -->
+                <div class="diagnostic-box">
+                    <div class="log-row">
+                        <span class="log-label">Error Message:</span>
+                        <span class="log-value text-red">{errorDetails.message}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">HTTP Status Code:</span>
+                        <span class="log-value text-amber">{errorDetails.statusCode}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">Request Endpoint:</span>
+                        <span class="log-value">{errorDetails.endpoint}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">Azure Response:</span>
+                        <span class="log-value">{errorDetails.responseBody}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">Salesforce Record ID:</span>
+                        <span class="log-value">{errorDetails.salesforceId}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">Azure Company GUID:</span>
+                        <span class="log-value">{errorDetails.azureCompanyId}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">Correlation ID:</span>
+                        <span class="log-value">{errorDetails.correlationId}</span>
+                    </div>
+                    <div class="log-row">
+                        <span class="log-label">Logged At:</span>
+                        <span class="log-value">{errorDetails.timestamp}</span>
+                    </div>
+                </div>
+
+                <div class="error-footer">
+                    <button type="button" class="btn-retry" onclick={handleRetry}>↻ Try Again</button>
+                </div>
             </div>
-            <div class="section-body">
-                <div class="slds-grid slds-wrap slds-gutters">
-                    <template for:each={digestData.interpretations} for:item="item">
-                        <div key={item.desc} class="slds-col slds-size_1-of-2 slds-m-bottom_small">
-                            <div class="interpretation-box">
-                                <div class="slds-grid slds-grid_align-spread">
-                                    <span class="interp-title">{item.title}</span>
-                                    <span class={item.impactClass}>{item.impact}</span>
+        </template>
+
+        <!-- ============================================================= -->
+        <!-- LEGACY COMPANY NOTICE SCREEN (Status = not_started)          -->
+        <!-- ============================================================= -->
+        <template if:true={isNotStarted}>
+            <div class="legacy-card">
+                <div class="legacy-icon-circle">
+                    <svg class="legacy-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="legacy-title">Legacy Company</h3>
+                <p class="legacy-message">This is a legacy company. There is no Enhanced Signals Digest Available.</p>
+                <p class="legacy-subtext">Submit a new company in the Input or Upload tab to generate live research.</p>
+            </div>
+        </template>
+
+        <!-- ============================================================= -->
+        <!-- COMPLETED RESULTS (Accordions)                                -->
+        <!-- ============================================================= -->
+        <template if:true={isCompleted}>
+            <div class="sections-accordion">
+                <!-- 1. Executive Summary (Open by default) -->
+                <div class="accordion-card bg-white border-gray">
+                    <button type="button" class="accordion-header-btn" data-section="executiveSummary" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title">Executive Summary</div>
+                        </div>
+                        <svg class={execChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.executiveSummary}>
+                        <div class="accordion-body">
+                            <div class="body-text">
+                                <p>{digestData.executiveSummary}</p>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 2. Recent Signals (Last 1 Year) -->
+                <div class="accordion-card bg-blue-tint border-blue">
+                    <button type="button" class="accordion-header-btn" data-section="recentSignals" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title text-blue">Recent Signals (Last 1 Year)</div>
+                            <div class="header-subtitle">{recentSignalsCount} signals · Newest First</div>
+                        </div>
+                        <svg class={signalsChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.recentSignals}>
+                        <div class="accordion-body">
+                            <div class="signals-cards-stack">
+                                <template for:each={digestData.recentSignals} for:item="sig">
+                                    <div key={sig.headline} class="signal-card">
+                                        <div class="signal-card-header">
+                                            <h4 class="signal-card-title">{sig.headline}</h4>
+                                            <span class={sig.impactBadgeClass}>{sig.impact}</span>
+                                        </div>
+
+                                        <div class="signal-card-meta">
+                                            {sig.date} · {sig.signalType}
+                                        </div>
+
+                                        <p class="signal-card-desc">{sig.description}</p>
+
+                                        <template if:true={sig.whatItSignals}>
+                                            <div class="signal-what-it-signals">
+                                                <span class="font-semibold text-gray-800">What it signals:</span> {sig.whatItSignals}
+                                            </div>
+                                        </template>
+
+                                        <template if:true={sig.sourceUrl}>
+                                            <div class="signal-source-row">
+                                                <a href={sig.sourceUrl} target="_blank" rel="noopener noreferrer" class="signal-source-link">
+                                                    Source ↗
+                                                </a>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 3. Industry Context -->
+                <div class="accordion-card bg-white border-gray">
+                    <button type="button" class="accordion-header-btn" data-section="industryContext" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title">Industry Context</div>
+                            <div class="header-subtitle">{industryContextCount} macro factors affecting the company</div>
+                        </div>
+                        <svg class={industryChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.industryContext}>
+                        <div class="accordion-body">
+                            <div class="industry-context-stack">
+                                <template for:each={digestData.industryContext} for:item="item">
+                                    <div key={item.id} class="industry-context-card">
+                                        <div class="industry-header-line">
+                                            <span class="industry-factor">{item.factor}</span>
+                                            <template if:true={item.hasStatus}>
+                                                <span class="industry-dash"> — </span>
+                                                <span class="industry-status">{item.status}</span>
+                                            </template>
+                                        </div>
+                                        <template if:true={item.impact}>
+                                            <p class="industry-impact-text">{item.impact}</p>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 4. Signal Interpretation -->
+                <div class="accordion-card bg-amber-tint border-amber">
+                    <button type="button" class="accordion-header-btn" data-section="signalInterpretation" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title text-amber">Signal Interpretation</div>
+                            <div class="header-subtitle">{interpretationsCount} patterns identified</div>
+                        </div>
+                        <svg class={interpretationChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.signalInterpretation}>
+                        <div class="accordion-body">
+                            <div class="interpretation-cards-stack">
+                                <template for:each={digestData.interpretations} for:item="item">
+                                    <div key={item.patternName} class="interp-card">
+                                        <div class="interp-header">
+                                            <div class="interp-title-wrapper">
+                                                <span class="interp-title">{item.patternName}</span>
+                                                <template if:true={item.patternType}>
+                                                    <span class="interp-type">{item.patternType}</span>
+                                                </template>
+                                            </div>
+                                            <span class={item.urgencyBadgeClass}>{item.urgency}</span>
+                                        </div>
+                                        <p class="interp-desc">{item.insight}</p>
+                                        <template if:true={item.hasSupportingSignals}>
+                                            <div class="interp-supporting">
+                                                <span class="supporting-label">Supported by:</span> {item.supportingSignalsText}
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 5. Analysis (Matches Portal Image 1 Exactly) -->
+                <div class="accordion-card bg-white border-gray">
+                    <button type="button" class="accordion-header-btn" data-section="analysis" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title">Analysis</div>
+                            <div class="header-subtitle">What decision this is creating and key tradeoffs</div>
+                        </div>
+                        <svg class={analysisChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.analysis}>
+                        <div class="accordion-body">
+                            <!-- 1. Decision being created (Inline Lead Label) -->
+                            <template if:true={digestData.analysis.decisionBeingCreated}>
+                                <p class="analysis-narrative">
+                                    <strong class="analysis-lead-label">Decision being created:</strong> {digestData.analysis.decisionBeingCreated}
+                                </p>
+                            </template>
+
+                            <!-- 2. Individual Tradeoff Cards Stack -->
+                            <template if:true={hasKeyTradeoffs}>
+                                <div class="tradeoffs-stack">
+                                    <template for:each={digestData.analysis.keyTradeoffs} for:item="t">
+                                        <div key={t.id} class="tradeoff-card">
+                                            <div class="tradeoff-card-title">{t.tradeoff}</div>
+                                            <div class="tradeoff-option">A: {t.optionA}</div>
+                                            <div class="tradeoff-option">B: {t.optionB}</div>
+                                            <div class="tradeoff-consequence">Financial consequence: {t.financialConsequence}</div>
+                                        </div>
+                                    </template>
                                 </div>
-                                <p class="interp-desc">{item.desc}</p>
+                            </template>
+
+                            <!-- 3. Urgency (Inline Lead Label) -->
+                            <template if:true={digestData.analysis.urgencyAssessment}>
+                                <p class="analysis-narrative">
+                                    <strong class="analysis-lead-label">Urgency:</strong> {digestData.analysis.urgencyAssessment}
+                                </p>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 6. Point-of-View℠ -->
+                <div class="accordion-card bg-indigo-tint border-indigo">
+                    <button type="button" class="accordion-header-btn" data-section="pointOfView" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title text-indigo">Point-of-View<sup class="tm-mark">SM</sup></div>
+                            <div class="header-subtitle">Designed for a specific Point-of-Arrival</div>
+                        </div>
+                        <svg class={povChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.pointOfView}>
+                        <div class="accordion-body">
+                            <div class="stage-cards-grid">
+                                <template for:each={povStageCards} for:item="card">
+                                    <div key={card.number} class={card.cardClass}>
+                                        <template if:true={card.isActive}>
+                                            <div class="active-confidence-badge">
+                                                LIKELY HERE · {digestData.pov.confidencePct}% confidence
+                                            </div>
+                                        </template>
+                                        <div class="stage-card-header">
+                                            <span class={card.stepNumClass}>{card.number}</span>
+                                            <span class={card.stepTitleClass}>{card.title}</span>
+                                        </div>
+                                        <div class={card.stepQuoteClass}>{card.quote}</div>
+                                        <div class={card.urgencyTagClass}>{card.urgency}</div>
+                                        <div class={card.conversationTagClass}>{card.conversation}</div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <div class="pov-details-card">
+                                <div class="pov-grid">
+                                    <ul class="bullet-list-main">
+                                        <li>
+                                            <div class="bullet-heading">What we believe is happening</div>
+                                            <div class="bullet-body">{digestData.pov.whatIsHappening}</div>
+                                        </li>
+                                        <li>
+                                            <span class="bullet-heading">Why it may matter</span>
+                                            <span class="bullet-body ml-1">{digestData.pov.whyItMatters}</span>
+                                        </li>
+                                        <li>
+                                            <div class="bullet-heading">Most likely decisions management is considering</div>
+                                            <div class="bullet-body">{digestData.pov.likelyDecisions}</div>
+                                        </li>
+                                        <li>
+                                            <div class="bullet-heading">Most Likely Point-of-Arrival<sup class="tm-mark">SM</sup></div>
+                                            <div class="mt-1">
+                                                <div class="text-indigo-bold">Phase {digestData.pov.likelyStage} — {digestData.pov.stageName}</div>
+                                                <div class="text-italic-sub">{digestData.pov.urgencyLevel}</div>
+                                            </div>
+                                            <div class="confidence-footer">Confidence: {digestData.pov.confidencePct}%</div>
+                                        </li>
+                                    </ul>
+
+                                    <ul class="bullet-list-main col-bordered">
+                                        <li>
+                                            <div class="bullet-heading">Why AI Navigator believes this</div>
+                                            <ul class="sub-circle-list">
+                                                <template for:each={digestData.pov.evidence} for:item="reason">
+                                                    <li key={reason}>{reason}</li>
+                                                </template>
+                                            </ul>
+                                        </li>
+                                        <li>
+                                            <span class="bullet-heading">Priority conversation</span>
+                                            <span class="bullet-body ml-1">{digestData.pov.priorityConversation}</span>
+                                        </li>
+                                        <li>
+                                            <div class="bullet-heading">Early Validation Questions — and Pivot Plan<sup class="tm-mark">SM</sup></div>
+                                            <ol class="ordered-numbered-list">
+                                                <template for:each={digestData.pov.validationQuestions} for:item="question">
+                                                    <li key={question}>{question}</li>
+                                                </template>
+                                            </ol>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- 7. Banker Action Summary -->
+                <div class="accordion-card bg-green-tint border-green">
+                    <button type="button" class="accordion-header-btn" data-section="bankerActions" onclick={handleToggleSection}>
+                        <div>
+                            <div class="header-title text-green">Banker Action Summary</div>
+                            <div class="header-subtitle">{bankerActionsCount} recommended actions</div>
+                        </div>
+                        <svg class={actionChevronClass} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <template if:true={sections.bankerActions}>
+                        <div class="accordion-body">
+                            <div class="actions-list">
+                                <template for:each={digestData.bankerActions} for:item="action">
+                                    <div key={action.action} class="action-card-item">
+                                        <div class="action-header">
+                                            <span class={action.priorityBadgeClass}>{action.priority}</span>
+                                            <span class="action-urgency">{action.urgency}</span>
+                                        </div>
+                                        <div class="action-text">{action.action}</div>
+                                        <div class="action-rationale"><em>Rationale:</em> {action.rationale}</div>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                     </template>
                 </div>
             </div>
-        </div>
 
-        <!-- Analysis Section -->
-        <div class="section-card slds-m-bottom_medium">
-            <div class="section-header"><h2>Analysis</h2></div>
-            <div class="section-body">
-                <!-- Looming Decision -->
-                <div class="decision-box slds-m-bottom_small">
-                    <span class="box-label">LOOMING DECISION BEING FACED</span>
-                    <p>{digestData.loomingDecision}</p>
-                </div>
-
-                <!-- Primary Tradeoff -->
-                <div class="tradeoff-box slds-m-bottom_small">
-                    <span class="box-label">PRIMARY TRADEOFF</span>
-                    <p class="font-bold">{tradeoffMain}</p>
-                    <ul>
-                        <template for:each={tradeoffList} for:item="t">
-                            <li key={t}>{t}</li>
-                        </template>
-                    </ul>
-                </div>
-
-                <!-- Confidence Builder -->
-                <div class="confidence-box slds-m-bottom_small">
-                    <span class="box-label">DECISION CONFIDENCE BUILDER</span>
-                    <p>{digestData.confidenceBuilder}</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Opening Statement -->
-        <div class="section-card border-blue slds-m-bottom_medium">
-            <div class="section-header"><h2 class="text-blue">Opening Statement</h2></div>
-            <div class="section-body opening-statement-body">
-                <p class="quote-text">"{digestData.openingStatement}"</p>
-            </div>
-        </div>
-
-        <!-- Banker Action Summary -->
-        <div class="section-card border-green slds-m-bottom_medium">
-            <div class="section-header"><h2 class="text-green">Banker Action Summary</h2></div>
-            <div class="section-body">
-                <template for:each={digestData.bankerActions} for:item="action">
-                    <div key={action.text} class="action-row slds-grid slds-grid_vertical-align-center slds-m-bottom_x-small">
-                        <span class="action-tag">{action.tag}</span>
-                        <span class="action-text slds-m-left_small">{action.text}</span>
-                    </div>
-                </template>
-            </div>
-        </div>
+            <!-- Notes Child Component -->
+            <c-notes-window
+                company-id={companyId}
+                company-name={displayCompanyName}
+                source-tab="Enhanced Research Digest"
+            ></c-notes-window>
+        </template>
     </div>
 </template>

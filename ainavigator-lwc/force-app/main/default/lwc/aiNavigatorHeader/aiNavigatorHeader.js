@@ -179,6 +179,13 @@ export default class NavigationHeader extends LightningElement {
                 isDivider: false,
                 isLocked: companyStateDisabled,
                 classes: `nav-tab ${this.activeTab === 'insights' ? 'active-tab' : ''} ${companyStateDisabled ? 'tab-disabled' : ''}`
+            },
+            { 
+                id: 'enhanced-signals', 
+                label: 'Enhanced Signal Digest', 
+                disabled: companyStateDisabled, 
+                isDivider: false,
+                classes: `nav-tab ${this.activeTab === 'enhanced-signals' ? 'active-tab' : ''} ${companyStateDisabled ? 'tab-disabled' : ''}`
             }
         ];
     }
