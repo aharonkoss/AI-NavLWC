@@ -182,7 +182,7 @@ export default class NavigationHeader extends LightningElement {
             },
             { 
                 id: 'enhanced-signals', 
-                label: 'Enhanced Signal Digest', 
+                label: 'Enhanced Research Digest', 
                 disabled: companyStateDisabled, 
                 isDivider: false,
                 classes: `nav-tab ${this.activeTab === 'enhanced-signals' ? 'active-tab' : ''} ${companyStateDisabled ? 'tab-disabled' : ''}`

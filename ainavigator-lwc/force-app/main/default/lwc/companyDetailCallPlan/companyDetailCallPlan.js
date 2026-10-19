@@ -1,330 +1,354 @@
 import { LightningElement, api, track } from 'lwc';
-import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import getCallPlan from '@salesforce/apex/CompanyDetailController.getCallPlan';
-import getTabPdfDownloadUrl from '@salesforce/apex/CompanyDetailController.getTabPdfDownloadUrl';
-import createNote from '@salesforce/apex/CompanyDetailController.createNote';
+// Uncomment and point to your Apex method if calling directly from this LWC:
+// import getCallPlan from '@salesforce/apex/CompanyDetailController.getCallPlan';
 
-const SHORT_LABELS = ['Build Trust', 'Frame', 'Explore Needs', 'Stories', 'Commit'];
+const DEFAULT_DATA = {
+    companyName: 'Harbor Logistics',
+    companyLocation: 'Charleston, SC',
+    companyUrl: 'https://harborlogistics.com/harbor-logistics-goose-creek-project-to-boost-s-c-soybean-exports/',
+    companyStatus: 'completed',
+    planHeaderTitle: 'St. Meyer & Hubbard Discovery Call Plan',
+    bannerTitle: 'Conversation #2 · Sense-Making',
+    bannerSubtitle: 'Calibrated to Pressure Building — the required conversation is fundamentally different in each stage.',
+    objectiveText:
+        'Help Harbor Logistics connect its added capacity, leadership changes and changing cargo flows to what its team is experiencing, then learn what needs attention next.',
+    povNote: "Built from the Research Digest's Point of View: its validation questions are woven into Steps 2, 4, 5 and 6.",
+    phase1Items: [
+        {
+            id: 'p1-1',
+            label: 'Personal Greeting',
+            quote: 'Thanks for making time today. How has your week been?'
+        },
+        {
+            id: 'p1-2',
+            label: 'Company/Industry Connection',
+            quote: 'It seems like a busy stretch of growth, with the new warehouse open and the soybean project added to the mix. How is that playing out for your team?'
+        }
+    ],
+    phase2Items: [
+        {
+            id: 'p2-1',
+            label: 'Topics to Cover',
+            quote: "I was hoping to hear how the added space and soybean work fit with everything else you're handling, and what's changing for your customers."
+        },
+        {
+            id: 'p2-2',
+            label: 'Time Confirmation',
+            quote: 'We set aside half an hour; does that still work for you?'
+        },
+        {
+            id: 'p2-3',
+            label: 'Mutual Goals',
+            quote: "I'd like to understand what's taking the most attention as the business grows. What would make this time useful for you?"
+        }
+    ],
+    phase3Items: [
+        {
+            id: 'p3-1',
+            label: 'Step 1: Humble Opener (Safe Delivery)',
+            quote: "There's a lot of new capacity in the picture, between the warehouse opening and the soybean project. What's driving the work around those additions?",
+            variant: 'green'
+        },
+        {
+            id: 'p3-2',
+            label: 'Step 2: Let Buyer React (Safe Delivery)',
+            quote: 'How much of your attention is that taking up day to day?',
+            variant: 'slate'
+        },
+        {
+            id: 'p3-3',
+            label: 'Step 3: Connect the Dots (Sense-Making)',
+            quote: "More room to serve customers is coming at a time when port cargo has been uneven. How are those two things meeting in the work you're seeing?",
+            variant: 'blue'
+        },
+        {
+            id: 'p3-4',
+            label: 'Step 4: Clarify the Decision (Frame-Making)',
+            quote: 'What feels like the next thing your team needs to sort out as you put that capacity to work, given your timing?',
+            variant: 'green'
+        },
+        {
+            id: 'p3-5',
+            label: 'Step 5: Surface Tradeoffs (Frame-Making)',
+            quote: 'What has been hardest to manage as you bring the new space into the regular flow of work?',
+            variant: 'slate'
+        },
+        {
+            id: 'p3-6',
+            label: 'Step 6: Build Confidence (Decision Confidence)',
+            quote: 'What would help you feel more confident about how the added capacity is settling into the business?',
+            variant: 'blue'
+        },
+        {
+            id: 'p3-7',
+            label: 'Step 7: Preserve Agency (Safe Delivery)',
+            quote: 'You may already have this well covered, but would it be useful to hear how other logistics teams have handled a stretch of changing cargo flows?',
+            variant: 'green'
+        }
+    ],
+    phase4Items: [
+        {
+            id: 'p4-1',
+            label: 'Specific Next Steps',
+            quote: "If this is becoming a bigger focus for you, would it make sense to reconnect after you've had more time to see how customer work develops?"
+        },
+        {
+            id: 'p4-2',
+            label: 'Mutual Commitments',
+            quote: "If that would help, I'll bring a brief peer perspective to a follow-up. Who on your side would find that conversation useful?"
+        },
+        {
+            id: 'p4-3',
+            label: 'Timeline & Expectations',
+            quote: 'Would a conversation in a couple of weeks be comfortable, or would later be more useful?'
+        }
+    ],
+    earlierJourneyText:
+        'What has the new warehouse changed most in your day-to-day work? What is getting your attention around the soybean project now?',
+    furtherAlongText:
+        'What have you settled on for putting the added capacity to work? What would you still need to know before taking the next step?'
+};
 
-// Helper to safely extract string text from strings or structured objects
-function extractItemText(item) {
-  if (item === null || item === undefined) return '';
-  if (typeof item === 'string') return item;
-  if (typeof item === 'object') {
-    const label = item.topic || item.title || item.header || '';
-    const body = item.point || item.text || item.description || item.detail || item.content || item.value || '';
-
-    if (label && body && label !== body) {
-      return `${label}: ${body}`;
-    }
-    if (body) return body;
-    if (label) return label;
-
-    const values = Object.values(item).filter((v) => typeof v === 'string' && v.trim().length > 0);
-    if (values.length > 0) {
-      return values.join(' - ');
-    }
-  }
-  return String(item);
-}
+const STEP_VARIANTS = ['green', 'slate', 'blue', 'green', 'slate', 'blue', 'green'];
 
 export default class CompanyDetailCallPlan extends LightningElement {
-  _companyId;
-  _isConnected = false;
+    @api recordId;
+    @api showCompanyHeader = false; // Set to true if rendering the top company bar inside this component
 
-  @api
-  get companyId() {
-    return this._companyId;
-  }
-  set companyId(value) {
-    const isChanged = this._companyId !== value;
-    this._companyId = value;
-    if (value && isChanged && this._isConnected) {
-      this.loadCallPlan();
+    @api companyName = DEFAULT_DATA.companyName;
+    @api companyLocation = DEFAULT_DATA.companyLocation;
+    @api companyUrl = DEFAULT_DATA.companyUrl;
+    @api companyStatus = DEFAULT_DATA.companyStatus;
+
+    @track isDrawerOpen = false;
+    @track isDownloading = false;
+    @track notesCount = 0;
+
+    @track _callPlanData = null;
+
+    /**
+     * Accepts the JSON payload returned by getCallPlan:
+     * {
+     *   "callPlan": {
+     *     "callObjective": "",
+     *     "preCallPreparation": [],
+     *     "openingStatement": "",
+     *     "pppaFramework": { "purpose": "", "process": "", "payoff": "", "agreement": "" },
+     *     "discoveryFramework": [],
+     *     "keyTalkingPoints": [],
+     *     "anticipatedObjections": [],
+     *     "nextStepsProposal": ""
+     *   }
+     * }
+     */
+    @api
+    get callPlanPayload() {
+        return this._callPlanData;
     }
-  }
-
-  @api company;
-  @api companyName;
-
-  @track callPlanData = null;
-  @track isLoading = true;
-  @track error = null;
-  @track activeIndex = 0;
-  @track isDownloading = false;
-  @track notes = [];
-
-  connectedCallback() {
-    this._isConnected = true;
-    if (this._companyId) {
-      this.loadCallPlan();
-    }
-  }
-
-  disconnectedCallback() {
-    this._isConnected = false;
-  }
-
-  // ─── 1. Load Call Plan ───
-  loadCallPlan() {
-    if (!this._companyId) {
-      this.isLoading = false;
-      return;
-    }
-    this.isLoading = true;
-    this.error = null;
-
-    getCallPlan({ companyId: this._companyId })
-      .then((json) => {
-        this.callPlanData = typeof json === 'string' ? JSON.parse(json) : json;
-      })
-      .catch((err) => {
-        console.error('[CallPlan] Load error:', err);
-        this.error = err?.body?.message || 'Failed to load call plan.';
-      })
-      .finally(() => {
-        this.isLoading = false;
-      });
-  }
-
-  // ─── 2. PDF Download Handler ───
-  @api
-  handleDownloadPDF() {
-    if (!this._companyId || this.isDownloading) return;
-
-    this.isDownloading = true;
-
-    getTabPdfDownloadUrl({
-      companyId: this._companyId,
-      tabName: 'discovery-call-plan'
-    })
-      .then((json) => {
-        if (!json) throw new Error('No download URL returned.');
-        const data = typeof json === 'string' ? JSON.parse(json) : json;
-        const downloadUrl = data.downloadUrl || data.url || data.pdfUrl;
-
-        if (downloadUrl) {
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = data.fileName || 'discovery_call_plan.pdf';
-          a.target = '_blank';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        } else {
-          throw new Error('PDF download URL was not found in response.');
+    set callPlanPayload(value) {
+        if (value) {
+            try {
+                const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+                this._callPlanData = parsed.callPlan || parsed;
+            } catch (e) {
+                console.error('Error parsing callPlanPayload JSON', e);
+            }
         }
-      })
-      .catch((err) => {
-        const errorMsg = err?.body?.message || err?.message || 'Failed to download Call Plan PDF.';
-        this.dispatchEvent(
-          new ShowToastEvent({
-            title: 'Download Error',
-            message: errorMsg,
-            variant: 'error'
-          })
-        );
-      })
-      .finally(() => {
-        this.isDownloading = false;
-      });
-  }
-
-  // ─── 3. Section "+" Button Handlers ───
-  handleAddObjectiveToNotes() {
-    if (!this.callPlan?.callObjective) return;
-    this.saveSectionNoteToApi('Call Objective', 'Call Objective', this.callPlan.callObjective);
-  }
-
-  handleAddPrepToNotes() {
-    if (!this.callPlan?.preCallPreparation || this.callPlan.preCallPreparation.length === 0) return;
-    const text = this.callPlan.preCallPreparation.map((item) => `• ${item}`).join('\n\n');
-    this.saveSectionNoteToApi('Pre-Call Preparation', 'Pre-Call Preparation', text);
-  }
-
-  handleAddOpeningToNotes() {
-    if (!this.callPlan?.openingStatement) return;
-    this.saveSectionNoteToApi('Opening Statement', 'Opening Statement', this.callPlan.openingStatement);
-  }
-
-  handleAddTalkingPointsToNotes() {
-    if (!this.callPlan?.keyTalkingPoints || this.callPlan.keyTalkingPoints.length === 0) return;
-    const text = this.callPlan.keyTalkingPoints.map((point) => `• ${point}`).join('\n\n');
-    this.saveSectionNoteToApi('Key Talking Points', 'Key Talking Points', text);
-  }
-
-  handleAddActiveStepToNotes() {
-    const step = this.activeStep;
-    if (!step || !step.step) return;
-
-    const lines = [];
-    lines.push(`Step: ${step.step}`);
-    if (step.description) lines.push(`Description: ${step.description}`);
-
-    if (step.stMeyerKnowledge?.content?.length > 0) {
-      lines.push(
-        `\n${step.stMeyerKnowledge.title || 'Knowledge'}:\n` +
-          step.stMeyerKnowledge.content.map((k) => `• ${extractItemText(k)}`).join('\n')
-      );
-    }
-    if (step.companyInfo?.content?.length > 0) {
-      lines.push(
-        `\n${step.companyInfo.title || 'Company Info'}:\n` +
-          step.companyInfo.content.map((c) => `• ${extractItemText(c)}`).join('\n')
-      );
-    }
-    if (step.questions?.length > 0) {
-      lines.push(`\nDiscovery Questions:\n` + step.questions.map((q) => `${q.num}. ${q.text}`).join('\n'));
     }
 
-    this.saveSectionNoteToApi(step.step, step.step, lines.join('\n'));
-  }
-
-  saveSectionNoteToApi(title, sourceSection, content) {
-    const existing = this.notes.find((n) => n.sourceSection === sourceSection || n.title === title);
-    const notesWin = this.template.querySelector('c-notes-window');
-
-    if (existing) {
-      if (notesWin) notesWin.openDrawer();
-      return;
+    get planHeaderTitle() {
+        return DEFAULT_DATA.planHeaderTitle;
     }
 
-    createNote({
-      companyId: this._companyId,
-      title: title,
-      content: content,
-      sourceTab: 'Discovery Call Plan',
-      sourceSection: sourceSection
-    })
-      .then(() => {
-        if (notesWin) {
-          notesWin.openDrawer();
-          notesWin.refreshNotes();
+    get bannerTitle() {
+        return this._callPlanData?.conversationStage || DEFAULT_DATA.bannerTitle;
+    }
+
+    get bannerSubtitle() {
+        return this._callPlanData?.stageSubtitle || DEFAULT_DATA.bannerSubtitle;
+    }
+
+    get objectiveText() {
+        if (this._callPlanData?.callObjective) {
+            return this._callPlanData.callObjective;
         }
-      })
-      .catch((err) => {
-        this.dispatchEvent(
-          new ShowToastEvent({
-            title: 'Error Saving Note',
-            message: err?.body?.message || err?.message || 'Could not save section note.',
-            variant: 'error'
-          })
-        );
-      });
-  }
+        return DEFAULT_DATA.objectiveText;
+    }
 
-  // ─── 4. Reactive Updates from Child Component ───
-  handleNotesUpdated(event) {
-    this.notes = event.detail.notes || [];
-  }
+    get povNote() {
+        return DEFAULT_DATA.povNote;
+    }
 
-  // ─── Stepper Controls ───
-  handleStepClick(event) {
-    this.activeIndex = parseInt(event.currentTarget.dataset.index, 10);
-  }
-  handlePrev() {
-    if (!this.isPrevDisabled) this.activeIndex -= 1;
-  }
-  handleNext() {
-    if (!this.isNextDisabled) this.activeIndex += 1;
-  }
+    // Maps openingStatement & preCallPreparation to Phase 1 (Build Trust & Credibility)
+    get phase1Items() {
+        const cp = this._callPlanData;
+        if (cp && (cp.openingStatement || (Array.isArray(cp.preCallPreparation) && cp.preCallPreparation.length > 0))) {
+            const items = [];
+            if (cp.openingStatement) {
+                items.push({
+                    id: 'p1-opening',
+                    label: 'Personal Greeting / Opening Statement',
+                    quote: this.stripQuotes(cp.openingStatement)
+                });
+            }
+            if (Array.isArray(cp.preCallPreparation) && cp.preCallPreparation.length > 0) {
+                cp.preCallPreparation.forEach((prep, idx) => {
+                    const text = typeof prep === 'string' ? prep : prep.question || prep.text || prep.statement || '';
+                    const label =
+                        typeof prep === 'object' && prep.label
+                            ? prep.label
+                            : idx === 0
+                              ? 'Company/Industry Connection'
+                              : `Preparation Point ${idx + 1}`;
+                    if (text) {
+                        items.push({
+                            id: `p1-prep-${idx}`,
+                            label,
+                            quote: this.stripQuotes(text)
+                        });
+                    }
+                });
+            }
+            if (items.length > 0) return items;
+        }
+        return DEFAULT_DATA.phase1Items;
+    }
 
-  // ─── Template Getters ───
-  get callPlan() {
-    const raw = this.callPlanData?.callPlan || {};
+    // Maps pppaFramework to Phase 2 (Frame The Discussion)
+    get phase2Items() {
+        const pppa = this._callPlanData?.pppaFramework;
+        if (pppa && (pppa.purpose || pppa.process || pppa.payoff || pppa.agreement)) {
+            const items = [];
+            if (pppa.purpose) {
+                items.push({
+                    id: 'p2-purpose',
+                    label: 'Topics to Cover',
+                    quote: this.stripQuotes(pppa.purpose)
+                });
+            }
+            if (pppa.process || pppa.agreement) {
+                items.push({
+                    id: 'p2-process',
+                    label: 'Time Confirmation',
+                    quote: this.stripQuotes(pppa.agreement || pppa.process)
+                });
+            }
+            if (pppa.payoff) {
+                items.push({
+                    id: 'p2-payoff',
+                    label: 'Mutual Goals',
+                    quote: this.stripQuotes(pppa.payoff)
+                });
+            }
+            if (items.length > 0) return items;
+        }
+        return DEFAULT_DATA.phase2Items;
+    }
 
-    const keyTalkingPoints = Array.isArray(raw.keyTalkingPoints)
-      ? raw.keyTalkingPoints.map(extractItemText).filter(Boolean)
-      : [];
-    const preCallPreparation = Array.isArray(raw.preCallPreparation)
-      ? raw.preCallPreparation.map(extractItemText).filter(Boolean)
-      : [];
+    // Maps discoveryFramework & keyTalkingPoints to Phase 3 (Discovery Conversation)
+    get phase3Items() {
+        const cp = this._callPlanData;
+        let rawSteps = DEFAULT_DATA.phase3Items;
 
-    return {
-      ...raw,
-      keyTalkingPoints,
-      preCallPreparation
-    };
-  }
+        if (cp && Array.isArray(cp.discoveryFramework) && cp.discoveryFramework.length > 0) {
+            rawSteps = cp.discoveryFramework.map((item, idx) => {
+                const defaultStep = DEFAULT_DATA.phase3Items[idx] || {};
+                const variant = item.variant || STEP_VARIANTS[idx % STEP_VARIANTS.length];
+                const label =
+                    typeof item === 'object' && (item.step || item.label || item.title)
+                        ? item.step || item.label || item.title
+                        : defaultStep.label || `Step ${idx + 1}: Discovery`;
+                const quote =
+                    typeof item === 'string'
+                        ? item
+                        : item.question || item.quote || item.prompt || item.text || '';
 
-  get _framework() {
-    return this.callPlan.discoveryFramework || [];
-  }
+                return {
+                    id: `p3-step-${idx}`,
+                    label,
+                    quote: this.stripQuotes(quote),
+                    variant
+                };
+            });
+        }
 
-  get hasSteps() {
-    return this._framework.length > 0;
-  }
+        return rawSteps.map((step) => ({
+            ...step,
+            boxClass: `prompt-box step-box-${step.variant}`,
+            labelClass: `prompt-label step-label-${step.variant}`
+        }));
+    }
 
-  get steps() {
-    return this._framework.map((s, i) => ({
-      ...s,
-      index: i,
-      shortLabel: SHORT_LABELS[i] || `Step ${i + 1}`,
-      navClass: i === this.activeIndex ? 'cdcp-step-btn cdcp-step-btn-active' : 'cdcp-step-btn',
-      dotClass: i === this.activeIndex ? 'cdcp-dot cdcp-dot-active' : 'cdcp-dot'
-    }));
-  }
+    // Maps nextStepsProposal to Phase 4 (Joint Commitment)
+    get phase4Items() {
+        const cp = this._callPlanData;
+        if (cp && cp.nextStepsProposal) {
+            if (Array.isArray(cp.nextStepsProposal) && cp.nextStepsProposal.length > 0) {
+                return cp.nextStepsProposal.map((item, idx) => ({
+                    id: `p4-${idx}`,
+                    label: item.label || DEFAULT_DATA.phase4Items[idx]?.label || `Next Step ${idx + 1}`,
+                    quote: this.stripQuotes(typeof item === 'string' ? item : item.text || item.quote || '')
+                }));
+            }
+            if (typeof cp.nextStepsProposal === 'string' && cp.nextStepsProposal.trim() !== '') {
+                return [
+                    {
+                        id: 'p4-1',
+                        label: 'Specific Next Steps',
+                        quote: this.stripQuotes(cp.nextStepsProposal)
+                    },
+                    ...DEFAULT_DATA.phase4Items.slice(1)
+                ];
+            }
+        }
+        return DEFAULT_DATA.phase4Items;
+    }
 
-  get activeStep() {
-    const s = this._framework[this.activeIndex] || {};
-    const rawQuestions = s.questions || [];
-    const questions = rawQuestions.map((q, i) => ({
-      key: `q-${i}`,
-      num: i + 1,
-      text: extractItemText(q)
-    }));
+    // Maps anticipatedObjections / keyTalkingPoints or fallback to bottom calibration cards
+    get earlierJourneyText() {
+        const cp = this._callPlanData;
+        if (cp && Array.isArray(cp.anticipatedObjections) && cp.anticipatedObjections[0]) {
+            const first = cp.anticipatedObjections[0];
+            return typeof first === 'string' ? first : first.response || first.text || DEFAULT_DATA.earlierJourneyText;
+        }
+        return DEFAULT_DATA.earlierJourneyText;
+    }
 
-    const rawKnowledge = s.stMeyerKnowledge?.content || [];
-    const rawCompanyInfo = s.companyInfo?.content || [];
+    get furtherAlongText() {
+        const cp = this._callPlanData;
+        if (cp && Array.isArray(cp.anticipatedObjections) && cp.anticipatedObjections[1]) {
+            const second = cp.anticipatedObjections[1];
+            return typeof second === 'string' ? second : second.response || second.text || DEFAULT_DATA.furtherAlongText;
+        }
+        return DEFAULT_DATA.furtherAlongText;
+    }
 
-    return {
-      ...s,
-      stMeyerKnowledge: {
-        title: s.stMeyerKnowledge?.title || 'Knowledge',
-        content: rawKnowledge.map(extractItemText)
-      },
-      companyInfo: {
-        title: s.companyInfo?.title || 'Company Info',
-        content: rawCompanyInfo.map(extractItemText)
-      },
-      questions
-    };
-  }
+    get drawerClasses() {
+        return this.isDrawerOpen ? 'notes-drawer drawer-open' : 'notes-drawer drawer-closed';
+    }
 
-  get isPrevDisabled() {
-    return this.activeIndex === 0;
-  }
-  get isNextDisabled() {
-    return this.activeIndex >= this._framework.length - 1;
-  }
+    get drawerStyle() {
+        return this.isDrawerOpen ? 'width: 480px;' : 'width: 0px;';
+    }
 
-  get hasTalkingPoints() {
-    return Array.isArray(this.callPlan?.keyTalkingPoints) && this.callPlan.keyTalkingPoints.length > 0;
-  }
+    stripQuotes(str) {
+        if (!str) return '';
+        return str.replace(/^["“]+|["”]+$/g, '');
+    }
 
-  // ─── Section Checkmarks ───
-  get isObjectiveInNotes() {
-    return this.notes.some((n) => n.sourceSection === 'Call Objective' || n.title === 'Call Objective');
-  }
+    toggleNotesDrawer() {
+        this.isDrawerOpen = !this.isDrawerOpen;
+    }
 
-  get isPrepInNotes() {
-    return this.notes.some((n) => n.sourceSection === 'Pre-Call Preparation' || n.title === 'Pre-Call Preparation');
-  }
+    handleDownloadPdf() {
+        this.dispatchEvent(new CustomEvent('downloadpdf'));
+    }
 
-  get isOpeningInNotes() {
-    return this.notes.some((n) => n.sourceSection === 'Opening Statement' || n.title === 'Opening Statement');
-  }
+    handleBack() {
+        this.dispatchEvent(new CustomEvent('navigateback'));
+    }
 
-  get isTalkingPointsInNotes() {
-    return this.notes.some((n) => n.sourceSection === 'Key Talking Points' || n.title === 'Key Talking Points');
-  }
-
-  get isActiveStepInNotes() {
-    const stepName = this.activeStep?.step;
-    return !!stepName && this.notes.some((n) => n.sourceSection === stepName || n.title === stepName);
-  }
-
-  get companyDisplayName() {
-    return this.companyName || this.company?.Name || this.company?.name || 'Selected Company';
-  }
+    handleAddNote() {
+        this.dispatchEvent(new CustomEvent('addnote'));
+    }
 }

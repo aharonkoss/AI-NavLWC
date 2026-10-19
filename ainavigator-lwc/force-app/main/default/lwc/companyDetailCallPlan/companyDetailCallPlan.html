@@ -1,243 +1,259 @@
 <!--
-  @description       : Discovery Call Plan component with Notes child component
+  @description       : 
+  @author            : ChangeMeIn@UserSettingsUnder.SFDoc
+  @group             : 
+  @last modified on  : 10-17-2026
+  @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 -->
 <template>
-  <div class="cdcp-wrapper">
-
-    <!-- Header Bar -->
-    <div class="cdcp-header-bar">
-      <div>
-        <h1 class="cdcp-header-title">St. Meyer &amp; Hubbard Discovery Call Plan</h1>
-      </div>
-      <div class="cdcp-header-right">
-        <button class="cdcp-pdf-btn" onclick={handleDownloadPDF} disabled={isDownloading}>
-          <template if:true={isDownloading}>
-            <span class="cdcp-btn-spinner"></span>
-            <span>Downloading...</span>
-          </template>
-          <template if:false={isDownloading}>
-            <span>Download PDF</span>
-          </template>
-        </button>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <template if:true={isLoading}>
-      <div class="cdcp-loading">
-        <span class="cdcp-spinner"></span>
-        <span>Loading call plan...</span>
-      </div>
-    </template>
-
-    <!-- Error State -->
-    <template if:true={error}>
-      <div class="cdcp-error-box">
-        <span class="cdcp-error-icon">&#9888;</span>
-        <span>{error}</span>
-      </div>
-    </template>
-
-    <template if:false={isLoading}>
-
-      <!-- 1. Call Objective Card (Soft Indigo/Blue tint) -->
-      <div class="cdcp-card cdcp-card--objective">
-        <div class="cdcp-card-header">
-          <h3 class="cdcp-card-label cdcp-label--objective">Call Objective</h3>
-          <template if:true={isObjectiveInNotes}>
-            <div class="cdcp-check-box" title="Added to My Notes">
-              <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-          </template>
-          <template if:false={isObjectiveInNotes}>
-            <button class="cdcp-add-btn" onclick={handleAddObjectiveToNotes} title="Add to My Notes">+</button>
-          </template>
-        </div>
-        <p class="cdcp-card-body cdcp-body--objective">{callPlan.callObjective}</p>
-      </div>
-
-      <!-- 2. Pre-Call Preparation Card (Clean White) -->
-      <div class="cdcp-card cdcp-card--prep">
-        <div class="cdcp-card-header">
-          <h3 class="cdcp-card-label cdcp-label--dark">Pre-Call Preparation</h3>
-          <template if:true={isPrepInNotes}>
-            <div class="cdcp-check-box" title="Added to My Notes">
-              <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-          </template>
-          <template if:false={isPrepInNotes}>
-            <button class="cdcp-add-btn" onclick={handleAddPrepToNotes} title="Add to My Notes">+</button>
-          </template>
-        </div>
-        <ul class="cdcp-bullet-list">
-          <template for:each={callPlan.preCallPreparation} for:item="item">
-            <li key={item} class="cdcp-bullet-item">
-              <span class="cdcp-dash">-</span>
-              <span>{item}</span>
-            </li>
-          </template>
-        </ul>
-      </div>
-
-      <!-- 3. Opening Statement Card (Soft Amber/Yellow tint) -->
-      <div class="cdcp-card cdcp-card--opening">
-        <div class="cdcp-card-header">
-          <h3 class="cdcp-card-label cdcp-label--opening">Opening Statement</h3>
-          <template if:true={isOpeningInNotes}>
-            <div class="cdcp-check-box" title="Added to My Notes">
-              <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-          </template>
-          <template if:false={isOpeningInNotes}>
-            <button class="cdcp-add-btn" onclick={handleAddOpeningToNotes} title="Add to My Notes">+</button>
-          </template>
-        </div>
-        <p class="cdcp-card-body cdcp-body--opening cdcp-italic">{callPlan.openingStatement}</p>
-      </div>
-
-      <!-- 4. Key Talking Points (Only if present) -->
-      <template if:true={hasTalkingPoints}>
-        <div class="cdcp-card">
-          <div class="cdcp-card-header">
-            <h3 class="cdcp-card-label cdcp-label--dark">Key Talking Points</h3>
-            <template if:true={isTalkingPointsInNotes}>
-              <div class="cdcp-check-box" title="Added to My Notes">
-                <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-            </template>
-            <template if:false={isTalkingPointsInNotes}>
-              <button class="cdcp-add-btn" onclick={handleAddTalkingPointsToNotes} title="Add to My Notes">+</button>
-            </template>
-          </div>
-          <ul class="cdcp-bullet-list">
-            <template for:each={callPlan.keyTalkingPoints} for:item="point">
-              <li key={point} class="cdcp-bullet-item">
-                <span class="cdcp-dash">-</span>
-                <span>{point}</span>
-              </li>
-            </template>
-          </ul>
-        </div>
-      </template>
-
-      <!-- 5. Stepper Nav & Discovery Framework -->
-      <template if:true={hasSteps}>
-        <div class="cdcp-framework-container">
-          <div class="cdcp-stepper-nav">
-            <template for:each={steps} for:item="step">
-              <button
-                key={step.index}
-                class={step.navClass}
-                data-index={step.index}
-                onclick={handleStepClick}
-              >
-                {step.shortLabel}
-              </button>
-            </template>
-          </div>
-
-          <!-- Active Step Content -->
-          <div class="cdcp-step-card">
-            <div class="cdcp-step-header">
-              <div>
-                <h3 class="cdcp-step-title">{activeStep.step}</h3>
-                <p class="cdcp-step-desc">{activeStep.description}</p>
-              </div>
-              <template if:true={isActiveStepInNotes}>
-                <div class="cdcp-check-box" title="Added to My Notes">
-                  <svg class="cdcp-check-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
+    <main class="main-container">
+        <div>
+            <!-- Top Company Context Bar (Optional/Toggleable via @api showCompanyHeader) -->
+            <template if:true={showCompanyHeader}>
+                <div class="company-bar">
+                    <div class="company-bar-inner">
+                        <div class="company-bar-left">
+                            <a class="back-link" href="javascript:void(0);" onclick={handleBack}>←</a>
+                            <h1 class="company-name">{companyName}</h1>
+                            <span class="divider">|</span>
+                            <span class="company-location">{companyLocation}</span>
+                            <span class="divider">|</span>
+                            <a
+                                href={companyUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="company-url"
+                            >
+                                {companyUrl}
+                            </a>
+                            <span class="divider">|</span>
+                            <span class="status-badge">{companyStatus}</span>
+                        </div>
+                    </div>
                 </div>
-              </template>
-              <template if:false={isActiveStepInNotes}>
-                <button class="cdcp-add-btn" onclick={handleAddActiveStepToNotes} title="Add Step to My Notes">+</button>
-              </template>
+            </template>
+
+            <!-- Main Call Plan Card -->
+            <div class="card">
+                <!-- Gradient Header -->
+                <div class="card-header">
+                    <div class="card-header-inner">
+                        <div>
+                            <h2 class="card-title">{planHeaderTitle}</h2>
+                        </div>
+                        <button
+                            class="btn-download"
+                            onclick={handleDownloadPdf}
+                            disabled={isDownloading}
+                        >
+                            Download PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card Body -->
+                <div class="card-body">
+                    <div>
+                        <!-- Subheader -->
+                        <div class="compass-header">
+                            <h3 class="compass-title">The Conversation Compass℠</h3>
+                            <div class="compass-subtitle">
+                                Discovery Call Plan: Build Trust · Frame Discussion · Discovery · Joint Commitment
+                            </div>
+                        </div>
+
+                        <div class="content-stack">
+                            <!-- Blue Conversation Banner -->
+                            <div class="conversation-banner">
+                                <div class="banner-title">{bannerTitle}</div>
+                                <div class="banner-subtitle">{bannerSubtitle}</div>
+                            </div>
+
+                            <!-- Objective -->
+                            <div class="objective-row">
+                                <span class="objective-label">Objective: </span>
+                                <span class="objective-text">{objectiveText}</span>
+                            </div>
+
+                            <!-- Phases Container -->
+                            <div class="phases-wrapper">
+                                <div class="pov-note">{povNote}</div>
+
+                                <div class="phases-stack">
+                                    <!-- Phase 1: Build Trust & Credibility -->
+                                    <div class="phase-block phase-border-blue">
+                                        <h4 class="phase-heading">
+                                            <span class="phase-badge badge-blue">Phase 1</span>
+                                            Build Trust &amp; Credibility
+                                        </h4>
+                                        <div class="phase-items">
+                                            <template for:each={phase1Items} for:item="item">
+                                                <div key={item.id} class="prompt-box bg-gray">
+                                                    <span class="prompt-label text-gray-muted">{item.label}</span>
+                                                    <p class="prompt-quote">"{item.quote}"</p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Phase 2: Frame The Discussion -->
+                                    <div class="phase-block phase-border-green">
+                                        <h4 class="phase-heading">
+                                            <span class="phase-badge badge-green">Phase 2</span>
+                                            Frame The Discussion
+                                        </h4>
+                                        <div class="phase-items">
+                                            <template for:each={phase2Items} for:item="item">
+                                                <div key={item.id} class="prompt-box bg-gray">
+                                                    <span class="prompt-label text-gray-muted">{item.label}</span>
+                                                    <p class="prompt-quote">"{item.quote}"</p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Phase 3: Discovery Conversation -->
+                                    <div class="phase-block phase-border-teal">
+                                        <h4 class="phase-heading">
+                                            <span class="phase-badge badge-teal">Phase 3</span>
+                                            Discovery Conversation
+                                            <span class="phase-heading-sub">(Four Disciplines Applied)</span>
+                                        </h4>
+                                        <div class="phase-items">
+                                            <template for:each={phase3Items} for:item="step">
+                                                <div key={step.id} class={step.boxClass}>
+                                                    <span class={step.labelClass}>{step.label}</span>
+                                                    <p class="prompt-quote">"{step.quote}"</p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Phase 4: Joint Commitment -->
+                                    <div class="phase-block phase-border-slate">
+                                        <h4 class="phase-heading">
+                                            <span class="phase-badge badge-slate">Phase 4</span>
+                                            Joint Commitment
+                                        </h4>
+                                        <div class="phase-items">
+                                            <template for:each={phase4Items} for:item="item">
+                                                <div key={item.id} class="prompt-box bg-gray">
+                                                    <span class="prompt-label text-gray-muted">{item.label}</span>
+                                                    <p class="prompt-quote">"{item.quote}"</p>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bottom Calibration Grid -->
+                            <div class="calibration-grid">
+                                <div class="calibration-card calibration-amber">
+                                    <div class="calibration-title text-amber">
+                                        ⟲ If they're actually EARLIER in the journey
+                                    </div>
+                                    <div class="calibration-body">{earlierJourneyText}</div>
+                                </div>
+                                <div class="calibration-card calibration-green">
+                                    <div class="calibration-title text-green">
+                                        ⟳ If they're FURTHER ALONG
+                                    </div>
+                                    <div class="calibration-body">{furtherAlongText}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- 3-Col Grid -->
-            <div class="cdcp-step-grid">
-              <!-- St. Meyer Knowledge -->
-              <div class="cdcp-knowledge-card">
-                <h4 class="cdcp-col-title">{activeStep.stMeyerKnowledge.title}</h4>
-                <ul class="cdcp-bullet-list">
-                  <template for:each={activeStep.stMeyerKnowledge.content} for:item="item">
-                    <li key={item} class="cdcp-bullet-item cdcp-knowledge-item">
-                      <span class="cdcp-dash">·</span>
-                      <span>{item}</span>
-                    </li>
-                  </template>
-                </ul>
-              </div>
+            <!-- Floating Notes Button -->
+            <button class="fab-notes" title="Open notes" onclick={toggleNotesDrawer}>
+                <svg class="icon-md text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    ></path>
+                </svg>
+            </button>
 
-              <!-- Company Info -->
-              <div class="cdcp-info-card">
-                <h4 class="cdcp-col-title">{activeStep.companyInfo.title}</h4>
-                <ul class="cdcp-bullet-list">
-                  <template for:each={activeStep.companyInfo.content} for:item="item">
-                    <li key={item} class="cdcp-info-item">
-                      <span class="cdcp-info-dot">→</span>
-                      <span>{item}</span>
-                    </li>
-                  </template>
-                </ul>
-              </div>
+            <!-- Slide-out Notes Drawer -->
+            <div class={drawerClasses} style={drawerStyle}>
+                <div class="drawer-header">
+                    <div class="drawer-header-left">
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            ></path>
+                        </svg>
+                        <h2 class="drawer-title">My Notes</h2>
+                        <span class="drawer-count">{notesCount}</span>
+                    </div>
+                    <div class="drawer-header-right">
+                        <span class="drawer-width-label">480px</span>
+                        <button class="drawer-close-btn" onclick={toggleNotesDrawer}>
+                            <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
 
-              <!-- Discovery Questions -->
-              <div class="cdcp-questions-card">
-                <h4 class="cdcp-col-title">Discovery Questions</h4>
-                <ol class="cdcp-q-list">
-                  <template for:each={activeStep.questions} for:item="q">
-                    <li key={q.key} class="cdcp-q-item">
-                      <span class="cdcp-q-num">{q.num}</span>
-                      <span class="cdcp-q-text">{q.text}</span>
-                    </li>
-                  </template>
-                </ol>
-              </div>
+                <div class="drawer-company-bar">
+                    <p class="drawer-company-text">
+                        <span class="font-medium">Company:</span> {companyName}
+                    </p>
+                </div>
+
+                <div class="drawer-action-bar">
+                    <button class="btn-add-note" onclick={handleAddNote}>
+                        <svg class="icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M12 4v16m8-8H4"
+                            ></path>
+                        </svg>
+                        Add New Note
+                    </button>
+                </div>
+
+                <div class="drawer-body">
+                    <div class="empty-notes">
+                        <svg class="icon-xl" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="1.5"
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                            ></path>
+                        </svg>
+                        <p class="empty-notes-title">No notes yet</p>
+                        <p class="empty-notes-sub">
+                            Click the + button on sections to add notes, or create one manually above.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="drawer-footer">
+                    <div class="drawer-footer-inner">
+                        <span>Drag left edge to resize</span>
+                        <span>|</span>
+                        <span>Notes saved per company</span>
+                    </div>
+                </div>
             </div>
-
-            <!-- Step Footer Nav -->
-            <div class="cdcp-step-footer">
-              <button class="cdcp-nav-btn" disabled={isPrevDisabled} onclick={handlePrev}>← Previous</button>
-              <div class="cdcp-step-dots">
-                <template for:each={steps} for:item="dot">
-                  <span key={dot.index} class={dot.dotClass}></span>
-                </template>
-              </div>
-              <button class="cdcp-nav-btn cdcp-nav-next" disabled={isNextDisabled} onclick={handleNext}>Next →</button>
-            </div>
-          </div>
         </div>
-      </template>
-
-      <!-- 6. Goals & Next Steps -->
-      <template if:true={callPlan.nextStepsProposal}>
-        <div class="cdcp-card">
-          <div class="cdcp-card-header">
-            <h3 class="cdcp-card-label cdcp-label--dark">Proposed Next Steps</h3>
-          </div>
-          <p class="cdcp-card-body">{callPlan.nextStepsProposal}</p>
-        </div>
-      </template>
-
-    </template>
-
-    <!-- Reusable Notes Window Child Component -->
-    <c-notes-window
-      company-id={companyId}
-      company-name={companyDisplayName}
-      source-tab="Discovery Call Plan"
-      onnotesupdated={handleNotesUpdated}
-    ></c-notes-window>
-
-  </div>
+    </main>
 </template>
