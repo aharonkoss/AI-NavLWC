@@ -1,5 +1,5 @@
 <!--
-  @description       : Add New Company Component matching React UI
+  @description       : Add New Company Component with duplicate detection across manual, bulk, and prospect discovery submissions
 -->
 <template>
     <div class="page-container">
@@ -11,17 +11,39 @@
                     <span class="toast-icon">✓</span>
                     <p class="toast-text">{successMessage}</p>
                 </div>
-                <button class="toast-dismiss" onclick={handleDismissSuccess}>✕</button>
+                <button class="toast-dismiss" type="button" onclick={handleDismissSuccess}>✕</button>
             </div>
         </template>
 
-        <!-- Submit Error Toast Notification -->
+        <!-- Submit Error / Duplicate Company Notification -->
         <template if:true={errors.submit}>
             <div class="toast toast-error">
                 <div class="toast-left">
                     <span class="toast-icon">⚠</span>
-                    <p class="toast-text">{errors.submit}</p>
+                    <div class="toast-text-group">
+                        <p class="toast-title">Submission Error</p>
+                        <p class="toast-text">{errors.submit}</p>
+                    </div>
                 </div>
+                <button class="toast-dismiss" type="button" onclick={handleDismissDuplicate}>✕</button>
+            </div>
+        </template>
+
+        <!-- Bulk Upload Duplicate Skipped Warnings -->
+        <template if:true={hasDuplicateWarnings}>
+            <div class="toast-group">
+                <template for:each={duplicateWarnings} for:item="dup" for:index="index">
+                    <div key={dup.name} class="toast toast-warning">
+                        <div class="toast-left">
+                            <span class="toast-icon">⚠</span>
+                            <div class="toast-text-group">
+                                <p class="toast-title">{dup.name}</p>
+                                <p class="toast-text">{dup.message}</p>
+                            </div>
+                        </div>
+                        <button class="toast-dismiss" type="button" data-index={index} onclick={handleDismissWarning}>✕</button>
+                    </div>
+                </template>
             </div>
         </template>
 

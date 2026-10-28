@@ -264,7 +264,7 @@
 
                         <!-- Row 1: Revenue, Employees, Company Age, Do Not Call -->
                         <div class="filters-grid-4" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
-                            <!-- Revenue Filter (from Custom Metadata) -->
+                            <!-- Revenue Filter -->
                             <div class="filter-dropdown-container">
                                 <label class="filter-label">Revenue</label>
                                 <div class="filter-trigger" onclick={toggleRevenueMenu}>
@@ -284,7 +284,7 @@
                                 </template>
                             </div>
 
-                            <!-- Employees Filter (from Custom Metadata) -->
+                            <!-- Employees Filter -->
                             <div class="filter-dropdown-container">
                                 <label class="filter-label">Employees</label>
                                 <div class="filter-trigger" onclick={toggleEmployeesMenu}>
@@ -304,7 +304,7 @@
                                 </template>
                             </div>
 
-                            <!-- Company Age Filter (from Custom Metadata) -->
+                            <!-- Company Age Filter -->
                             <div class="filter-dropdown-container">
                                 <label class="filter-label">Company Age</label>
                                 <div class="filter-trigger" onclick={toggleAgeMenu}>
@@ -324,7 +324,7 @@
                                 </template>
                             </div>
 
-                            <!-- Do Not Call Filter (Dropdown: Yes / No) -->
+                            <!-- Do Not Call Filter -->
                             <div class="filter-dropdown-container">
                                 <label class="filter-label">Do Not Call</label>
                                 <select class="filter-trigger" style="width: 100%; cursor: pointer;" onchange={handleDoNotCallChange} value={doNotCallValue}>
@@ -335,9 +335,8 @@
                             </div>
                         </div>
 
-                        <!-- Row 2: Location Targeting with Multi-Select States & Removable Pills -->
+                        <!-- Row 2: Location Targeting -->
                         <div class="filters-grid-2">
-                            <!-- Portfolio States (from Custom Metadata) -->
                             <div class="filter-dropdown-container">
                                 <label class="section-sublabel">Location Targeting</label>
                                 <label class="filter-label">Portfolio States</label>
@@ -358,7 +357,6 @@
                                 </template>
                             </div>
 
-                            <!-- Add City, County, or Radius with Removable Pills -->
                             <div class="input-add-container">
                                 <label class="filter-label">Add City, County, or Radius</label>
                                 <div class="combo-input-wrapper">
@@ -377,7 +375,6 @@
                                     <button class="combo-add-btn" onclick={handleAddLocation}>Add</button>
                                 </div>
 
-                                <!-- Removable Location Pills -->
                                 <template if:true={hasLocationPills}>
                                     <div class="filter-pills-row">
                                         <template for:each={locationPills} for:item="pill">
@@ -391,9 +388,8 @@
                             </div>
                         </div>
 
-                        <!-- Row 3: Industry Targeting with Multi-Select Dropdown & Removable Pills -->
+                        <!-- Row 3: Industry Targeting -->
                         <div class="filters-grid-2">
-                            <!-- Portfolio Industries (from Custom Metadata) -->
                             <div class="filter-dropdown-container">
                                 <label class="section-sublabel">Industry Targeting</label>
                                 <label class="filter-label">Portfolio Industries</label>
@@ -414,7 +410,6 @@
                                 </template>
                             </div>
 
-                            <!-- Add NAICS Code or Custom Industry with Removable Pills -->
                             <div class="input-add-container">
                                 <label class="filter-label">Add NAICS Code or Custom Industry</label>
                                 <div class="combo-input-wrapper">
@@ -428,7 +423,6 @@
                                     <button class="combo-add-btn" onclick={handleAddIndustry}>Add</button>
                                 </div>
 
-                                <!-- Removable Industry Pills -->
                                 <template if:true={hasIndustryPills}>
                                     <div class="filter-pills-row">
                                         <template for:each={industryPills} for:item="pill">
@@ -442,7 +436,7 @@
                             </div>
                         </div>
 
-                        <!-- Row 4: Opportunity Signals Chips (from Custom Metadata) -->
+                        <!-- Row 4: Opportunity Signals Chips -->
                         <div class="signals-filter-row">
                             <label class="filter-label">Opportunity Signals</label>
                             <div class="signal-chips-wrapper">
@@ -482,6 +476,15 @@
                         <div class="prospects-list">
                             <template for:each={prospects} for:item="lead">
                                 <div key={lead.id} class={lead.cardClass}>
+                                    
+                                    <!-- Inline Duplicate Notification Banner -->
+                                    <template if:true={lead.isDuplicate}>
+                                        <div class="prospect-duplicate-banner">
+                                            <span class="duplicate-icon">⚠</span>
+                                            <span class="duplicate-text">{lead.duplicateMessage}</span>
+                                        </div>
+                                    </template>
+
                                     <!-- Card Header -->
                                     <div class="lead-card-header">
                                         <div class="lead-title-box">
@@ -489,24 +492,35 @@
                                             <span class={lead.priorityBadgeClass}>{lead.priorityLabel}</span>
                                         </div>
                                         <div class="lead-actions">
-                                            <button 
-                                                class="btn-add-list" 
-                                                data-id={lead.id} 
-                                                onclick={handleAddProspectToList}
-                                                disabled={lead.isSubmitting}
-                                            >
-                                                <template if:false={lead.isSubmitting}>
-                                                    + Add To My List
-                                                </template>
-                                                <template if:true={lead.isSubmitting}>
-                                                    <span class="btn-spinner-sm"></span> Adding...
-                                                </template>
-                                            </button>
+                                            <!-- If Duplicate: show disabled Already Submitted button -->
+                                            <template if:true={lead.isDuplicate}>
+                                                <button class="btn-add-list btn-duplicate-disabled" disabled>
+                                                    Already Submitted
+                                                </button>
+                                            </template>
+
+                                            <!-- If Not Duplicate: show active + Add To My List button -->
+                                            <template if:false={lead.isDuplicate}>
+                                                <button 
+                                                    class="btn-add-list" 
+                                                    data-id={lead.id} 
+                                                    onclick={handleAddProspectToList}
+                                                    disabled={lead.isSubmitting}
+                                                >
+                                                    <template if:false={lead.isSubmitting}>
+                                                        + Add To My List
+                                                    </template>
+                                                    <template if:true={lead.isSubmitting}>
+                                                        <span class="btn-spinner-sm"></span> Adding...
+                                                    </template>
+                                                </button>
+                                            </template>
+
                                             <button class="btn-remove-lead" data-id={lead.id} onclick={handleRemoveProspect}>✕ Remove</button>
                                         </div>
                                     </div>
 
-                                    <!-- Lead Meta Details with Matched SVG Icons -->
+                                    <!-- Lead Meta Details -->
                                     <div class="lead-meta-row">
                                         <!-- Location Pin Icon -->
                                         <span class="meta-item">
@@ -517,7 +531,7 @@
                                             <span>{lead.location}</span>
                                         </span>
 
-                                        <!-- Industry Archway / Portal Icon -->
+                                        <!-- Industry Archway Icon -->
                                         <span class="meta-item">
                                             <svg class="meta-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h3m12 0h3M6 21V7a3 3 0 013-3h6a3 3 0 013 3v14"></path>
@@ -550,7 +564,7 @@
                                         <p class="lead-section-body">{lead.opportunity}</p>
                                     </div>
 
-                                    <!-- Recent Activity with Matched External "View Source" Link -->
+                                    <!-- Recent Activity Link -->
                                     <div class="lead-activity-row">
                                         <span><strong>Recent Activity:</strong> {lead.recentActivity}</span>
                                         <a 

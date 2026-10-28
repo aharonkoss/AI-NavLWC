@@ -1,10 +1,10 @@
 /**
- * @description DashboardController — Pure Salesforce database updates, pipeline polling,
+ * @description DashboardController — Salesforce database updates, pipeline polling,
  *              sharing actions, manual company submission, Lead creation with State Picklist support,
- *              and Azure AI Prospecting Discovery.
+ *              Azure AI Prospecting Discovery, and cross-user duplicate checks.
  * @group AI Navigator - Apex
  */
-public with sharing class DashboardController {
+public without sharing class DashboardController {
 
     private static final AI_Navigator_Config__mdt CONFIG;
     
@@ -624,7 +624,6 @@ public with sharing class DashboardController {
             String path = '/prospecting/v1/user/prospects/ai-recommendations';
             HttpRequest req = ProspectingHttpService.buildRequest('POST', path, correlationId, userId);
 
-            // Format body with filters object (avoiding double-wrapping)
             Map<String, Object> bodyMap = new Map<String, Object>();
             if (String.isNotBlank(filtersJson)) {
                 Object parsed = JSON.deserializeUntyped(filtersJson);
@@ -707,8 +706,8 @@ public with sharing class DashboardController {
     /**
      * @description Adds a prospect lead into Salesforce, calls Azure manual company ingestion,
      *              and inserts a corresponding Lead record with State/Country Picklist support.
-     *              CALLOUT FIRST, DML SECOND to prevent "uncommitted work pending" error.
-     *              POST /api/v1/user/companies/manual
+     *              Checks for duplicates across all users in Salesforce before making callout.
+     *              POST /v1/user/companies/manual
      */
     @AuraEnabled
     public static String addProspectCompany(String name, String website, String city, String state) {
@@ -719,24 +718,17 @@ public with sharing class DashboardController {
         String userId        = UserInfo.getUserId();
         String correlationId = generateCorrelationId();
         String cleanWebsite  = String.isNotBlank(website) ? website.trim() : null;
+        String cleanName     = name.trim();
 
         try {
-            // 1. QUERY EXISTING COMPANY BY WEBSITE OWNED BY CURRENT USER (SOQL is safe before callout)
-            List<AI_Navigator_Company__c> existingCompanies = new List<AI_Navigator_Company__c>();
-            if (String.isNotBlank(cleanWebsite)) {
-                existingCompanies = [
-                    SELECT Id, Name, Website__c, City__c, State__c, Stage_List__c, Client_Type_List__c, 
-                           Status__c, Correlation_Id__c, CreatedDate, Is_Hidden__c
-                    FROM   AI_Navigator_Company__c
-                    WHERE  OwnerId = :userId AND Website__c = :cleanWebsite
-                    LIMIT  1
-                ];
-            }
+            // 1. CHECK FOR PREVIOUSLY SUBMITTED COMPANY ACROSS ALL USERS
+            AI_Navigator_Company__c existingCompany = findDuplicateCompany(cleanName, cleanWebsite);
 
-            if (!existingCompanies.isEmpty()) {
-                correlationId = String.isNotBlank(existingCompanies[0].Correlation_Id__c)
-                    ? existingCompanies[0].Correlation_Id__c
-                    : correlationId;
+            if (existingCompany != null) {
+                String ownerName = (existingCompany.Owner != null && String.isNotBlank(existingCompany.Owner.Name))
+                    ? existingCompany.Owner.Name
+                    : 'another user';
+                throw createHandledException('This company has already been submitted by ' + ownerName + '.');
             }
 
             // 2. MAKE CALLOUT FIRST (Before any DML occurs)
@@ -744,7 +736,7 @@ public with sharing class DashboardController {
             HttpRequest req = AzureHttpService.buildRequest('POST', path, correlationId, userId);
 
             Map<String, Object> payload = new Map<String, Object>{
-                'name'         => name.trim(),
+                'name'         => cleanName,
                 'website'      => cleanWebsite,
                 'city'         => String.isNotBlank(city) ? city.trim() : null,
                 'state'        => String.isNotBlank(state) ? state.trim() : null,
@@ -777,93 +769,44 @@ public with sharing class DashboardController {
                 }
             }
 
-            // 4. PERFORM DML (Update existing or Insert new Company)
-            Id targetCompanyId;
-            String companyNameResult;
-            String cityResult;
-            String stateResult;
-            String stageResult;
-            String clientTypeResult;
-            String statusResult;
-
-            if (!existingCompanies.isEmpty()) {
-                AI_Navigator_Company__c existing = existingCompanies[0];
-                existing.Is_Hidden__c        = false;
-                existing.Name                = name.trim();
-                existing.City__c             = String.isNotBlank(city) ? city.trim() : existing.City__c;
-                existing.State__c            = String.isNotBlank(state) ? state.trim() : existing.State__c;
-                existing.Stage_List__c       = 'PreCall';
-                existing.Client_Type_List__c = 'Prospect';
-                existing.Status__c           = 'processing';
-                if (String.isNotBlank(azureCompanyId)) {
-                    existing.Azure_Company_Id__c = azureCompanyId;
-                }
-                update existing;
-
-                targetCompanyId  = existing.Id;
-                companyNameResult = existing.Name;
-                cityResult       = existing.City__c;
-                stateResult      = existing.State__c;
-                stageResult      = existing.Stage_List__c;
-                clientTypeResult = existing.Client_Type_List__c;
-                statusResult     = existing.Status__c;
-            } else {
-                AI_Navigator_Company__c company = new AI_Navigator_Company__c(
-                    Name                 = name.trim(),
-                    Website__c           = cleanWebsite,
-                    City__c              = String.isNotBlank(city) ? city.trim() : null,
-                    State__c             = String.isNotBlank(state) ? state.trim() : null,
-                    Stage_List__c        = 'PreCall',
-                    Client_Type_List__c  = 'Prospect',
-                    Status__c            = 'processing',
-                    Azure_Company_Id__c  = azureCompanyId,
-                    OwnerId              = userId,
-                    Correlation_Id__c    = correlationId
-                );
-                insert company;
-
-                targetCompanyId  = company.Id;
-                companyNameResult = company.Name;
-                cityResult       = company.City__c;
-                stateResult      = company.State__c;
-                stageResult      = company.Stage_List__c;
-                clientTypeResult = company.Client_Type_List__c;
-                statusResult     = company.Status__c;
-            }
+            // 4. PERFORM DML (Insert new Company)
+            AI_Navigator_Company__c company = new AI_Navigator_Company__c(
+                Name                 = cleanName,
+                Website__c           = cleanWebsite,
+                City__c              = String.isNotBlank(city) ? city.trim() : null,
+                State__c             = String.isNotBlank(state) ? state.trim() : null,
+                Stage_List__c        = 'PreCall',
+                Client_Type_List__c  = 'Prospect',
+                Status__c            = 'processing',
+                Azure_Company_Id__c  = azureCompanyId,
+                OwnerId              = userId,
+                Correlation_Id__c    = correlationId
+            );
+            insert company;
 
             // 5. CREATE CORRESPONDING LEAD WITH SAFE STATE PICKLIST HANDLING
-            List<Lead> existingLeads = [
-                SELECT Id 
-                FROM   Lead 
-                WHERE  AIN_Id__c = :targetCompanyId 
-                AND    IsConverted = false 
-                LIMIT  1
-            ];
-
-            if (existingLeads.isEmpty()) {
-                Lead newLead = new Lead(
-                    LastName  = name.trim(),
-                    Company   = name.trim(),
-                    Website   = cleanWebsite,
-                    City      = String.isNotBlank(city) ? city.trim() : null,
-                    Status    = 'Open - Not Contacted',
-                    AIN_Id__c = targetCompanyId
-                );
-                populateLeadAddress(newLead, state);
-                insert newLead;
-            }
+            Lead newLead = new Lead(
+                LastName  = cleanName,
+                Company   = cleanName,
+                Website   = cleanWebsite,
+                City      = String.isNotBlank(city) ? city.trim() : null,
+                Status    = 'Open - Not Contacted',
+                AIN_Id__c = company.Id
+            );
+            populateLeadAddress(newLead, state);
+            insert newLead;
 
             return JSON.serialize(new Map<String, Object>{
                 'success'        => true,
-                'companyId'      => targetCompanyId,
+                'companyId'      => company.Id,
                 'azureCompanyId' => azureCompanyId,
                 'correlationId'  => correlationId,
-                'name'           => companyNameResult,
-                'city'           => cityResult,
-                'state'          => stateResult,
-                'stage'          => stageResult,
-                'clientType'     => clientTypeResult,
-                'status'         => statusResult,
+                'name'           => company.Name,
+                'city'           => company.City__c,
+                'state'          => company.State__c,
+                'stage'          => company.Stage_List__c,
+                'clientType'     => company.Client_Type_List__c,
+                'status'         => company.Status__c,
                 'createdAt'      => Datetime.now().formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'')
             });
 
@@ -873,16 +816,15 @@ public with sharing class DashboardController {
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'DashboardController.addProspectCompany – ' + e.getMessage());
             logError('DashboardController.addProspectCompany', 'POST', correlationId, e.getMessage());
-            throw createHandledException('Unable to add prospect company: ' + e.getMessage());
+            throw createHandledException(e.getMessage());
         }
     }
+
     @AuraEnabled(cacheable=true)
     public static String getProspectFilterConfigs() {
-        // 1. Get running user's group (with fallback to 'Default')
         User u = [SELECT Prospecting_Group__c FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1];
         String userGroup = String.isNotBlank(u.Prospecting_Group__c) ? u.Prospecting_Group__c : 'Default';
 
-        // 2. Query active records for the user's group, or fallback to Default
         List<AI_Navigator_Prospect_Filter_Option__mdt> records = [
             SELECT Label, DeveloperName, Category__c, API_Value__c, Sort_Order__c, User_Group__c
             FROM   AI_Navigator_Prospect_Filter_Option__mdt
@@ -891,7 +833,6 @@ public with sharing class DashboardController {
             ORDER BY Sort_Order__c ASC NULLS LAST, Label ASC
         ];
 
-        // 3. Group by Category so LWC can initialize all 6 filter picklists dynamically
         Map<String, List<Map<String, Object>>> grouped = new Map<String, List<Map<String, Object>>>{
             'Revenue'     => new List<Map<String, Object>>(),
             'Employees'   => new List<Map<String, Object>>(),
@@ -913,7 +854,56 @@ public with sharing class DashboardController {
 
         return JSON.serialize(grouped);
     }
-    // ── Safe Address Mapping Helper (from InputController.cls) ───────────────
+
+    // ── Duplicate Query Helper ───────────────────────────────────────────────
+    private static AI_Navigator_Company__c findDuplicateCompany(String companyName, String website) {
+        if (String.isNotBlank(website)) {
+            String cleanWeb = website.trim();
+            String domain = normalizeWebsite(cleanWeb);
+
+            List<AI_Navigator_Company__c> matches = [
+                SELECT Id, Name, Website__c, OwnerId, Owner.Name
+                FROM   AI_Navigator_Company__c
+                WHERE  Website__c = :cleanWeb
+                   OR  Website__c = :domain
+                   OR  Website__c = :('https://' + domain)
+                   OR  Website__c = :('https://www.' + domain)
+                   OR  Website__c = :('http://' + domain)
+                   OR  Website__c = :('http://' + domain)
+                LIMIT 1
+            ];
+
+            if (!matches.isEmpty()) {
+                return matches[0];
+            }
+        }
+
+        if (String.isNotBlank(companyName)) {
+            String cleanName = companyName.trim();
+            List<AI_Navigator_Company__c> matches = [
+                SELECT Id, Name, Website__c, OwnerId, Owner.Name
+                FROM   AI_Navigator_Company__c
+                WHERE  Name = :cleanName
+                LIMIT 1
+            ];
+
+            if (!matches.isEmpty()) {
+                return matches[0];
+            }
+        }
+
+        return null;
+    }
+
+    private static String normalizeWebsite(String web) {
+        if (String.isBlank(web)) return '';
+        return web.trim().toLowerCase()
+            .replaceAll('^https?://', '')
+            .replaceAll('^www\\.', '')
+            .replaceAll('/.*$', '');
+    }
+
+    // ── Safe Address Mapping Helper ──────────────────────────────────────────
     private static void populateLeadAddress(Lead leadRecord, String stateInput) {
         if (String.isBlank(stateInput)) {
             leadRecord.Country = 'United States';
@@ -922,12 +912,10 @@ public with sharing class DashboardController {
 
         String inputUpper = stateInput.trim().toUpperCase();
 
-        // Check if user entered a 2-letter code (e.g., 'TN', 'AZ', 'SC')
         if (STATE_CODE_TO_NAME.containsKey(inputUpper)) {
-            leadRecord.CountryCode = 'US';
-            leadRecord.StateCode   = inputUpper;
+            leadRecord.Country = 'US';
+            leadRecord.State   = inputUpper;
         } else {
-            // User entered a full state name (e.g., 'South Carolina')
             leadRecord.Country = 'United States';
             leadRecord.State   = stateInput.trim();
         }

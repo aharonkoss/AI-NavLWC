@@ -436,6 +436,12 @@
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+}
+
+.banner-left {
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
@@ -443,6 +449,22 @@
     width: 1.25rem;
     height: 1.25rem;
     flex-shrink: 0;
+}
+
+.banner-dismiss {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: currentColor;
+    opacity: 0.7;
+    line-height: 1;
+    padding: 0.125rem 0.25rem;
+    transition: opacity 0.15s ease;
+}
+
+.banner-dismiss:hover {
+    opacity: 1;
 }
 
 .banner-error {
@@ -457,6 +479,122 @@
     color: #166534;
 }
 
+/* ==========================================================================
+   Duplicate Companies Skipped Card & List
+   ========================================================================== */
+.duplicates-card {
+    background-color: #fffbeb; /* bg-amber-50 */
+    border: 1px solid #fde68a; /* border-amber-200 */
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    color: #92400e; /* text-amber-800 */
+}
+
+.duplicates-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.375rem;
+}
+
+.duplicates-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.warning-icon {
+    color: #d97706; /* text-amber-600 */
+}
+
+.duplicates-heading {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0;
+    color: #92400e;
+}
+
+.dismiss-all-btn {
+    background: transparent;
+    border: 1px solid #fcd34d;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #b45309;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.dismiss-all-btn:hover {
+    background-color: #fef3c7;
+    color: #78350f;
+}
+
+.duplicates-subtext {
+    font-size: 0.75rem;
+    color: #b45309;
+    margin: 0 0 0.75rem 0;
+    line-height: 1.25rem;
+}
+
+.duplicates-list {
+    max-height: 15rem; /* ~240px scroll container */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-right: 0.25rem;
+}
+
+.duplicate-item {
+    background-color: #ffffff;
+    border: 1px solid #fef3c7;
+    border-left: 3px solid #f59e0b;
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.duplicate-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 0.125rem;
+}
+
+.duplicate-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.duplicate-message {
+    font-size: 0.75rem;
+    color: #b45309;
+    line-height: 1rem;
+}
+
+.duplicate-dismiss-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: #9ca3af;
+    padding: 0.125rem 0.25rem;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.duplicate-dismiss-btn:hover {
+    color: #111827;
+}
+
+/* Spinner */
 .spinner {
     width: 1rem;
     height: 1rem;

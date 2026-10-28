@@ -1,5 +1,6 @@
 import { LightningElement, track, wire } from 'lwc';
 import { NavigationMixin } from 'lightning/navigation';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 // Apex Picklist & Metadata Config Imports
 import getStageOptions from '@salesforce/apex/DashboardController.getStageOptions';
@@ -24,7 +25,7 @@ import getProspectDiscoveryStatus from '@salesforce/apex/DashboardController.get
 import addProspectCompany from '@salesforce/apex/DashboardController.addProspectCompany';
 
 const POLLING_INTERVAL_MS = 5000;
-const PROSPECT_POLLING_INTERVAL_MS = 15000; // Poll every 15 seconds
+const PROSPECT_POLLING_INTERVAL_MS = 15000;
 
 export default class Dashboard extends NavigationMixin(LightningElement) {
     // Current Active Tab: 'companies' | 'prospects'
@@ -190,13 +191,11 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         }
     }
 
-    // Shows spinner and queries discovery status whenever the tab is selected
     fetchProspectStatusOnTabLoad() {
         if (this.isProspectPollingActive) {
             return;
         }
 
-        // Show spinner immediately on tab click
         this.isProspectSearching = true;
 
         getProspectDiscoveryStatus()
@@ -216,7 +215,6 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                         this.prospects = [];
                     }
                 } else if (data.status === 'processing') {
-                    // Backend search in progress; keep spinner active and poll every 15 seconds
                     this.isProspectSearching = true;
                     this.startProspectPolling();
                 } else {
@@ -599,7 +597,9 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
                     priorityBadgeClass: priorityBadgeClass,
                     cardClass: cardClass,
                     suggestedApproach: lead.recommendedApproach || lead.suggestedApproach || '',
-                    isSubmitting: false
+                    isSubmitting: false,
+                    isDuplicate: false,
+                    duplicateMessage: null
                 };
             });
         }
@@ -632,11 +632,11 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         window.open(targetUrl, '_blank', 'noopener,noreferrer');
     }
 
-    // Submits prospect, switches to Companies tab, and initiates live polling
+    // Submits prospect, switches to Companies tab, and initiates live polling with duplicate check
     handleAddProspectToList(e) {
         const prospectId = e.currentTarget.dataset.id;
         const prospect = this.prospects.find(p => p.id === prospectId);
-        if (!prospect || prospect.isSubmitting) return;
+        if (!prospect || prospect.isSubmitting || prospect.isDuplicate) return;
 
         this.prospects = this.prospects.map(p => 
             p.id === prospectId ? { ...p, isSubmitting: true } : p
@@ -654,11 +654,15 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             }
         }
 
+        const companyWebsite = prospect.website 
+            ? prospect.website.trim() 
+            : `https://${prospect.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`;
+
         addProspectCompany({
-            name: prospect.name.trim(),
-            website: prospect.website ? prospect.website.trim() : `https://${prospect.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
-            city: city,
-            state: state
+            name    : prospect.name.trim(),
+            website : companyWebsite,
+            city    : city,
+            state   : state
         })
         .then(resultJson => {
             const result = JSON.parse(resultJson);
@@ -668,17 +672,17 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
 
             // B. Add new company to local state with pulsing processing dot
             const newCompany = this.mapCompany({
-                companyId: result.companyId,
-                azureCompanyId: result.azureCompanyId,
-                correlationId: result.correlationId,
-                name: result.name,
-                city: result.city,
-                state: result.state,
-                stage: result.stage || 'PreCall',
-                clientType: result.clientType || 'Prospect',
-                status: (result.status || 'processing').toLowerCase(),
-                currentStage: 'submitted',
-                createdAt: result.createdAt || new Date().toISOString()
+                companyId      : result.companyId,
+                azureCompanyId : result.azureCompanyId,
+                correlationId  : result.correlationId,
+                name           : result.name,
+                city           : result.city,
+                state          : result.state,
+                stage          : result.stage || 'PreCall',
+                clientType     : result.clientType || 'Prospect',
+                status         : (result.status || 'processing').toLowerCase(),
+                currentStage   : 'submitted',
+                createdAt      : result.createdAt || new Date().toISOString()
             });
 
             const index = this._companies.findIndex(c => c.companyId === newCompany.companyId);
@@ -689,7 +693,7 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
             }
             this._companies = [...this._companies];
 
-            // C. Automatically switch to the Companies tab and hide Prospect Discovery
+            // C. Automatically switch to the Companies tab
             this.activeTab = 'companies';
 
             // D. Start live polling for status progression
@@ -705,13 +709,25 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         })
         .catch(error => {
             console.error('[Dashboard Log] Error adding prospect to list:', error);
-            this.showCustomToast(
-                'Failed to add company: ' + (error.body?.message || error.message || 'Unknown error'),
-                'error'
-            );
+            const rawMessage = error?.body?.message || error?.message || 'Unable to add company.';
+            
+            // Exact requirement: “This company has already been submitted by [User Name].”
+            const isDuplicate = rawMessage.toLowerCase().includes('already been submitted');
+            const displayMessage = isDuplicate ? rawMessage : `Failed to add company: ${rawMessage}`;
+
+            // Update prospect card state to show duplicate banner and disable the button
             this.prospects = this.prospects.map(p => 
-                p.id === prospectId ? { ...p, isSubmitting: false } : p
+                p.id === prospectId 
+                    ? { 
+                        ...p, 
+                        isSubmitting: false, 
+                        isDuplicate: isDuplicate, 
+                        duplicateMessage: isDuplicate ? rawMessage : null 
+                      } 
+                    : p
             );
+
+            this.showCustomToast(displayMessage, 'error');
         });
     }
 
@@ -806,17 +822,17 @@ export default class Dashboard extends NavigationMixin(LightningElement) {
         if (!payload || !payload.companyId) return;
 
         const submittedCompany = this.mapCompany({
-            companyId: payload.companyId,
-            azureCompanyId: payload.azureCompanyId,
-            correlationId: payload.correlationId,
-            name: payload.name,
-            city: payload.city,
-            state: payload.state,
-            stage: payload.stage,
-            clientType: payload.clientType,
-            status: payload.status || 'pending',
-            currentStage: payload.currentStage || 'submitted',
-            createdAt: payload.createdAt || new Date().toISOString()
+            companyId      : payload.companyId,
+            azureCompanyId : payload.azureCompanyId,
+            correlationId  : payload.correlationId,
+            name           : payload.name,
+            city           : payload.city,
+            state          : payload.state,
+            stage          : payload.stage,
+            clientType     : payload.clientType,
+            status         : payload.status || 'pending',
+            currentStage   : payload.currentStage || 'submitted',
+            createdAt      : payload.createdAt || new Date().toISOString()
         });
 
         const index = this._companies.findIndex(c => c.companyId === submittedCompany.companyId);

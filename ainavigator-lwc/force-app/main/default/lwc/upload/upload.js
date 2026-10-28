@@ -1,9 +1,10 @@
 import { LightningElement, track } from 'lwc';
 import { updateRecord } from 'lightning/uiRecordApi';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 // Static Resource Imports
 import TEMPLATE_CSV from '@salesforce/resourceUrl/Company_Upload_Template_CSV';
-import TEMPLATE_XLSX from '@salesforce/resourceUrl/Company_Upload_Template_XLSX';
+import TEMPLATE_XLSX from '@salesforce/resourceUrl/Company_Upload_Template_XLS';
 import TEMPLATE_XLS from '@salesforce/resourceUrl/Company_Upload_Template_XLS';
 
 // Apex Controller methods
@@ -11,6 +12,7 @@ import getUploadSettings from '@salesforce/apex/UploadController.getUploadSettin
 import getPreviousSubmissions from '@salesforce/apex/UploadController.getPreviousSubmissions';
 import getPicklistOptions from '@salesforce/apex/UploadController.getPicklistOptions';
 import uploadFile from '@salesforce/apex/UploadController.uploadFile';
+import checkDuplicates from '@salesforce/apex/SubmissionsController.checkDuplicates';
 
 export default class Upload extends LightningElement {
     @track settings = { dailyLimit: 50, usedToday: 0, remaining: 50 };
@@ -19,6 +21,10 @@ export default class Upload extends LightningElement {
     @track isUploading = false;
     @track error = null;
     @track successMessage = '';
+
+    // Duplicate tracking state
+    @track duplicateWarnings = [];
+    @track skippedCount = 0;
 
     // Picklist selection values and options
     @track defaultStage = '';
@@ -187,10 +193,11 @@ export default class Upload extends LightningElement {
         return map[status] || 'status-pill status-processing';
     }
 
-    get usedToday()      { return this.settings.usedToday || 0; }
-    get dailyLimit()     { return this.settings.dailyLimit || 0; }
-    get remaining()      { return this.settings.remaining || Math.max(0, this.dailyLimit - this.usedToday); }
-    get hasSubmissions() { return this.filteredSubmissions.length > 0; }
+    get usedToday()            { return this.settings.usedToday || 0; }
+    get dailyLimit()           { return this.settings.dailyLimit || 0; }
+    get remaining()            { return this.settings.remaining || Math.max(0, this.dailyLimit - this.usedToday); }
+    get hasSubmissions()       { return this.filteredSubmissions.length > 0; }
+    get hasDuplicateWarnings() { return this.duplicateWarnings && this.duplicateWarnings.length > 0; }
 
     get filteredSubmissions() {
         let list = [...this.submissions];
@@ -240,6 +247,7 @@ export default class Upload extends LightningElement {
         }
     }
 
+    // ── File Processing with Cross-User Duplicate Check ─────────────────────
     async processFile(file) {
         if (this.isUploading) return;
 
@@ -248,7 +256,14 @@ export default class Upload extends LightningElement {
             return;
         }
 
+        this.isUploading = true;
+        this.error = null;
+        this.successMessage = '';
+        this.duplicateWarnings = [];
+        this.skippedCount = 0;
+
         const ext = file.name.split('.').pop().toLowerCase();
+        let rows = [];
 
         try {
             // 1. Client-Side XLSX Parser
@@ -259,44 +274,208 @@ export default class Upload extends LightningElement {
                 const sharedStringsKey = Object.keys(extractedXmls).find(k => k.includes('sharedStrings.xml'));
 
                 if (sheetXmlKey) {
-                    const rows = this.extractRowsFromSheetXml(extractedXmls[sheetXmlKey], extractedXmls[sharedStringsKey]);
-                    if (rows && rows.length > 0) {
-                        const csvContent = rows
-                            .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-                            .join('\r\n');
-                        const base64 = btoa(unescape(encodeURIComponent(csvContent)));
-                        this.uploadToServer(file.name, base64);
-                        return;
-                    }
+                    rows = this.extractRowsFromSheetXml(extractedXmls[sheetXmlKey], extractedXmls[sharedStringsKey]);
                 }
             } 
             // 2. Client-Side HTML/XML-based XLS Parser
             else if (ext === 'xls') {
                 const text = await file.text();
-                const rows = this.parseHtmlOrXmlTable(text);
-                if (rows && rows.length > 0) {
-                    const csvContent = rows
-                        .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
-                        .join('\r\n');
-                    const base64 = btoa(unescape(encodeURIComponent(csvContent)));
-                    this.uploadToServer(file.name, base64);
-                    return;
-                }
+                rows = this.parseHtmlOrXmlTable(text) || [];
             }
-        } catch (parseEx) {
-            console.warn('[Upload Log] Client Excel parsing fallback to raw file:', parseEx);
-        }
+            // 3. Client-Side CSV Parser
+            else {
+                const text = await file.text();
+                rows = this.parseCsvText(text);
+            }
 
-        // Standard CSV / fallback stream reader
-        const reader = new FileReader();
-        reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            this.uploadToServer(file.name, base64);
-        };
-        reader.readAsDataURL(file);
+            if (!rows || rows.length < 2) {
+                this.error = 'The uploaded file does not contain any company data rows.';
+                this.isUploading = false;
+                this.resetFileInput();
+                return;
+            }
+
+            // Extract headers and map columns
+            const headerRow = rows[0].map(h => String(h || '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+            const nameIdx = headerRow.findIndex(h => h.includes('company') || h.includes('name'));
+            const webIdx = headerRow.findIndex(h => h.includes('website') || h.includes('url') || h.includes('domain'));
+
+            if (nameIdx === -1 && webIdx === -1) {
+                this.error = 'File must contain at least a "Company Name" or "Website" column.';
+                this.isUploading = false;
+                this.resetFileInput();
+                return;
+            }
+
+            const dataRows = rows.slice(1).filter(r => r.some(cell => String(cell || '').trim().length > 0));
+
+            // Prepare list for duplicate check
+            const companiesToCheck = dataRows.map(r => ({
+                companyName : nameIdx !== -1 ? String(r[nameIdx] || '').trim() : '',
+                website     : webIdx !== -1 ? String(r[webIdx] || '').trim() : ''
+            }));
+
+            // 4. Apex Duplicate Check across all users in the org
+            const dupResponse = await checkDuplicates({ companies: companiesToCheck });
+            const duplicateMap = dupResponse?.duplicates || {};
+
+            const validRows = [];
+            const duplicateAlerts = [];
+
+            dataRows.forEach((r, idx) => {
+                const comp = companiesToCheck[idx];
+                const cleanWeb = comp.website.toLowerCase().trim();
+                const cleanName = comp.companyName.toLowerCase().trim();
+
+                let dupMsg = null;
+                if (cleanWeb && duplicateMap[cleanWeb]) {
+                    dupMsg = duplicateMap[cleanWeb];
+                } else if (cleanWeb && duplicateMap[comp.website]) {
+                    dupMsg = duplicateMap[comp.website];
+                } else if (cleanName && duplicateMap[cleanName]) {
+                    dupMsg = duplicateMap[cleanName];
+                } else if (cleanName && duplicateMap[comp.companyName]) {
+                    dupMsg = duplicateMap[comp.companyName];
+                }
+
+                if (dupMsg) {
+                    duplicateAlerts.push({
+                        id: `dup-${idx}`,
+                        name: comp.companyName || comp.website || `Row #${idx + 1}`,
+                        message: dupMsg
+                    });
+                } else {
+                    validRows.push(r);
+                }
+            });
+
+            this.duplicateWarnings = duplicateAlerts;
+            this.skippedCount = duplicateAlerts.length;
+
+            // Trigger notification for each duplicate skipped
+            duplicateAlerts.forEach(dup => {
+                this.showToast('Duplicate Company Skipped', dup.message, 'warning');
+            });
+
+            // 5. If all rows were duplicates, skip upload entirely
+            if (validRows.length === 0) {
+                this.isUploading = false;
+                this.error = `All ${dataRows.length} company records in "${file.name}" have already been submitted and were skipped.`;
+                this.resetFileInput();
+                return;
+            }
+
+            // 6. Continue processing remaining valid companies
+            const finalCsvContent = [rows[0], ...validRows]
+                .map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+                .join('\r\n');
+
+            const base64 = btoa(unescape(encodeURIComponent(finalCsvContent)));
+            this.uploadToServer(file.name, base64, validRows.length);
+
+        } catch (ex) {
+            console.error('[Upload Log] Error processing file:', ex);
+            this.error = ex.body?.message || ex.message || 'Failed to process file. Please ensure it is a valid CSV or Excel file.';
+            this.isUploading = false;
+            this.resetFileInput();
+        }
     }
 
-    // ── Native OpenXML (.xlsx) Parser ───────────────────────────────────────
+    uploadToServer(fileName, base64Data, processedCompanyCount) {
+        uploadFile({
+            fileName          : fileName,
+            base64Data        : base64Data,
+            defaultStage      : this.defaultStage,
+            defaultClientType : this.defaultClientType
+        })
+        .then(resultJson => {
+            const res = JSON.parse(resultJson);
+
+            this.settings = {
+                ...this.settings,
+                dailyLimit : res.dailyLimit,
+                usedToday  : res.usedToday,
+                remaining  : res.remaining
+            };
+
+            const skipInfo = this.skippedCount > 0 
+                ? ` (${this.skippedCount} duplicate${this.skippedCount === 1 ? '' : 's'} skipped)`
+                : '';
+
+            this.successMessage = (res.message || 'File uploaded successfully. Processing will start shortly.') + skipInfo;
+
+            const newSub = this.mapSubmission({
+                submissionId : res.submissionId,
+                recordId     : res.recordId,
+                fileName     : res.fileName,
+                status       : 'processing',
+                submittedAt  : new Date().toISOString(),
+                total        : processedCompanyCount || res.totalCompanies
+            });
+
+            this.submissions = [newSub, ...this.submissions];
+
+            if (res.recordId) {
+                this.startPendingSimulation(res.recordId);
+            }
+
+            this.showToast(
+                'Upload Success',
+                `Successfully processed ${processedCompanyCount} companies${skipInfo}.`,
+                'success'
+            );
+
+            this.dispatchEvent(new CustomEvent('uploadsubmitted', {
+                bubbles : true,
+                composed: true,
+                detail  : {
+                    submissionId  : res.submissionId,
+                    correlationId : res.correlationId,
+                    fileName      : res.fileName,
+                    status        : 'processing'
+                }
+            }));
+        })
+        .catch(err => {
+            console.error('[Upload Log] Upload error:', err);
+            this.error = err.body?.message || 'Upload failed. Please try again.';
+            this.showToast('Upload Failed', this.error, 'error');
+        })
+        .finally(() => {
+            this.isUploading = false;
+            this.resetFileInput();
+        });
+    }
+
+    // ── Client-Side Parsers ──────────────────────────────────────────────────
+    parseCsvText(text) {
+        const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+        return lines.map(line => {
+            const row = [];
+            let inQuotes = false;
+            let cur = '';
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const next = line[i + 1];
+                if (char === '"') {
+                    if (inQuotes && next === '"') {
+                        cur += '"';
+                        i++;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    row.push(cur.trim());
+                    cur = '';
+                } else {
+                    cur += char;
+                }
+            }
+            row.push(cur.trim());
+            return row;
+        });
+    }
+
     async parseXlsxZip(arrayBuffer) {
         const view = new DataView(arrayBuffer);
         const uint8 = new Uint8Array(arrayBuffer);
@@ -421,64 +600,35 @@ export default class Upload extends LightningElement {
         return rows.length > 0 ? rows : null;
     }
 
-    uploadToServer(fileName, base64Data) {
-        this.isUploading    = true;
-        this.error          = null;
+    // ── Notification and UI Helpers ──────────────────────────────────────────
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: variant,
+            mode: variant === 'error' ? 'sticky' : 'dismissable'
+        }));
+    }
+
+    handleDismissSuccess() {
         this.successMessage = '';
+    }
 
-        uploadFile({
-            fileName          : fileName,
-            base64Data        : base64Data,
-            defaultStage      : this.defaultStage,
-            defaultClientType : this.defaultClientType
-        })
-        .then(resultJson => {
-            const res = JSON.parse(resultJson);
+    handleDismissError() {
+        this.error = null;
+    }
 
-            this.settings = {
-                ...this.settings,
-                dailyLimit : res.dailyLimit,
-                usedToday  : res.usedToday,
-                remaining  : res.remaining
-            };
+    handleDismissWarning(event) {
+        const id = event.target.dataset.id;
+        this.duplicateWarnings = this.duplicateWarnings.filter(w => w.id !== id);
+    }
 
-            this.successMessage = res.message ||
-                'File uploaded successfully. Processing will start shortly.';
+    handleDismissAllWarnings() {
+        this.duplicateWarnings = [];
+    }
 
-            const newSub = this.mapSubmission({
-                submissionId : res.submissionId,
-                recordId     : res.recordId,
-                fileName     : res.fileName,
-                status       : 'processing',
-                submittedAt  : new Date().toISOString(),
-                total        : res.totalCompanies
-            });
-
-            this.submissions = [newSub, ...this.submissions];
-
-            if (res.recordId) {
-                this.startPendingSimulation(res.recordId);
-            }
-
-            this.dispatchEvent(new CustomEvent('uploadsubmitted', {
-                bubbles : true,
-                composed: true,
-                detail  : {
-                    submissionId  : res.submissionId,
-                    correlationId : res.correlationId,
-                    fileName      : res.fileName,
-                    status        : 'processing'
-                }
-            }));
-        })
-        .catch(err => {
-            console.error('[Upload Log] Upload error:', err);
-            this.error = err.body?.message || 'Upload failed. Please try again.';
-        })
-        .finally(() => {
-            this.isUploading = false;
-            const input = this.template.querySelector('.up-file-input');
-            if (input) input.value = '';
-        });
+    resetFileInput() {
+        const input = this.template.querySelector('.up-file-input');
+        if (input) input.value = '';
     }
 }

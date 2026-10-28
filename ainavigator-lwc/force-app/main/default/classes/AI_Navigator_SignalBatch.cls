@@ -1,13 +1,19 @@
 /**
- * @description       : 
+ * @description       : Batch and Schedulable class for AI Navigator Signal sync.
+ *                      Added zero-argument constructor for PostInstall and Test compatibility.
  * @author            : ChangeMeIn@UserSettingsUnder.SFDoc
  * @group             : 
- * @last modified on  : 09-22-2026
+ * @last modified on  : 10-26-2026
  * @last modified by  : ChangeMeIn@UserSettingsUnder.SFDoc
 **/
 public with sharing class AI_Navigator_SignalBatch implements Database.Batchable<Id>, Database.AllowsCallouts, Schedulable {
 
     private Boolean processAllSignals = false;
+
+    // ADDED: Default zero-argument constructor (defaults processAllSignals to false)
+    public AI_Navigator_SignalBatch() {
+        this.processAllSignals = false;
+    }
 
     // Parameterized constructor (pass true to push ALL signals)
     public AI_Navigator_SignalBatch(Boolean processAllSignals) {
