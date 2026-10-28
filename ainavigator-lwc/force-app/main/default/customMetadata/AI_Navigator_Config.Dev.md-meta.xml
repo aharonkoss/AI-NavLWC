@@ -18,7 +18,7 @@
     </values>
     <values>
         <field>Named_Credential_Name__c</field>
-        <value xsi:type="xsd:string">ainavigator__Azure_APIM_Dev</value>
+        <value xsi:type="xsd:string">Azure_APIM_Dev</value>
     </values>
     <values>
         <field>Max_Retry_Attempts__c</field>
